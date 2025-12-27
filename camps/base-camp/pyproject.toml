@@ -1,0 +1,25 @@
+[project]
+name = "base-camp"
+version = "0.1.0"
+description = "Base Camp - MCP Security Workshop"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp>=0.3.0",
+    "uvicorn>=0.30.0",
+    "httpx>=0.27.0",
+    "python-dotenv>=1.0.0",
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.1.0",
+]
+
+[tool.uv]
+dev-dependencies = []
+
+[tool.uv.sources]
+base-camp-vulnerable = { path = "vulnerable-server", editable = true }

@@ -1,0 +1,116 @@
+site_name: MCP Security Summit Workshop
+site_url: https://azure-samples.github.io/sherpa
+site_description: A Sherpa's Guide to Securing Model Context Protocol Servers in Azure
+site_author: Microsoft Azure Samples
+repo_name: Azure-Samples/sherpa
+repo_url: https://github.com/Azure-Samples/sherpa
+edit_uri: edit/main/
+
+# Copyright
+copyright: Copyright &copy; 2025 Microsoft Corporation
+
+theme:
+  name: material
+  language: en
+  palette:
+    # Light mode
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+    logo: material/security
+
+# Extensions
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+# Navigation
+nav:
+  - Home: index.md
+  - Workshop Overview: README.md
+  - The Journey:
+    - Base Camp: camps/base-camp/README.md
+    - Camp 1 - Identity: camps/camp1-identity/README.md
+    - Camp 2 - Gateway: camps/camp2-gateway/README.md
+    - Camp 3 - I/O Security: camps/camp3-io-security/README.md
+    - Camp 4 - Monitoring: camps/camp4-monitoring/README.md
+  - Resources:
+    - Contributing: CONTRIBUTING.md
+    - Infrastructure: infra/README.md
+    - Scripts: scripts/README.md
+
+# Plugins
+plugins:
+  - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+
+# Extra
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Azure-Samples/sherpa
+    - icon: fontawesome/brands/microsoft
+      link: https://azure.microsoft.com
+  analytics:
+    feedback:
+      title: Was this page helpful?
+      ratings:
+        - icon: material/emoticon-happy-outline
+          name: This page was helpful
+          data: 1
+          note: >-
+            Thanks for your feedback!
+        - icon: material/emoticon-sad-outline
+          name: This page could be improved
+          data: 0
+          note: >-
+            Thanks for your feedback! Help us improve by opening an issue.
+
+extra_css:
+  - stylesheets/extra.css

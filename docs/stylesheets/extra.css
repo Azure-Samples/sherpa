@@ -1,0 +1,39 @@
+/* Custom styles for MCP Security Summit Workshop */
+
+/* Mountain/expedition theme colors */
+:root {
+  --md-primary-fg-color: #1e3a8a;
+  --md-accent-fg-color: #3b82f6;
+}
+
+/* Enhance code blocks */
+.highlight pre {
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+/* Callout boxes styling */
+.admonition {
+  border-radius: 8px;
+  margin: 1.5em 0;
+}
+
+/* Workshop phase headers */
+h2[id^="phase"] {
+  color: var(--md-primary-fg-color);
+  border-left: 4px solid var(--md-accent-fg-color);
+  padding-left: 1rem;
+  margin-top: 2rem;
+}
+
+/* Table styling for route maps */
+table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Mountain emoji spacing */
+.twemoji {
+  vertical-align: middle;
+  margin-right: 0.2em;
+}
