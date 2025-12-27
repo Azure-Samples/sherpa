@@ -5,7 +5,7 @@
 !!! info "Camp Details"
     **Duration:** 60 minutes  
     **Tech Stack:** Python, MCP SDK, VS Code  
-    **Primary Risks:** [MCP07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) (Insufficient Authentication), [MCP01](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token/) (Token Mismanagement)
+    **Primary Risks:** [MCP07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) (Insufficient Authentication), [MCP01](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token-mismanagement/) (Token Mismanagement)
 
 ## What You'll Learn
 

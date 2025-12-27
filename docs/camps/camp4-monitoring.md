@@ -5,7 +5,7 @@
 !!! info "Camp Details"
     **Duration:** 90 minutes  
     **Azure Services:** Log Analytics, Application Insights, Azure Monitor  
-    **Primary Risks:** [MCP08](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp08-audit/) (Lack of Audit and Telemetry)
+    **Primary Risks:** [MCP08](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp08-telemetry/) (Lack of Audit and Telemetry)
 
 ## What You'll Learn
 

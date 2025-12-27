@@ -5,7 +5,7 @@
 !!! info "Camp Details"
     **Duration:** 90 minutes  
     **Azure Services:** API Management, Private Endpoints, API Center  
-    **Primary Risks:** [MCP09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow/) (Shadow MCP Servers), [MCP02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege/) (Privilege Escalation)
+    **Primary Risks:** [MCP09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/) (Shadow MCP Servers), [MCP02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/) (Privilege Escalation)
 
 ## What You'll Learn
 
