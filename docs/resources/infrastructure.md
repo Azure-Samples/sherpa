@@ -17,4 +17,4 @@ For now, each camp contains its own infrastructure setup instructions.
 
 ---
 
-Return to [Workshop Overview](../overview.md)
+Return to [Workshop Home](../index.md)
