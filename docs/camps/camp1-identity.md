@@ -5,7 +5,7 @@
 !!! info "Camp Details"
     **Duration:** 90 minutes  
     **Azure Services:** Entra ID, Managed Identity, Key Vault, Container Apps  
-    **Primary Risks:** MCP07 (Insufficient Authentication), MCP01 (Token Mismanagement), MCP02 (Privilege Escalation)
+    **Primary Risks:** [MCP07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) (Insufficient Authentication), [MCP01](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token/) (Token Mismanagement), [MCP02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege/) (Privilege Escalation)
 
 ## What You'll Learn
 

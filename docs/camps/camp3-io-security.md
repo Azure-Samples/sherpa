@@ -5,7 +5,7 @@
 !!! info "Camp Details"
     **Duration:** 90 minutes  
     **Azure Services:** Content Safety, AI Services  
-    **Primary Risks:** MCP06 (Prompt Injection), MCP05 (Command Injection), MCP03 (Tool Poisoning)
+    **Primary Risks:** [MCP06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt/) (Prompt Injection), [MCP05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-command/) (Command Injection), [MCP03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool/) (Tool Poisoning)
 
 ## What You'll Learn
 
