@@ -72,17 +72,16 @@ markdown_extensions:
 # Navigation
 nav:
   - Home: index.md
-  - Workshop Overview: README.md
   - The Journey:
-    - Base Camp: camps/base-camp/README.md
-    - Camp 1 - Identity: camps/camp1-identity/README.md
-    - Camp 2 - Gateway: camps/camp2-gateway/README.md
-    - Camp 3 - I/O Security: camps/camp3-io-security/README.md
-    - Camp 4 - Monitoring: camps/camp4-monitoring/README.md
+    - Base Camp: camps/base-camp.md
+    - Camp 1 - Identity: camps/camp1-identity.md
+    - Camp 2 - Gateway: camps/camp2-gateway.md
+    - Camp 3 - I/O Security: camps/camp3-io-security.md
+    - Camp 4 - Monitoring: camps/camp4-monitoring.md
   - Resources:
-    - Contributing: CONTRIBUTING.md
-    - Infrastructure: infra/README.md
-    - Scripts: scripts/README.md
+    - Contributing: resources/contributing.md
+    - Infrastructure: resources/infrastructure.md
+    - Scripts: resources/scripts.md
 
 # Plugins
 plugins:

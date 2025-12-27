@@ -10,7 +10,7 @@
 
     Start your expedition with MCP fundamentals and basic authentication
 
-    [:octicons-arrow-right-24: Begin the ascent](camps/base-camp/README.md)
+    [:octicons-arrow-right-24: Begin the ascent](camps/base-camp.md)
 
 - :material-shield-lock:{ .lg .middle } __Camp 1: Identity__
 
@@ -18,7 +18,7 @@
 
     OAuth 2.1, Managed Identity, and Key Vault secrets management
 
-    [:octicons-arrow-right-24: Secure your identity](camps/camp1-identity/README.md)
+    [:octicons-arrow-right-24: Secure your identity](camps/camp1-identity.md)
 
 - :material-router:{ .lg .middle } __Camp 2: Gateway__
 
@@ -26,7 +26,7 @@
 
     API Management, Private Endpoints, and API Center governance
 
-    [:octicons-arrow-right-24: Build the gateway](camps/camp2-gateway/README.md)
+    [:octicons-arrow-right-24: Build the gateway](camps/camp2-gateway.md)
 
 - :material-shield-check:{ .lg .middle } __Camp 3: I/O Security__
 
@@ -34,7 +34,7 @@
 
     Content Safety, input validation, and PII protection
 
-    [:octicons-arrow-right-24: Secure your data](camps/camp3-io-security/README.md)
+    [:octicons-arrow-right-24: Secure your data](camps/camp3-io-security.md)
 
 - :material-chart-line:{ .lg .middle } __Camp 4: Monitoring__
 
@@ -42,7 +42,7 @@
 
     Log Analytics, dashboards, and threat detection
 
-    [:octicons-arrow-right-24: Watch the horizon](camps/camp4-monitoring/README.md)
+    [:octicons-arrow-right-24: Watch the horizon](camps/camp4-monitoring.md)
 
 - :material-summit:{ .lg .middle } __The Summit__
 
@@ -135,10 +135,10 @@ Ready to begin? Follow these steps:
 <div class="grid" markdown>
 
 !!! success "Ready to Climb?"
-    Head to [Base Camp](camps/base-camp/README.md) to begin your expedition!
+    Head to [Base Camp](camps/base-camp.md) to begin your expedition!
 
 !!! info "Contributing"
-    Want to improve this workshop? See our [Contributing Guidelines](CONTRIBUTING.md)
+    Want to improve this workshop? See our [Contributing Guidelines](resources/contributing.md)
 
 </div>
 
