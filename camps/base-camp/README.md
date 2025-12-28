@@ -65,9 +65,18 @@ uv run --project .. python -m src.server
 
 You should see:
 ```
-MCP Server 'base-camp-vulnerable' running...
-Available resources: 3 users
-⚠️  WARNING: No authentication enabled!
+🏔️  Base Camp - Vulnerable MCP Server (Streamable HTTP)
+======================================================================
+Server Name: Base Camp Vulnerable Server
+Available Resources: 3 user records
+Listening on: http://0.0.0.0:8000
+
+⚠️  WARNING: This server has NO AUTHENTICATION!
+   Anyone on the network can access ANY user's sensitive data via HTTP.
+
+🚨 OWASP MCP07: Insufficient Authentication & Authorization
+🚨 OWASP MCP01: Token Mismanagement & Secret Exposure
+======================================================================
 ```
 
 ### Configure VS Code MCP Client (Optional)
@@ -82,8 +91,7 @@ Available resources: 3 users
 
 ```bash
 cd camps/base-camp/exploits
-source ../.venv/bin/activate  # Use camp-level venv
-python test_vulnerable.py
+uv run --project .. python test_vulnerable.py
 ```
 
 ---
@@ -102,7 +110,7 @@ uv run --project .. python test_vulnerable.py
 This automated script uses **FastMCP Client** to perform 6 comprehensive exploit tests:
 
 1. ✅ **Enumerate Tools** - Connect without authentication and list available tools
-2. ✅ **Enumerate Resources** - List all user resources without authorization
+2. ⚠️ **Attempt Resource Enumeration** - Try to list resources (server doesn't expose list, but resources ARE accessible)
 3. 🚨 **EXPLOIT** - Access user_001 (Alice Johnson) data without authentication
 4. 🚨 **EXPLOIT** - Access user_002 (Bob Smith) data without authorization
 5. 🚨 **EXPLOIT** - Access user_003 (Carol Williams) data without authorization
@@ -123,13 +131,15 @@ If you prefer hands-on exploration:
 
 ### Test 1: List Available Resources
 
-In VS Code, open the MCP panel and connect to "base-camp-vulnerable". You should see available resources:
+In VS Code, open the MCP panel and connect to "base-camp-vulnerable". You can try to access user resources:
 
 ```
-resource://user-data/user_001
-resource://user-data/user_002
-resource://user-data/user_003
+user://user_001
+user://user_002
+user://user_003
 ```
+
+(Note: Resources may not be enumerable, but they ARE accessible if you know the URIs)
 
 ### Method 3: MCP Inspector (Visual Debugging) ✅
 
@@ -147,9 +157,9 @@ This opens a browser with an interactive MCP testing interface. Perfect for:
 - Understanding MCP protocol messages
 - No code required!
 
-### Test 2: Access Your Own Data (Authorized)
+### Test 2: Access User Data via MCP Inspector
 
-**Manual test:** Read `resource://user-data/user_001`:
+**Manual test:** In MCP Inspector, read resource `user://user_001`:
 
 ```json
 {
@@ -164,7 +174,7 @@ This opens a browser with an interactive MCP testing interface. Perfect for:
 
 ### Test 3: Access Someone Else's Data (UNAUTHORIZED!)
 
-Now read `resource://user-data/user_002`:
+Now read resource `user://user_002`:
 
 ```json
 {
@@ -213,27 +223,55 @@ You successfully exploited **OWASP MCP07 (Insufficient Authentication & Authoriz
 
 ### Code Review: Where's the Vulnerability?
 
-Open `vulnerable-server/src/server.py` and look at the `list_resources` function:
+Open `vulnerable-server/src/server.py` and examine the resource and tool definitions:
 
 ```python
-@server.list_resources()
-async def list_resources() -> list[Resource]:
-    # VULNERABILITY: No authentication check!
-    # This allows ANY client to access ANY user's data.
-    # Maps to OWASP MCP07: Insufficient Authentication & Authorization
-    # Maps to OWASP MCP01: Token Mismanagement & Secret Exposure
-    return [
-        Resource(
-            uri=AnyUrl(f"resource://user-data/{user_id}"),
-            name=f"User {user_id}",
-            description=f"Personal data for user {user_id}",
-            mimeType="application/json"
-        )
-        for user_id in MOCK_USER_DATA.keys()
-    ]
+# VULNERABILITY: No authentication check!
+@mcp.resource("user://{user_id}")
+async def get_user_resource(user_id: str) -> str:
+    """
+    Get user data as a resource.
+    
+    🚨 VULNERABILITY: No authentication check!
+    Anyone on the network can access this HTTP endpoint
+    and retrieve any user's sensitive data.
+    """
+    user = USERS.get(user_id)
+    if not user:
+        raise ValueError(f"User {user_id} not found")
+    
+    return f"""Name: {user['name']}
+Email: {user['email']}
+SSN: ***-**-{user['ssn_last4']}
+Balance: ${user['balance']:,.2f}
+
+⚠️  WARNING: This data was accessed without authentication via HTTP!"""
+
+
+# VULNERABILITY: Tool also has no auth check
+@mcp.tool()
+async def get_user_info(user_id: str) -> dict:
+    """
+    Get detailed user information.
+    
+    🚨 VULNERABILITY: Anyone can call this tool via HTTP POST!
+    No authorization or authentication checks.
+    """
+    user = USERS.get(user_id)
+    if not user:
+        raise ValueError(f"User {user_id} not found")
+    
+    return {
+        "user_id": user_id,
+        "name": user["name"],
+        "email": user["email"],
+        "ssn_last4": user["ssn_last4"],
+        "balance": user["balance"],
+        "warning": "⚠️ This data was accessed without authentication via HTTP!"
+    }
 ```
 
-**The problem:** There's no code checking WHO is making the request!
+**The problem:** There's no code checking WHO is making the request! Both the resource handler and tool are completely open.
 
 ---
 
@@ -323,14 +361,24 @@ This will automatically test:
 
 Expected output when all tests pass:
 ```
-Test 1: Authenticated access with valid token... ✅ PASSED
-Test 2: Unauthenticated access rejected... ✅ PASSED
-Test 3: Invalid token rejected... ✅ PASSED
-Test 4: Authorization check (cannot access other users)... ✅ PASSED
-Test 5: Resource access with authentication... ✅ PASSED
+======================================================================
+  📊 SECURITY TEST SUMMARY
+======================================================================
 
-==================== Test Summary ====================
-✅ All 5 tests passed!
+Tests Passed: 5/5
+
+🎉 SUCCESS! All security fixes validated!
+
+🔒 Security Improvements Confirmed:
+   ✅ Authentication - Bearer token required for all API access
+   ✅ Authorization - Users can only access their own data
+   ✅ Token Validation - Invalid tokens are rejected
+   ✅ Unauthenticated Access - Blocked by default
+   ✅ Resource Protection - Authentication required for all resources
+
+⚠️  WORKSHOP NOTE: This uses simple bearer tokens for demonstration.
+   This is NOT production-ready security!
+======================================================================
 ```
 
 ### Manual Testing
