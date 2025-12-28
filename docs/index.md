@@ -20,7 +20,7 @@
 
     [:octicons-arrow-right-24: Secure your identity](camps/camp1-identity.md)
 
-- :material-router:{ .lg .middle } __Camp 2: Gateway__
+- :material-router:{ .lg .middle } __Camp 2: MCP Gateway__
 
     ---
 

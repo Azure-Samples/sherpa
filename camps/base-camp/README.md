@@ -5,7 +5,7 @@
 **Duration:** 60 minutes  
 **Primary OWASP Risks:** MCP07 (Insufficient Authentication & Authorization), MCP01 (Token Mismanagement & Secret Exposure)  
 **Secondary Risks:** MCP02 (Privilege Escalation via Scope Creep)  
-**Tech Stack:** Python, MCP SDK, VS Code  
+**Tech Stack:** Python, FastMCP, VS Code  
 **Guide Reference:** [microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/)
 
 ## Learning Objectives
@@ -92,21 +92,30 @@ python test_vulnerable.py
 
 ### Method 1: Automated Test Script (Recommended)
 
-Run the provided exploit script to see all vulnerabilities:
- (Manual)
+Run the provided exploit script to demonstrate all vulnerabilities:
 
-In VS Code MCP panel, after connecting to "base-camp-vulnerable", you should see
-python test_vulnerable.py
+```bash
+cd camps/base-camp/exploits
+uv run --project .. python test_vulnerable.py
 ```
 
-This will automatically:
-- Connect without authentication
-- List all user resources
-- Access authorized data (user_001)
-- Access UNAUTHORIZED data (user_002, user_003)
-- Display a security breach summary
+This automated script uses **FastMCP Client** to perform 6 comprehensive exploit tests:
 
-Continue reading below to understand what each test does.
+1. ✅ **Enumerate Tools** - Connect without authentication and list available tools
+2. ✅ **Enumerate Resources** - List all user resources without authorization
+3. 🚨 **EXPLOIT** - Access user_001 (Alice Johnson) data without authentication
+4. 🚨 **EXPLOIT** - Access user_002 (Bob Smith) data without authorization
+5. 🚨 **EXPLOIT** - Access user_003 (Carol Williams) data without authorization
+6. 🚨 **EXPLOIT** - Read resources directly via user:// URIs
+
+The script demonstrates:
+- No authentication required to connect
+- No authorization checks on tool calls
+- Complete data breach of all user accounts
+- Access to sensitive data (SSN, balance, email)
+- **Key point:** Even accessing user_001 is a breach because there's no identity verification!
+
+**Result:** All 6 exploits succeed, confirming OWASP MCP07 and MCP01 vulnerabilities!
 
 ### Method 2: Manual Testing via VS Code
 
@@ -128,10 +137,11 @@ resource://user-data/user_003
 
 ```bash
 cd camps/base-camp/exploits
-./launch-inspector.sh
+./launch-inspector-http.sh
 ```
 
 This opens a browser with an interactive MCP testing interface. Perfect for:
+
 - Visual exploration of resources
 - Interactive tool calling
 - Understanding MCP protocol messages
@@ -235,9 +245,6 @@ async def list_resources() -> list[Resource]:
 # Stop the vulnerable server (Ctrl+C)
 # Navigate to secure server
 cd ../secure-server
-
-# Use the camp-level venv (already created by uv sync)
-# No additional setup needed!
 ```
 
 ### Configure Authentication Token
@@ -246,93 +253,186 @@ cd ../secure-server
 # Copy example environment file
 cp .env.example .env
 
-# Edit .env and set your token
-# AUTH_TOKEN=workshop_demo_token_12345
+# The default token is: workshop_demo_token_12345
+# You can customize it by editing .env if desired
 ```
 
 ### Start the Secure Server
 
 ```bash
-cd secure-server
+# From camps/base-camp/secure-server directory
 uv run --project .. python -m src.server
 ```
 
 You should see:
 ```
-MCP Server 'base-camp-secure' running...
-✅ Authentication enabled
-Required token: workshop_demo_token_12345
+🏔️  Base Camp - Secure MCP Server (Streamable HTTP)
+======================================================================
+Server Name: Base Camp Secure Server
+Available Resources: 3 user records
+Listening on: http://0.0.0.0:8001
+
+✅ AUTHENTICATION ENABLED
+   Required token: workshop_demo_token_12345
+   All requests must include valid Bearer token
+
+✅ AUTHORIZATION ENABLED
+   Users can only access their own data (user_001)
+======================================================================
 ```
 
-### Update VS Code Configuration
+### Test With MCP Inspector
 
-Edit your MCP settings to include the authentication token:
+1. Open MCP Inspector in a new terminal: `npx @modelcontextprotocol/inspector`
+2. In the MCP Inspector web interface, change the server URL to `http://localhost:8001/mcp`
+3. Click "Connect" - you should get an authentication error (401 Unauthorized)
+4. Add the authentication header:
+   - Click to add a custom header
+   - **Header Name:** `Authorization`
+   - **Header Value:** `Bearer workshop_demo_token_12345`
+   - **Important:** Enable the toggle button to the left of the header!
+5. Click "Connect" again - now it succeeds!
 
-```json
-{
-  "mcpServers": {
-    "base-camp-secure": {
-      "command": "python",
-      "args": ["-m", "src.server"],
-      "cwd": "/path/to/sherpa/camps/base-camp/secure-server",
-      "env": {
-        "AUTH_TOKEN": "workshop_demo_token_12345"
-      }
-    }
-  }
-}
-```
+**Test the security:**
+- ✅ Access `user://user_001` (your own data) - should work
+- ❌ Access `user://user_002` or `user://user_003` - should get 403 Forbidden
+- ✅ Call `get_user_info` with `user_id: user_001` - should work
+- ❌ Call `get_user_info` with `user_id: user_002` - should fail
 
 ---
 
 ## Phase 5: Validate the Fix (10 min)
 
-### Test 1: Connect Without Token
+### Automated Testing
 
-Remove the `env` section from your VS Code MCP configuration and try to connect.
+Run the secure server test script:
 
-**Expected Result:** Connection fails with `401 Unauthorized`
+```bash
+cd camps/base-camp/exploits
+uv run --project .. python test_secure.py
+```
 
-### Test 2: Connect With Valid Token
+The test script uses **FastMCP Client** (`fastmcp.client.Client`) with **BearerAuth** to programmatically test the secure server.
 
-Restore the `env` section with the correct token and connect.
+This will automatically test:
+- ✅ Test 1: Connection WITH token succeeds (user_001 can access own data)
+- ✅ Test 2: Connection WITHOUT token fails (401 Unauthorized)
+- ✅ Test 3: Invalid token is rejected (401 Unauthorized)
+- ✅ Test 4: Authorization prevents accessing other user's data (user_002, user_003)
+- ✅ Test 5: Resource access requires authentication
 
-**Expected Result:** Connection succeeds!
+Expected output when all tests pass:
+```
+Test 1: Authenticated access with valid token... ✅ PASSED
+Test 2: Unauthenticated access rejected... ✅ PASSED
+Test 3: Invalid token rejected... ✅ PASSED
+Test 4: Authorization check (cannot access other users)... ✅ PASSED
+Test 5: Resource access with authentication... ✅ PASSED
 
-### Test 3: Access Resources With Authentication
+==================== Test Summary ====================
+✅ All 5 tests passed!
+```
 
-Try to access `resource://user-data/user_002` again.
+### Manual Testing
 
-**Expected Result:** 
-- With proper authentication, the request is checked
-- The server validates your identity
-- Access control decisions are made based on who you are
+If using MCP Inspector:
+
+**Test 1: No Authentication**
+- Remove the Authorization header
+- Try to call `get_user_info` tool
+- **Result:** ❌ 401 Unauthorized
+
+**Test 2: With Authentication**
+- Add Authorization header: `Bearer workshop_demo_token_12345`
+- Try to access `user://user_001`
+- **Result:** ✅ Success - you can access your own data
+
+**Test 3: Authorization Check**
+- With valid token, try to access `user://user_002`
+- **Result:** ❌ 403 Forbidden - cannot access other user's data!
 
 ### Code Review: How Was It Fixed?
 
-Open `secure-server/src/server.py` and look at the authentication decorator:
+Open [`secure-server/src/server.py`](secure-server/src/server.py) and examine the key changes:
 
+**1. FastMCP Built-in Authentication:**
 ```python
-def require_auth(func):
-    """
-    SECURITY FIX: Validate authentication on every request
-    This addresses OWASP MCP07 and MCP01 by ensuring only authorized
-    clients can access resources.
-    """
-    async def wrapper(*args, **kwargs):
-        token = get_token_from_context()
-        if not validate_token(token):
-            raise PermissionError("Unauthorized: Invalid or missing token")
-        return await func(*args, **kwargs)
-    return wrapper
+from fastmcp.auth import StaticTokenVerifier
 
-@server.list_resources()
-@require_auth  # ✅ Authentication required!
-async def list_resources() -> list[Resource]:
-    return [...]
+# Define authentication using FastMCP's built-in verifier
+auth = StaticTokenVerifier(
+    tokens={
+        REQUIRED_TOKEN: {
+            "client_id": "user_001",
+            "scopes": ["read", "write"]
+        }
+    }
+)
+
+# Create MCP server with authentication enabled
+mcp = FastMCP("Base Camp Secure Server", auth=auth)
 ```
 
-**The fix:** Every request is now authenticated before processing!
+**2. Authorization Helper Function:**
+```python
+def check_authorization(requested_user_id: str, authenticated_user: str) -> bool:
+    """Verify user can only access their own data"""
+    return requested_user_id == authenticated_user
+```
+
+**3. Applied to Endpoints with Context:**
+```python
+@mcp.resource("user://{user_id}")
+async def get_user_resource(ctx: Context, user_id: str) -> str:
+    """Get user information by ID - requires authentication & authorization"""
+    # Get authenticated user from context
+    authenticated_user = get_authenticated_user(ctx)
+    
+    # ✅ Authorization check
+    if not check_authorization(user_id, authenticated_user):
+        raise PermissionError(
+            f"Forbidden: Cannot access {user_id}'s data"
+        )
+    # ... return data
+```
+
+**4. Streamable HTTP Transport:**
+```python
+# Export HTTP app with streamable HTTP transport
+app = mcp.http_app(path="/mcp", transport="streamable-http")
+```
+
+**Key Security Features:**
+- ✅ **Token-based authentication** - FastMCP's StaticTokenVerifier validates Bearer tokens
+- ✅ **Context injection** - Authenticated user info available in `Context` parameter
+- ✅ **Authorization checks** - Every endpoint validates user can access requested data
+- ✅ **Streamable HTTP** - Modern MCP transport protocol
+
+### ⚠️ Important: This Is NOT Production-Ready!
+
+While this fixes the Base Camp vulnerability, **do not use this approach in production**:
+
+❌ **Simple bearer token** - No expiration, no rotation  
+❌ **Token in environment variable** - Can leak in logs/errors  
+❌ **Hardcoded user mapping** - Token directly maps to user_001 for demo purposes  
+❌ **No token refresh** - Can't revoke access easily  
+❌ **No audit logging** - Can't track access  
+❌ **No rate limiting** - Vulnerable to brute force
+
+**Why FastMCP's StaticTokenVerifier?**  
+FastMCP provides built-in authentication for learning and prototyping. The StaticTokenVerifier is intentionally simple - it maps predefined tokens to user identities. This is perfect for understanding authentication concepts, but production systems need dynamic token validation (JWT), token rotation, and integration with identity providers.
+
+### What Makes It Production-Ready? → Camp 1!
+
+In **Camp 1: Identity & Access Management**, you'll implement:
+
+✅ **OAuth 2.1 with PKCE** - Industry-standard authentication  
+✅ **Azure Entra ID** - Enterprise identity provider  
+✅ **Azure Managed Identity** - Passwordless authentication  
+✅ **Azure Key Vault** - Secure secrets storage (no .env files!)  
+✅ **JWT tokens** - With expiration, refresh, and validation  
+✅ **RBAC** - Role-based access control for fine-grained permissions  
+✅ **Audit logging** - Track every access for compliance
 
 ---
 

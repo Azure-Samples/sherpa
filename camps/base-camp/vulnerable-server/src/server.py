@@ -10,7 +10,7 @@ VULNERABILITIES PRESENT (for educational purposes):
 3. No audit logging - no record of who accessed what
 
 This is intentionally insecure for workshop demonstration!
-Runs as HTTP server with SSE transport for production-like testing.
+Runs as HTTP server with streamable-http transport for production-like testing.
 """
 
 from fastmcp import FastMCP
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     import uvicorn
     
     print("=" * 70)
-    print("🏔️  Base Camp - Vulnerable MCP Server (HTTP/SSE)")
+    print("🏔️  Base Camp - Vulnerable MCP Server (Streamable HTTP)")
     print("=" * 70)
     print(f"Server Name: {mcp.name}")
     print(f"Available Resources: {len(USERS)} user records")
@@ -97,8 +97,8 @@ if __name__ == "__main__":
     print("=" * 70)
     print("")
     
-    # Create ASGI app
-    app = mcp.http_app(path="/mcp")
+    # Create ASGI app with streamable-http transport
+    app = mcp.http_app(path="/mcp", transport="streamable-http")
     
     uvicorn.run(
         app,
