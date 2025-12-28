@@ -224,7 +224,9 @@ Click any waypoint below to expand its instructions and continue your ascent.
 
     ### Code Review: Where's the Vulnerability?
 
-    Open `vulnerable-server/src/server.py` and examine the resource and tool definitions:
+    Let's examine the vulnerable code to understand exactly what went wrong.
+
+    **File:** `vulnerable-server/src/server.py`
 
     ```python
     # VULNERABILITY: No authentication check!
@@ -243,12 +245,12 @@ Click any waypoint below to expand its instructions and continue your ascent.
     Email: {user['email']}
     SSN: ***-**-{user['ssn_last4']}
     Balance: ${user['balance']:,.2f}
-
+    
     ⚠️  WARNING: This data was accessed without authentication via HTTP!"""
     ```
 
     !!! bug "The Problem"
-        There's no code checking WHO is making the request! Both the resource handler and tool are completely open.
+        There's no code checking WHO is making the request! Both the resource handler and tool are completely open. Any client that can reach the server can call these functions with any `user_id` and retrieve sensitive data.
 
 ??? success "Waypoint 4: Implement Security"
 
@@ -308,10 +310,11 @@ Click any waypoint below to expand its instructions and continue your ascent.
     5. Click "Connect" again - now it succeeds!
 
     !!! success "Test the Security"
-        - :white_check_mark: Access `user://user_001` (your own data) - should work
-        - :x: Access `user://user_002` or `user://user_003` - should get 403 Forbidden
-        - :white_check_mark: Call `get_user_info` with `user_id: user_001` - should work
-        - :x: Call `get_user_info` with `user_id: user_002` - should fail
+        Use the **Tools** menu in MCP Inspector to test authorization:
+        
+        - :white_check_mark: Call `get_user_info` tool with `user_id: user_001` - should work (your own data)
+        - :x: Call `get_user_info` tool with `user_id: user_002` - should fail (403 Forbidden)
+        - :x: Call `get_user_info` tool with `user_id: user_003` - should fail (403 Forbidden)
 
 ??? check "Waypoint 5: Validate the Fix"
 
