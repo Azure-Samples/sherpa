@@ -183,7 +183,7 @@ Click any waypoint below to expand its instructions and continue your ascent.
     ```
 
     !!! failure "Security Breach"
-        You just accessed Bob's sensitive data without any authentication or authorization check!
+        The agent successfully retrieved sensitive user data without providing any credentials. This demonstrates how AI agents can inadvertently exploit unsecured MCP servers.
         
     **Try more exploits:**
 
@@ -223,6 +223,7 @@ Click any waypoint below to expand its instructions and continue your ascent.
     ```
 
     The agent will automatically:
+
     - Discover the available tool
     - Call `get_user_info` with `user_id: "user_002"`
     - Display Bob Smith's sensitive data without any authentication
@@ -234,12 +235,9 @@ Click any waypoint below to expand its instructions and continue your ascent.
 
     **Try more exploits via Agent mode:**
 
-    - `Get information for user_001 from base-camp-vulnerable`
-    - `Use base-camp-vulnerable to show me user_003's data`
-    - `List all available tools from base-camp-vulnerable`
-
-    !!! failure "Security Breach in Action"
-        The agent successfully retrieved sensitive user data without providing any credentials. This demonstrates how AI agents can inadvertently exploit unsecured MCP servers.
+    - Get information for user_001 from base-camp-vulnerable
+    - Use base-camp-vulnerable to show me user_003's data
+    - List all available tools from base-camp-vulnerable        
 
 ??? warning "Waypoint 3: Understand the Risk"
 
@@ -427,21 +425,35 @@ Click any waypoint below to expand its instructions and continue your ascent.
         return requested_user_id == authenticated_user
     ```
 
-    #### 3. Applied to Endpoints with Context
+    #### 3. Secure Tool with Context
 
     ```python
-    @mcp.resource("user://{user_id}")
-    async def get_user_resource(ctx: Context, user_id: str) -> str:
-        """Get user information by ID - requires authentication & authorization"""
+    @mcp.tool()
+    async def get_user_info(ctx: Context, user_id: str) -> dict:
+        """Get detailed user information - NOW WITH SECURITY!"""
         # Get authenticated user from context
         authenticated_user = get_authenticated_user(ctx)
         
         # ✅ Authorization check
         if not check_authorization(user_id, authenticated_user):
             raise PermissionError(
-                f"Forbidden: Cannot access {user_id}'s data"
+                f"Forbidden: You are authenticated as {authenticated_user} but "
+                f"cannot access {user_id}'s data."
             )
-        # ... return data
+        
+        user = USERS.get(user_id)
+        if not user:
+            raise ValueError(f"User {user_id} not found")
+        
+        return {
+            "user_id": user_id,
+            "name": user["name"],
+            "email": user["email"],
+            "ssn_last4": user["ssn_last4"],
+            "balance": user["balance"],
+            "authenticated_as": authenticated_user,
+            "authorization_verified": True
+        }
     ```
 
     #### 4. Streamable HTTP Transport
@@ -454,7 +466,7 @@ Click any waypoint below to expand its instructions and continue your ascent.
     !!! check "Key Security Features"
         - :white_check_mark: **Token-based authentication** - FastMCP's StaticTokenVerifier validates Bearer tokens
         - :white_check_mark: **Context injection** - Authenticated user info available in `Context` parameter
-        - :white_check_mark: **Authorization checks** - Every endpoint validates user can access requested data
+        - :white_check_mark: **Authorization checks** - Every tool validates user can access requested data
         - :white_check_mark: **Streamable HTTP** - Modern MCP transport protocol
 
     ### ⚠️ Important: This Is NOT Production-Ready!
