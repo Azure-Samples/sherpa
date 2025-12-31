@@ -6,14 +6,14 @@
 
 Welcome to **Base Camp**, the foundation of your MCP security journey. Before we ascend to the higher camps where we'll tackle production-grade security patterns, we need to establish a solid foundation. Just as mountaineers acclimatize at base camp before attempting the summit, you'll start here by understanding what MCP is, why it needs security, and experiencing firsthand what happens when security is absent.
 
-This camp introduces you to the **"vulnerable → exploit → fix → validate"** methodology that you'll use throughout the entire workshop series. You'll deploy an intentionally vulnerable MCP server, exploit it to see the real-world impact, implement a basic security fix, and validate that the fix works. By the end of Base Camp, you'll have hands-on experience with MCP security fundamentals and be ready for the advanced patterns in the camps ahead.
+This camp introduces you to the **"vulnerable → exploit → fix → validate"** methodology that you'll use throughout the entire workshop series. You'll run an intentionally vulnerable MCP server, exploit it to see the real-world impact, implement a basic security fix, and validate that the fix works. By the end of Base Camp, you'll have hands-on experience with MCP security fundamentals and be ready for the advanced patterns in the camps ahead.
 
-**Tech Stack:** Python, FastMCP, VS Code  
+**Tech Stack:** Python, FastMCP, VS Code
 **Primary Risks:** [MCP01](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token-mismanagement/) (Token Mismanagement & Secret Exposure), [MCP07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) (Insufficient Authentication & Authorization)
 
 ## What is the Model Context Protocol (MCP)?
 
-The **Model Context Protocol (MCP)** is an open standard that lets AI applications securely connect to external tools and data sources. Instead of hardcoding integrations into every AI app, MCP provides a universal "plug" that works across any AI system and any data source.
+The **Model Context Protocol (MCP)** is an open standard for connecting AI applications to data sources and tools. It provides a common communication protocol so any AI system can work with any data source, without requiring custom integrations for each combination.
 
 **Why does this matter for security?** Because MCP servers often expose sensitive operations, such as reading user data, executing commands, and accessing internal systems. If these servers lack proper authentication and authorization, anyone who can connect to them can access everything they expose.
 
@@ -43,7 +43,7 @@ At its core, MCP connects AI applications (like VS Code or Claude Desktop) to da
 In this workshop, you'll work with both sides of this architecture to understand where security risks emerge and how to address them.
 
 - **Left side (AI Applications):** VS Code, and other applications, act as the MCP client, connecting to MCP servers
-- **Right side (MCP Servers):** We'll deploy both vulnerable and secure servers that expose user data
+- **Right side (MCP Servers):** We'll run both vulnerable and secure servers that expose user data
 - **The Risk:** If the MCP server (right side) has no authentication, any client can connect and access all data
 
 ---
@@ -59,7 +59,7 @@ git clone https://github.com/Azure-Samples/sherpa.git
 cd sherpa
 ```
 
-### Setup Python Environment
+### Setup Python Environment for Base Camp
 
 ```bash
 # Navigate to Base Camp
@@ -79,7 +79,7 @@ uv sync
 
 ## The Ascent
 
-Now it's time to begin your climb. This workshop follows the **"vulnerable → exploit → fix → validate"** methodology, as each step builds on the last as you gain altitude. You'll experience MCP security vulnerabilities firsthand, understand their impact, implement fixes, and verify your solutions work.
+Now it's time to begin your climb. Each waypoint below builds on the previous one, guiding you from vulnerability discovery to validated security fixes. You'll experience MCP security vulnerabilities firsthand, understand their impact, implement fixes, and verify your solutions work.
 
 Click any waypoint below to expand its instructions and continue your ascent.
 
@@ -110,21 +110,7 @@ Click any waypoint below to expand its instructions and continue your ascent.
     ======================================================================
     ```
 
-    ### Configure VS Code MCP Client (Optional)
-
-    !!! info "Optional Setup"
-        **If using VS Code:** The repository already has `.vscode/settings.json` configured! Just:
-
-        1. Open this repository in VS Code
-        2. Open the MCP panel (sidebar icon)
-        3. Connect to "base-camp-vulnerable"
-
-    **Alternative: Use the test script** (recommended for hands-on learning):
-
-    ```bash
-    cd camps/base-camp/exploits
-    uv run --project .. python test_vulnerable.py
-    ```
+    The server is now running and ready to be exploited. Proceed to Waypoint 2 to test the vulnerability.
 
 ??? danger "Waypoint 2: Exploit the Vulnerability"
 
@@ -204,6 +190,57 @@ Click any waypoint below to expand its instructions and continue your ascent.
     - Access different users: `user_001`, `user_002`, `user_003`
     - Notice: Everything is accessible without proving who you are!
 
+    ### Method 3: VS Code with GitHub Copilot Agent
+
+    Use VS Code's built-in MCP support to exploit the vulnerability interactively:
+
+    **Step 1: Configure the MCP Server**
+
+    The repository includes `.vscode/mcp.json` which is already configured to connect to the vulnerable server at `http://localhost:8000/mcp`.
+
+    **Step 2: Connect to the Server**
+
+    1. Open this repository in VS Code
+    2. Make sure the vulnerable server is running (from Waypoint 1)
+    3. Open the `.vscode/mcp.json` file
+    4. Look for the **"Start"** button that appears above the `base-camp-vulnerable` server configuration
+    5. Click **Start** to connect to the server
+
+    ![VS Code MCP Start](../images/base-camp-vscode.png)
+
+    Once connected, you'll see the server status change and the number of tools discovered listed.
+
+    **Step 3: Switch to Agent Mode**
+
+    Open the chat dialog and select **"Agent"** mode along with a model like **Claude Sonnet 4.5**.
+
+    **Step 4: Exploit via Agent Prompt**
+
+    In the Copilot Agent chat, enter this prompt:
+
+    ```
+    #base-camp-vulnerable get info for user_002
+    ```
+
+    The agent will automatically:
+    - Discover the available tool
+    - Call `get_user_info` with `user_id: "user_002"`
+    - Display Bob Smith's sensitive data without any authentication
+
+    !!! info "Permission Prompt"
+        You may be prompted to allow the tool execution. Click **"Allow"** to proceed.
+        
+        ![VS Code MCP Allow](../images/base-camp-vscode-allow.png)
+
+    **Try more exploits via Agent mode:**
+
+    - `Get information for user_001 from base-camp-vulnerable`
+    - `Use base-camp-vulnerable to show me user_003's data`
+    - `List all available tools from base-camp-vulnerable`
+
+    !!! failure "Security Breach in Action"
+        The agent successfully retrieved sensitive user data without providing any credentials. This demonstrates how AI agents can inadvertently exploit unsecured MCP servers.
+
 ??? warning "Waypoint 3: Understand the Risk"
 
     ### What Just Happened?
@@ -229,9 +266,9 @@ Click any waypoint below to expand its instructions and continue your ascent.
     Let's examine the vulnerable code to understand exactly what went wrong.
 
     **File:** `vulnerable-server/src/server.py`
-
+    
     ```python
-    # VULNERABILITY: No authentication check!
+    #VULNERABILITY: No authentication check!
     @mcp.resource("user://{user_id}")
     async def get_user_resource(user_id: str) -> str:
         """
@@ -247,10 +284,10 @@ Click any waypoint below to expand its instructions and continue your ascent.
     Email: {user['email']}
     SSN: ***-**-{user['ssn_last4']}
     Balance: ${user['balance']:,.2f}
-    
+
     ⚠️  WARNING: This data was accessed without authentication via HTTP!"""
     ```
-
+    
     !!! bug "The Problem"
         There's no code checking WHO is making the request! Both the resource handler and tool are completely open. Any client that can reach the server can call these functions with any `user_id` and retrieve sensitive data.
 
