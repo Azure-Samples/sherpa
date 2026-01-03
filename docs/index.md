@@ -35,7 +35,9 @@ Whether you're a developer building your first MCP server or a security professi
 
 ## The Expedition Route
 
-Like any serious mountain ascent, you can't summit in a single push. Our route follows a **proven camp-to-camp progression**, with each stage establishing the foundation for the next climb. Start at Base Camp where you'll learn reconnaissance and basic vulnerabilities, then ascend through the specialized camps, each addressing critical OWASP security risks. By the time you reach The Summit, you'll have built defense-in-depth across authentication, network perimeter, content security, and monitoring, all validated through a final Red Team challenge.
+Your journey follows a proven camp-to-camp progression. Each stage builds on the last, from reconnaissance at Base Camp to the final Red Team challenge at The Summit.
+
+![Expedition Route](images/sherpa-mcp-workshop-map.png)
 
 <div class="grid cards" markdown>
 
