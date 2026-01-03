@@ -11,9 +11,9 @@ hide:
 
 ## About This Workshop
 
-*Every mountain has its dangers, such as crevasses hidden beneath fresh snow, unstable routes that promise speed but deliver disaster. The same is true for Model Context Protocol servers.*
+*The summit awaits, but the climb itself teaches you everything you need to know.*
 
-The **Model Context Protocol (MCP)** opens exciting new routes for AI applications to connect with data sources and tools, but like any unexplored peak, the terrain is treacherous. Unsecured MCP servers expose dangerous attack surfaces: authentication bypasses, data leakage, and unauthorized access lurk like hidden crevasses waiting to swallow the unprepared.
+The **Model Context Protocol (MCP)** opens exciting new routes for AI applications to connect with data sources and tools, but like any unexplored peak, the terrain requires preparation. Unsecured MCP servers expose dangerous attack surfaces: authentication bypasses, data leakage, and unauthorized access threaten systems that lack proper defenses.
 
 This workshop is your guided expedition to securing MCP servers in Microsoft Azure. You'll experience real vulnerabilities firsthand (by exploiting intentionally insecure systems), then learn proven techniques to fortify your defenses using Azure's native security services. By the time you reach the summit, you'll have climbed from basic authentication to enterprise-grade defense-in-depth with working code you can deploy in production.
 
