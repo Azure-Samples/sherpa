@@ -1,6 +1,6 @@
 # Camp 3: I/O Security
 
-*"Navigating the Treacherous I/O Pass"*
+*Navigating the Treacherous I/O Pass*
 
 ![Security](../images/sherpa-security.png)
 

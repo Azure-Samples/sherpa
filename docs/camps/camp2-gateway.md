@@ -1,6 +1,6 @@
 # Camp 2: Gateway Security
 
-*"Scaling the Gateway Ridge"*
+*Scaling the Gateway Ridge*
 
 ![Gateway](../images/sherpa-gateway.png)
 

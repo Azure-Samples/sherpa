@@ -1,6 +1,6 @@
 # Camp 1: Identity & Access Management
 
-*"Establishing Your Identity on the Mountain"*
+*Establishing Your Identity on the Mountain*
 
 ![Identity](../images/sherpa-identity.png)
 

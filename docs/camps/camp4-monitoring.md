@@ -1,6 +1,6 @@
 # Camp 4: Monitoring & Observability
 
-*"Reaching Observation Peak"*
+*Reaching Observation Peak*
 
 ![Monitoring](../images/sherpa-monitoring.png)
 

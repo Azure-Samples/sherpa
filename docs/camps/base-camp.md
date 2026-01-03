@@ -1,6 +1,6 @@
 # Base Camp: Understanding the Mountain
 
-*"Know Your Terrain Before You Climb"*
+*Know Your Terrain Before You Climb*
 
 ![Base Camp](../images/sherpa-base-camp.png)
 

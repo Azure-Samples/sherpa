@@ -1,8 +1,41 @@
-# 🏔️ Welcome to the MCP Security Summit
+---
+hide:
+  - navigation
+---
 
-*A Sherpa's Guide to Securing Model Context Protocol Servers in Azure*
+# 🏔️ Welcome to the MCP Security Workshop
+
+## A Sherpa's Guide to Securing Model Context Protocol Servers in Azure
 
 ![MCP Workshop](images/sherpa-mcp-workshop.png)
+
+## About This Workshop
+
+*Every mountain has its dangers, such as crevasses hidden beneath fresh snow, unstable routes that promise speed but deliver disaster. The same is true for Model Context Protocol servers.*
+
+The **Model Context Protocol (MCP)** opens exciting new routes for AI applications to connect with data sources and tools, but like any unexplored peak, the terrain is treacherous. Unsecured MCP servers expose dangerous attack surfaces: authentication bypasses, data leakage, and unauthorized access lurk like hidden crevasses waiting to swallow the unprepared.
+
+This workshop is your guided expedition to securing MCP servers in Microsoft Azure. You'll experience real vulnerabilities firsthand (by exploiting intentionally insecure systems), then learn proven techniques to fortify your defenses using Azure's native security services. By the time you reach the summit, you'll have climbed from basic authentication to enterprise-grade defense-in-depth with working code you can deploy in production.
+
+!!! tip "What Makes This Expedition Unique"
+
+    :material-target: **Learn by Breaking Things** - Experience vulnerabilities firsthand by exploiting intentionally insecure servers before learning to fix them
+
+    :material-shield-check: **Azure-Native Security** - Leverage Azure Entra ID, Key Vault, API Management, AI Foundry, and other platform services designed for production workloads
+
+    :material-routes: **Defense-in-Depth Journey** - Ascend through progressive camps, each building on the last to create comprehensive security layers
+
+    :material-book-open-variant: **OWASP-Aligned** - Every technique maps directly to the [OWASP MCP Azure Security Guide](https://microsoft.github.io/mcp-azure-security-guide/), giving you industry-standard knowledge
+
+    :material-code-braces: **Real Production Code** - Walk away with working, tested implementations you can adapt for your own projects
+
+Whether you're a developer building your first MCP server or a security professional hardening existing systems, this workshop provides practical, actionable knowledge through a proven **"vulnerable → exploit → fix → validate"** methodology.
+
+---
+
+## The Expedition Route
+
+Like any serious mountain ascent, you can't summit in a single push. Our route follows a **proven camp-to-camp progression**, with each stage establishing the foundation for the next climb. Start at Base Camp where you'll learn reconnaissance and basic vulnerabilities, then ascend through the specialized camps, each addressing critical OWASP security risks. By the time you reach The Summit, you'll have built defense-in-depth across authentication, network perimeter, content security, and monitoring, all validated through a final Red Team challenge.
 
 <div class="grid cards" markdown>
 
@@ -10,7 +43,8 @@
 
     ---
 
-    Start your expedition with MCP fundamentals and basic authentication
+    **Understanding the Mountain** - Explore MCP fundamentals and witness authentication vulnerabilities in action  
+    *OWASP Risks: MCP07, MCP01, MCP02*
 
     [:octicons-arrow-right-24: Begin the ascent](camps/base-camp.md)
 
@@ -18,7 +52,8 @@
 
     ---
 
-    OAuth 2.1, Managed Identity, and Key Vault secrets management
+    **Establishing Your Identity** - Leverage OAuth 2.1, Azure Managed Identity, and Key Vault secrets management  
+    *OWASP Risks: MCP07, MCP01, MCP02*
 
     [:octicons-arrow-right-24: Secure your identity](camps/camp1-identity.md)
 
@@ -26,7 +61,8 @@
 
     ---
 
-    API Management, Private Endpoints, and API Center governance
+    **Scaling the Gateway Ridge** - Deploy API Management, Private Endpoints, and API Center governance  
+    *OWASP Risks: MCP09, MCP02, MCP07*
 
     [:octicons-arrow-right-24: Build the gateway](camps/camp2-gateway.md)
 
@@ -34,7 +70,8 @@
 
     ---
 
-    Content Safety, input validation, and PII protection
+    **Navigating I/O Pass** - Protect against prompt injection, PII leakage, and malicious content  
+    *OWASP Risks: MCP06, MCP05, MCP03*
 
     [:octicons-arrow-right-24: Secure your data](camps/camp3-io-security.md)
 
@@ -42,7 +79,8 @@
 
     ---
 
-    Log Analytics, dashboards, and threat detection
+    **Observation Peak** - Implement Log Analytics, dashboards, and automated threat detection  
+    *OWASP Risks: MCP08*
 
     [:octicons-arrow-right-24: Watch the horizon](camps/camp4-monitoring.md)
 
@@ -50,87 +88,97 @@
 
     ---
 
-    Coming soon: Red Team / Blue Team exercise
+    **Full Integration Test** - Red Team / Blue Team exercise validating all security layers  
+    *All OWASP Risks Validated*
 
     [:octicons-arrow-right-24: Reach the peak](#)
 
 </div>
 
-## What You'll Learn
+---
 
-This workshop teaches you to secure Model Context Protocol (MCP) servers in Azure using a proven "vulnerable → exploit → fix → validate" methodology. Each camp builds on the previous, creating comprehensive defense-in-depth security.
+## What You'll Build
 
-!!! info "Workshop Duration & Format"
+By the end of this expedition, you'll have climbed from vulnerable prototype to production-ready MCP architecture:
 
-    **Full workshop:** 6-7 hours  
-    **Each camp:** 60-90 minutes  
-    **Format:** Hands-on labs with live exploitation and remediation
+**:material-check-circle: Production-Ready Authentication** - OAuth 2.1 with PKCE, Azure Entra ID integration, and passwordless Managed Identity
+
+**:material-check-circle: Hardened Network Perimeter** - Private endpoints, API Management gateway, and zero-trust networking
+
+**:material-check-circle: Content Security Controls** - Input validation, Azure AI Content Safety integration, and PII detection
+
+**:material-check-circle: Operational Monitoring** - Centralized logging, custom dashboards, and automated alerting
+
+**:material-check-circle: Compliance Documentation** - OWASP risk mappings and audit trails for security reviews
+
+---
 
 ## Prerequisites
 
 Before starting your expedition, ensure you have:
 
-- [x] Azure subscription with Contributor access
-- [x] VS Code with GitHub Copilot or MCP extension
-- [x] Azure CLI installed and authenticated
-- [x] Python 3.10+ installed
-- [x] Basic familiarity with Azure Portal
+:material-check: Azure subscription with Contributor access  
+:material-check: VS Code with GitHub Copilot or MCP extension  
+:material-check: Azure CLI installed and authenticated  
+:material-check: Python 3.10+ installed  
+:material-check: Basic familiarity with Azure Portal
 
 !!! tip "No Security Expertise Required"
     This workshop is designed for developers of all skill levels. If you can write Python code and navigate the Azure Portal, you're ready to climb!
 
-## The Journey
+!!! info "Workshop Format"
+    **Hands-on labs** with live exploitation and remediation exercises  
+    **Each camp** includes: vulnerable code → exploit → secure implementation → validation  
+    **Self-paced** with optional instructor-led checkpoints
 
-Our expedition follows a proven path—each camp builds on the last:
-
-| Stop | Theme | OWASP Risks | Duration |
-| :----: | ------- | :-----------: | :--------: |
-| __Base Camp__ | Understanding the Mountain | MCP07, MCP01, MCP02 | 60 min |
-| __Camp 1__ | Establishing Your Identity | MCP07, MCP01, MCP02 | 90 min |
-| __Camp 2__ | Scaling the Gateway Ridge | MCP09, MCP02, MCP07 | 95 min |
-| __Camp 3__ | Navigating I/O Pass | MCP06, MCP05, MCP03 | 90 min |
-| __Camp 4__ | Observation Peak | MCP08 | 90 min |
-| __Summit__ | Full Integration | All risks validated | 2 hrs |
-
-## Reference Materials
-
-!!! quote "Your Companion Guide"
-    Throughout this workshop, we reference the comprehensive __[OWASP MCP Azure Security Guide](https://microsoft.github.io/mcp-azure-security-guide/)__ for deeper dives on each security risk.
-
-__Additional Resources:__
-
-- [MCP Specification 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25)
-- [MCP Security Best Practices](https://modelcontextprotocol.io/.../basic/security_best_practices)
+---
 
 ## Getting Started
 
-Ready to begin? Follow these steps:
+Ready to begin your expedition? Follow these three simple steps:
 
-=== "Step 1: Clone"
+=== "Step 1: Clone the Repository"
 
     ```bash
     git clone https://github.com/Azure-Samples/sherpa.git
     cd sherpa
     ```
 
-=== "Step 2: Setup"
+=== "Step 2: Verify Prerequisites"
 
     ```bash
     # Install uv for fast dependency management
     curl -LsSf https://astral.sh/uv/install.sh | sh
     
-    # Verify prerequisites
-    python --version  # Should be 3.10+
-    az --version      # Azure CLI installed
-    az account show   # Authenticated
+    # Verify Python version
+    python --version  # Should be 3.10 or higher
+    
+    # Verify Azure CLI is installed and authenticated
+    az --version
+    az account show
     ```
 
-=== "Step 3: Start"
+=== "Step 3: Start at Base Camp"
 
     ```bash
-    # Begin at Base Camp
+    # Navigate to Base Camp to begin
     cd camps/base-camp
+    
+    # Follow the README for setup instructions
     ```
+
+---
+
+## Reference Materials
+
+!!! quote "Your Companion Guide"
+    Throughout this workshop, we reference the comprehensive **[OWASP MCP Azure Security Guide](https://microsoft.github.io/mcp-azure-security-guide/)** for deeper technical explanations of each security risk and mitigation strategy.
+
+**Additional Resources:**
+
+:material-book: [MCP Specification 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25) - Official protocol documentation  
+:material-shield: [MCP Security Best Practices](https://modelcontextprotocol.io/.../basic/security_best_practices) - Community security guidance  
+:material-github: [FastMCP Framework](https://github.com/jlowin/fastmcp) - Python framework used in this workshop
 
 ---
 
@@ -146,4 +194,4 @@ Ready to begin? Follow these steps:
 
 ---
 
-*"The mountain doesn't care about your excuses. Prepare well, climb smart, reach the summit."* 🏔️
+*The mountain doesn't care about your excuses. Prepare well, climb smart, reach the summit.* 🏔️
