@@ -2,6 +2,8 @@
 
 *"Reaching Observation Peak"*
 
+![Monitoring](../images/sherpa-monitoring.png)
+
 !!! info "Camp Details"
     **Duration:** 90 minutes  
     **Azure Services:** Log Analytics, Application Insights, Azure Monitor  

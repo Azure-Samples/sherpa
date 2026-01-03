@@ -2,6 +2,8 @@
 
 *"Scaling the Gateway Ridge"*
 
+![Gateway](../images/sherpa-gateway.png)
+
 !!! info "Camp Details"
     **Duration:** 90 minutes  
     **Azure Services:** API Management, Private Endpoints, API Center  

@@ -2,6 +2,8 @@
 
 *A Sherpa's Guide to Securing Model Context Protocol Servers in Azure*
 
+![MCP Workshop](images/sherpa-mcp-workshop.png)
+
 <div class="grid cards" markdown>
 
 - :material-tent:{ .lg .middle } __Base Camp__

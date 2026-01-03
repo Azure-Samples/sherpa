@@ -2,6 +2,8 @@
 
 *"Establishing Your Identity on the Mountain"*
 
+![Identity](../images/sherpa-identity.png)
+
 !!! info "Camp Details"
     **Duration:** 90 minutes  
     **Azure Services:** Entra ID, Managed Identity, Key Vault, Container Apps  

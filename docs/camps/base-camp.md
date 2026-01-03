@@ -2,7 +2,7 @@
 
 *"Know Your Terrain Before You Climb"*
 
-![Base Camp](../images/sherpa-logo.jpg)
+![Base Camp](../images/sherpa-base-camp.png)
 
 Welcome to **Base Camp**, the foundation of your MCP security journey. Before we ascend to the higher camps where we'll tackle production-grade security patterns, we need to establish a solid foundation. Just as mountaineers acclimatize at base camp before attempting the summit, you'll start here by understanding what MCP is, why it needs security, and experiencing firsthand what happens when security is absent.
 

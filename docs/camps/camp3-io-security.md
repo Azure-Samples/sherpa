@@ -2,6 +2,8 @@
 
 *"Navigating the Treacherous I/O Pass"*
 
+![Security](../images/sherpa-security.png)
+
 !!! info "Camp Details"
     **Duration:** 90 minutes  
     **Azure Services:** Content Safety, AI Services  
