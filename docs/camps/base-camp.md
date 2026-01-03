@@ -247,7 +247,9 @@ Click any waypoint below to expand its instructions and continue your ascent.
     !!! danger "The Vulnerability"
         - The MCP server has NO authentication mechanism
         - ANY client can connect and access ANY resource
-        - There's no check to verify the client's identity or permissions
+        - There's no code checking WHO is making the request
+        - Both the resource handler and tool are completely open
+        - Any client that can reach the server can call these functions with any `user_id` and retrieve sensitive data
 
     ### Real-World Impact
 
@@ -284,9 +286,6 @@ Click any waypoint below to expand its instructions and continue your ascent.
 
     ⚠️  WARNING: This data was accessed without authentication via HTTP!"""
     ```
-    
-    !!! bug "The Problem"
-        There's no code checking WHO is making the request! Both the resource handler and tool are completely open. Any client that can reach the server can call these functions with any `user_id` and retrieve sensitive data.
 
 ??? success "Waypoint 4: Implement Security"
 
@@ -365,7 +364,7 @@ Click any waypoint below to expand its instructions and continue your ascent.
 
     The test script uses **FastMCP Client** (`fastmcp.client.Client`) with **BearerAuth** to programmatically test the secure server.
 
-    This will automatically test:
+    The script validates:
 
     :white_check_mark: Test 1: Connection WITH token succeeds (user_001 can access own data)  
     :white_check_mark: Test 2: Connection WITHOUT token fails (401 Unauthorized)  
@@ -463,22 +462,22 @@ Click any waypoint below to expand its instructions and continue your ascent.
     ```
 
     !!! check "Key Security Features"
-        :white_check_mark: **Token-based authentication** - FastMCP's StaticTokenVerifier validates Bearer tokens  
-        :white_check_mark: **Context injection** - Authenticated user info available in `Context` parameter  
-        :white_check_mark: **Authorization checks** - Every tool validates user can access requested data  
-        :white_check_mark: **Streamable HTTP** - Modern MCP transport protocol  
+        **Token-based authentication** - FastMCP's StaticTokenVerifier validates Bearer tokens  
+        **Context injection** - Authenticated user info available in `Context` parameter  
+        **Authorization checks** - Every tool validates user can access requested data  
+        **Streamable HTTP** - Modern MCP transport protocol  
 
     ### ⚠️ Important: This Is NOT Production-Ready!
 
     While this fixes the Base Camp vulnerability, **do not use this approach in production**:
 
     !!! warning "Demo Limitations"
-        :x: **Simple bearer token** - No expiration, no rotation  
-        :x: **Token in environment variable** - Can leak in logs/errors  
-        :x: **Hardcoded user mapping** - Token directly maps to user_001 for demo purposes  
-        :x: **No token refresh** - Can't revoke access easily  
-        :x: **No audit logging** - Can't track access  
-        :x: **No rate limiting** - Vulnerable to brute force  
+        **Simple bearer token** - No expiration, no rotation  
+        **Token in environment variable** - Can leak in logs/errors  
+        **Hardcoded user mapping** - Token directly maps to user_001 for demo purposes  
+        **No token refresh** - Can't revoke access easily  
+        **No audit logging** - Can't track access  
+        **No rate limiting** - Vulnerable to brute force  
 
     !!! info "Why FastMCP's StaticTokenVerifier?"
         FastMCP provides built-in authentication for learning and prototyping. The StaticTokenVerifier is intentionally simple - it maps predefined tokens to user identities. This is perfect for understanding authentication concepts, but production systems need dynamic token validation (JWT), token rotation, and integration with identity providers.
@@ -487,21 +486,21 @@ Click any waypoint below to expand its instructions and continue your ascent.
 
     In **Camp 1: Identity & Access Management**, you'll implement:
 
-    :white_check_mark: **OAuth 2.1 with PKCE** - Industry-standard authentication  
-    :white_check_mark: **Azure Entra ID** - Enterprise identity provider  
-    :white_check_mark: **Azure Managed Identity** - Passwordless authentication  
-    :white_check_mark: **Azure Key Vault** - Secure secrets storage (no .env files!)  
-    :white_check_mark: **JWT tokens** - With expiration, refresh, and validation  
-    :white_check_mark: **RBAC** - Role-based access control for fine-grained permissions  
-    :white_check_mark: **Audit logging** - Track every access for compliance  
+    :material-check: **OAuth 2.1 with PKCE** - Industry-standard authentication  
+    :material-check: **Azure Entra ID** - Enterprise identity provider  
+    :material-check: **Azure Managed Identity** - Passwordless authentication  
+    :material-check: **Azure Key Vault** - Secure secrets storage (no .env files!)  
+    :material-check: **JWT tokens** - With expiration, refresh, and validation  
+    :material-check: **RBAC** - Role-based access control for fine-grained permissions  
+    :material-check: **Audit logging** - Track every access for compliance  
 
 ## Summary & Key Takeaways
 
 !!! success "What You've Learned"
-    :white_check_mark: **Vulnerability Demonstrated:** Unauthenticated MCP servers expose all data  
-    :white_check_mark: **OWASP Risk:** MCP07 - Insufficient Authentication & Authorization  
-    :white_check_mark: **Fix Applied:** Token-based authentication on every request  
-    :white_check_mark: **Pattern Learned:** The "vulnerable → exploit → fix → validate" methodology
+    **Vulnerability Demonstrated:** Unauthenticated MCP servers expose all data  
+    **OWASP Risk:** MCP07 - Insufficient Authentication & Authorization  
+    **Fix Applied:** Token-based authentication on every request  
+    **Pattern Learned:** The "vulnerable → exploit → fix → validate" methodology
 
 ### What's Next in Camp 1?
 
@@ -518,14 +517,13 @@ Then **Camp 2: Gateway & Network Security** will add centralized API/MCP Gateway
 
 ## Additional Resources
 
-!!! tip "Code Repository"
-    All the source code is available in the [GitHub repository](https://github.com/Azure-Samples/sherpa/tree/main/camps/base-camp)
-
-!!! quote "Guide Reference"
-    For deeper technical details, see:
-
-    - OWASP MCP Azure Security Guide for MCP01: [Token Mismanagement & Secret Exposure](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token-mismanagement/)
-    - OWASP MCP Azure Security Guide for MCP07: [Insufficient Authentication & Authorization](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/)
+!!! tip "Learn More"
+    **Source Code:** All code is available in the [GitHub repository](https://github.com/Azure-Samples/sherpa/tree/main/camps/base-camp)
+    
+    **OWASP Guide References:**
+    
+    - [MCP01: Token Mismanagement & Secret Exposure](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token-mismanagement/)
+    - [MCP07: Insufficient Authentication & Authorization](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/)
 
 ---
 
