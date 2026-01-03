@@ -173,8 +173,10 @@ Ready to begin your expedition? Follow these three simple steps:
 
 ## Reference Materials
 
-!!! quote "Your Companion Guide"
+!!! info "Your Companion Guide"
     Throughout this workshop, we reference the comprehensive **[OWASP MCP Azure Security Guide](https://microsoft.github.io/mcp-azure-security-guide/)** for deeper technical explanations of each security risk and mitigation strategy.
+
+![OWASP MCP Azure Security Guide](images/owasp-mcp-guide.png)
 
 **Additional Resources:**
 
