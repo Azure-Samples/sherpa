@@ -2,9 +2,13 @@
 
 *A Sherpa's Guide to Securing Model Context Protocol Servers in Azure*
 
+**🚀 [Start the Workshop →](https://azure-samples.github.io/sherpa/)**
+
+<img src="docs/images/sherpa-mcp-workshop.png" alt="MCP Security Workshop" width="400">
+
 ## Overview
 
-This workshop takes you on an expedition from Base Camp to the Summit, where you'll learn to secure Model Context Protocol (MCP) servers in Azure. Like any great mountain expedition, we'll face challenges—but with proper preparation and the right tools, we'll reach the peak together.
+This workshop takes you on an expedition from Base Camp to the Summit, where you'll learn to secure Model Context Protocol (MCP) servers in Azure. Like any great mountain expedition, we'll face challenges, but with proper preparation and the right tools, we'll reach the peak together.
 
 MCP is an open protocol that lets AI applications connect to external tools and data sources. It's becoming the standard way to extend AI capabilities—and that means security is critical. This workshop teaches you practical, hands-on security techniques you can apply immediately.
 
@@ -12,7 +16,9 @@ MCP is an open protocol that lets AI applications connect to external tools and 
 
 ## 🗺️ The Journey
 
-Our expedition follows a proven path—each camp builds on the last, creating defense-in-depth security.
+Our expedition follows a proven path where each camp builds on the last, creating defense-in-depth security.
+
+![Expedition Route](docs/images/sherpa-mcp-workshop-map.png)
 
 | Stop | Theme | Focus |
 |:----:|:-----:|:-----:|
@@ -22,6 +28,8 @@ Our expedition follows a proven path—each camp builds on the last, creating de
 | **Camp 3** | Navigating I/O Pass | Content Safety, Input Validation, PII Detection |
 | **Camp 4** | Observation Peak | Logging, Monitoring, Threat Detection |
 | **Summit** | Full Integration | Red Team / Blue Team, Defense Validation |
+
+
 
 ## 📚 Reference Guide
 
@@ -53,7 +61,7 @@ Throughout the workshop, we reference specific sections for deeper dives on each
    ```
 
 3. **Follow the guide:**  
-   Each camp has a README.md with step-by-step instructions following our proven "Deploy → Exploit → Fix → Validate" pattern.
+   Visit **[azure-samples.github.io/sherpa](https://azure-samples.github.io/sherpa/)** for step-by-step instructions following our proven "Deploy → Exploit → Fix → Validate" pattern.
 
 ## Workshop Methodology
 
@@ -89,7 +97,12 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 - **OWASP MCP Azure Guide:** [microsoft.github.io/mcp-azure-security-guide](https://microsoft.github.io/mcp-azure-security-guide/)
 - **MCP Specification:** [modelcontextprotocol.io/specification/2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25)
 - **Security Best Practices:** [modelcontextprotocol.io/.../security_best_practices](https://modelcontextprotocol.io/.../basic/security_best_practices)
+- **Azure API Management:** [learn.microsoft.com/azure/api-management](https://learn.microsoft.com/azure/api-management/)
 - **Azure API Center:** [learn.microsoft.com/azure/api-center](https://learn.microsoft.com/azure/api-center/)
+- **Azure Key Vault:** [learn.microsoft.com/azure/key-vault](https://learn.microsoft.com/azure/key-vault/)
+- **Azure Managed Identity:** [learn.microsoft.com/entra/identity/managed-identities-azure-resources](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/)
+- **Microsoft Foundry:** [learn.microsoft.com/azure/ai-foundry/what-is-azure-ai-foundry](https://learn.microsoft.com/azure/ai-foundry/what-is-azure-ai-foundry?view=foundry)
+- **Azure AI Content Safety:** [learn.microsoft.com/azure/ai-services/content-safety](https://learn.microsoft.com/azure/ai-services/content-safety/)
 
 ---
 
