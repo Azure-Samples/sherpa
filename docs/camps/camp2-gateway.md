@@ -1,3 +1,8 @@
+---
+hide:
+  - toc
+---
+
 # Camp 2: Gateway Security
 
 *Scaling the Gateway Ridge*

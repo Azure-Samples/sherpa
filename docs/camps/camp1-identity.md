@@ -1,3 +1,8 @@
+---
+hide:
+  - toc
+---
+
 # Camp 1: Identity & Access Management
 
 *Establishing Your Identity on the Mountain*

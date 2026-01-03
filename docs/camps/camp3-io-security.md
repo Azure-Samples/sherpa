@@ -1,3 +1,8 @@
+---
+hide:
+  - toc
+---
+
 # Camp 3: I/O Security
 
 *Navigating the Treacherous I/O Pass*

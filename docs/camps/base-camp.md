@@ -1,3 +1,8 @@
+---
+hide:
+  - toc
+---
+
 # Base Camp: Understanding the Mountain
 
 *Know Your Terrain Before You Climb*

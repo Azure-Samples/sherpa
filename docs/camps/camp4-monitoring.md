@@ -1,3 +1,8 @@
+---
+hide:
+  - toc
+---
+
 # Camp 4: Monitoring & Observability
 
 *Reaching Observation Peak*
