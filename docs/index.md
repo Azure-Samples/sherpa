@@ -3,7 +3,7 @@ hide:
   - navigation
 ---
 
-# 🏔️ Welcome to the MCP Security Workshop
+# 🏔️ Welcome to the MCP Security Summit Workshop
 
 ## A Sherpa's Guide to Securing Model Context Protocol Servers in Azure
 

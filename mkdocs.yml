@@ -11,19 +11,22 @@ copyright: Copyright &copy; 2025 Microsoft Corporation
 
 theme:
   name: material
+  custom_dir: docs/overrides
+  logo: sherpa-icon.png
+  favicon: sherpa-icon.png
   language: en
   palette:
     # Light mode
     - scheme: default
-      primary: indigo
-      accent: indigo
+      primary: blue-grey
+      accent: blue-grey
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     # Dark mode
     - scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: blue-grey
+      accent: blue-grey
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
@@ -45,7 +48,6 @@ theme:
     - content.tabs.link
   icon:
     repo: fontawesome/brands/github
-    logo: material/security
 
 # Extensions
 markdown_extensions:
