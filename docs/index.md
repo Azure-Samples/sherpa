@@ -46,7 +46,7 @@ Your journey follows a proven camp-to-camp progression. Each stage builds on the
     ---
 
     **Understanding the Mountain** - Explore MCP fundamentals and witness authentication vulnerabilities in action  
-    *OWASP Risks: MCP07, MCP01, MCP02*
+    *OWASP Risks: MCP07, MCP01*
 
     [:octicons-arrow-right-24: Begin the ascent](camps/base-camp.md)
 
