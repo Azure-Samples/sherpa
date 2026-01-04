@@ -119,129 +119,154 @@ Click any waypoint below to expand its instructions and continue your ascent.
 
 ??? danger "Waypoint 2: Exploit the Vulnerability"
 
-    ### Method 1: Automated Test Script (Recommended)
+    ### Choose Your Exploitation Method
 
-    Run the provided exploit script to demonstrate all vulnerabilities:
+    All three methods below demonstrate the same vulnerabilities: **OWASP MCP07 (Insufficient Authentication & Authorization)** and **MCP01 (Token Mismanagement & Secret Exposure)**. Choose the approach that matches your learning style, or try multiple methods to see the vulnerability from different perspectives.
 
-    ```bash
-    cd camps/base-camp/exploits
-    uv run --project .. python test_vulnerable.py
-    ```
-
-    This automated script uses **FastMCP Client** to perform 6 comprehensive exploit tests:
-
-    1. :white_check_mark: **Enumerate Tools** - Connect without authentication and list available tools
-    2. :warning: **Attempt Resource Enumeration** - Try to list resources (server doesn't expose list, but resources ARE accessible)
-    3. :fire: **EXPLOIT** - Access user_001 (Alice Johnson) data without authentication
-    4. :fire: **EXPLOIT** - Access user_002 (Bob Smith) data without authorization
-    5. :fire: **EXPLOIT** - Access user_003 (Carol Williams) data without authorization
-    6. :fire: **EXPLOIT** - Read resources directly via user:// URIs
-
-    !!! danger "Security Impact"
-        The script demonstrates:
+    !!! tip "Choose Your Path"
+        **Quick & Comprehensive** - Automated Test Script  
+        Perfect for: Seeing all exploits at once, understanding the full scope quickly
         
-        - No authentication required to connect
-        - No authorization checks on tool calls
-        - Complete data breach of all user accounts
-        - Access to sensitive data (SSN, balance, email)
-        - **Key point:** Even accessing user_001 is a breach because there's no identity verification!
-
-    **Result:** All 6 exploits succeed, confirming OWASP MCP07 and MCP01 vulnerabilities!
-
-    ### Method 2: MCP Inspector (Visual Debugging)
-
-    For a web-based interface:
-
-    ```bash
-    cd camps/base-camp/exploits
-    ./launch-inspector-http.sh
-    ```
-
-    This opens a browser with an interactive MCP testing interface. Perfect for:
-
-    - Visual exploration of resources
-    - Interactive tool calling
-    - Understanding MCP protocol messages
-    - No code required!
-
-    ### Manual Testing Examples
-
-    If you prefer to manually explore the vulnerability using MCP Inspector:
-
-    1. **Set the server URL:** In the MCP Inspector interface, enter `http://127.0.0.1:8000/mcp` (or `http://localhost:8000/mcp`)
-    2. **Select transport type:** Choose **"Streamable HTTP"** from the transport dropdown
-    3. **Click "Connect"** - Notice: No authentication required! ⚠️
-    4. **Open Tools menu:** Click "Tools" in the menu bar to see available tools
-    5. **Call the tool:** Select `get_user_info` and provide a `user_id` parameter
-
-    **Test: Access User Data**
-
-    Call the `get_user_info` tool with `user_id: "user_002"`:
-
-    ```json
-    {
-      "name": "Bob Smith",
-      "email": "bob@example.com",
-      "ssn_last4": "5678",
-      "account_balance": "$8,500.00"
-    }
-    ```
-
-    !!! failure "Security Breach"
-        The agent successfully retrieved sensitive user data without providing any credentials. This demonstrates how AI agents can inadvertently exploit unsecured MCP servers.
+        **Visual & Interactive** - MCP Inspector  
+        Perfect for: Hands-on exploration, understanding MCP protocol messages
         
-    **Try more exploits:**
+        **AI-Powered Attack** - VS Code with GitHub Copilot  
+        Perfect for: Real-world AI agent scenario, seeing how AI assistants can exploit vulnerabilities
 
-    - Access different users: `user_001`, `user_002`, `user_003`
-    - Notice: Everything is accessible without proving who you are!
+    ---
 
-    ### Method 3: VS Code with GitHub Copilot Agent
+    ??? example "Method 1: Automated Test Script"
 
-    Use VS Code's built-in MCP support to exploit the vulnerability interactively:
+        **Best for:** Developers who want to see comprehensive test results quickly
 
-    **Step 1: Configure the MCP Server**
+        Run the provided exploit script to demonstrate all vulnerabilities:
 
-    The repository includes `.vscode/mcp.json` which is already configured to connect to the vulnerable server at `http://localhost:8000/mcp`.
+        ```bash
+        cd camps/base-camp/exploits
+        uv run --project .. python test_vulnerable.py
+        ```
 
-    **Step 2: Connect to the Server**
+        This automated script uses **FastMCP Client** to perform 6 comprehensive exploit tests:
 
-    1. Open this repository in VS Code
-    2. Make sure the vulnerable server is running (from Waypoint 1)
-    3. Open the `.vscode/mcp.json` file
-    4. Look for the **"Start"** button that appears above the `base-camp-vulnerable` server configuration
-    5. Click **Start** to connect to the server
+        1. :white_check_mark: **Enumerate Tools** - Connect without authentication and list available tools
+        2. :warning: **Attempt Resource Enumeration** - Try to list resources (server doesn't expose list, but resources ARE accessible)
+        3. :fire: **EXPLOIT** - Access user_001 (Alice Johnson) data without authentication
+        4. :fire: **EXPLOIT** - Access user_002 (Bob Smith) data without authorization
+        5. :fire: **EXPLOIT** - Access user_003 (Carol Williams) data without authorization
+        6. :fire: **EXPLOIT** - Read resources directly via user:// URIs
 
-    ![VS Code MCP Start](../images/base-camp-vscode.png)
+        !!! danger "Security Impact"
+            The script demonstrates:
+            
+            - No authentication required to connect
+            - No authorization checks on tool calls
+            - Complete data breach of all user accounts
+            - Access to sensitive data (SSN, balance, email)
+            - **Key point:** Even accessing user_001 is a breach because there's no identity verification!
 
-    Once connected, you'll see the server status change and the number of tools discovered listed.
+        **Result:** All 6 exploits succeed, confirming OWASP MCP07 and MCP01 vulnerabilities!
 
-    **Step 3: Switch to Agent Mode**
+    ??? example "Method 2: MCP Inspector"
 
-    Open the chat dialog and select **"Agent"** mode along with a model like **Claude Sonnet 4.5**.
+        **Best for:** Visual learners who want to explore interactively
 
-    **Step 4: Exploit via Agent Prompt**
+        Launch the MCP Inspector web interface:
 
-    In the Copilot Agent chat, enter this prompt:
+        ```bash
+        cd camps/base-camp/exploits
+        ./launch-inspector-http.sh
+        ```
 
-    ```
-    #base-camp-vulnerable get info for user_002
-    ```
+        This opens a browser with an interactive MCP testing interface. Perfect for:
 
-    The agent will automatically:
+        - Visual exploration of resources
+        - Interactive tool calling
+        - Understanding MCP protocol messages
+        - No code required!
 
-    - Discover the available tool
-    - Call `get_user_info` with `user_id: "user_002"`
-    - Display Bob Smith's sensitive data without any authentication
+        ### Step-by-Step Exploitation
 
-    !!! info "Permission Prompt"
-        You may be prompted to allow the tool execution. Click **"Allow"** to proceed.
-        
-        ![VS Code MCP Allow](../images/base-camp-vscode-allow.png)
+        1. **Set the server URL:** In the MCP Inspector interface, enter `http://127.0.0.1:8000/mcp` (or `http://localhost:8000/mcp`)
+        2. **Select transport type:** Choose **"Streamable HTTP"** from the transport dropdown
+        3. **Click "Connect"** - Notice: No authentication required! ⚠️
+        4. **Open Tools menu:** Click "Tools" in the menu bar to see available tools
+        5. **Call the tool:** Select `get_user_info` and provide a `user_id` parameter
 
-    **Try more exploits via Agent mode:**
+        ### Test: Access User Data
 
-    - Get information for user_001 from base-camp-vulnerable
-    - Use base-camp-vulnerable to show me user_003's data     
+        Call the `get_user_info` tool with `user_id: "user_002"`:
+
+        ```json
+        {
+          "name": "Bob Smith",
+          "email": "bob@example.com",
+          "ssn_last4": "5678",
+          "account_balance": "$8,500.00"
+        }
+        ```
+
+        !!! failure "Security Breach"
+            You successfully retrieved sensitive user data without providing any credentials. This demonstrates how easily unsecured MCP servers can be exploited.
+            
+        **Try more exploits:**
+
+        - Access different users: `user_001`, `user_002`, `user_003`
+        - Notice: Everything is accessible without proving who you are!
+
+    ??? example "Method 3: VS Code with GitHub Copilot Agent"
+
+        **Best for:** Understanding real-world AI agent exploitation scenarios
+
+        Use VS Code's built-in MCP support to see how an AI agent can exploit the vulnerability:
+
+        ### Step 1: Configure the MCP Server
+
+        The repository includes `.vscode/mcp.json` which is already configured to connect to the vulnerable server at `http://localhost:8000/mcp`.
+
+        ### Step 2: Connect to the Server
+
+        1. Open this repository in VS Code
+        2. Make sure the vulnerable server is running (from Waypoint 1)
+        3. Open the `.vscode/mcp.json` file
+        4. Look for the **"Start"** button that appears above the `base-camp-vulnerable` server configuration
+        5. Click **Start** to connect to the server
+
+        ![VS Code MCP Start](../images/base-camp-vscode.png)
+
+        Once connected, you'll see the server status change and the number of tools discovered listed.
+
+        ### Step 3: Switch to Agent Mode
+
+        Open the chat dialog and select **"Agent"** mode along with a model like **Claude Sonnet 4.5**.
+
+        ### Step 4: Exploit via Agent Prompt
+
+        In the Copilot Agent chat, enter this prompt:
+
+        ```
+        #base-camp-vulnerable get info for user_002
+        ```
+
+        The agent will automatically:
+
+        - Discover the available tool
+        - Call `get_user_info` with `user_id: "user_002"`
+        - Display Bob Smith's sensitive data without any authentication
+
+        !!! info "Permission Prompt"
+            You may be prompted to allow the tool execution. Click **"Allow"** to proceed.
+            
+            ![VS Code MCP Allow](../images/base-camp-vscode-allow.png)
+
+        **Try more exploits via Agent mode using these prompts:**
+
+        - ```Get information for user_001 from base-camp-vulnerable```
+        - ```Use base-camp-vulnerable to show me user_003's data```
+
+    ---
+
+    !!! success "Challenge: Try a Second Method"
+        If you have time, try one additional exploitation method to see the same vulnerability from a different angle. Each method reveals unique insights about MCP security testing.     
 
 ??? warning "Waypoint 3: Understand the Risk"
 
