@@ -55,7 +55,23 @@ In this workshop, you'll work with both sides of this architecture to understand
 
 ## Prerequisites
 
-Before starting the workshop, ensure you have the following setup completed:
+Before starting Base Camp, ensure you have the required tools installed.
+
+!!! info "📋 Prerequisites Guide"
+    See the **[Prerequisites page](../prerequisites.md)** for detailed installation instructions and troubleshooting.
+
+**Quick checklist for Base Camp:**
+
+- Python 3.10+
+- uv (Python package installer)
+- VS Code with GitHub Copilot (recommended for exploitation scenarios)
+
+**Verify your setup:**
+```bash
+python --version && uv --version
+```
+
+---
 
 ### Clone the Workshop Repository
 

@@ -74,6 +74,7 @@ markdown_extensions:
 # Navigation
 nav:
   - Home: index.md
+  - Prerequisites: prerequisites.md
   - The Journey:
     - Base Camp: camps/base-camp.md
     - Camp 1 - Identity: camps/camp1-identity.md
