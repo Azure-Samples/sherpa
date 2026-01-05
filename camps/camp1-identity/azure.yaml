@@ -1,0 +1,22 @@
+name: sherpa-camp1-identity
+metadata:
+  template: sherpa-mcp-security-workshop@1.0.0
+
+services:
+  vulnerable-server:
+    project: ./vulnerable-server
+    language: python
+    host: containerapp
+  
+  secure-server:
+    project: ./secure-server
+    language: python
+    host: containerapp
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
+  parameters:
+    azureClientId: ${AZURE_CLIENT_ID}
+    azureTenantId: ${AZURE_TENANT_ID}
