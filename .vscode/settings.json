@@ -1,8 +1,9 @@
 {
-  "python.defaultInterpreterPath": "${workspaceFolder}/camps/base-camp/.venv/bin/python",
   "files.exclude": {
     "**/__pycache__": true,
     "**/*.pyc": true,
+    "**/*.egg-info": true,
     "**/.venv": false
-  }
+  },
+  "python.terminal.activateEnvironment": false
 }

@@ -5,7 +5,7 @@ echo "🔐 Camp 1: Register Entra ID Application"
 echo "========================================"
 
 APP_NAME="sherpa-mcp-camp1-$(date +%s)"
-REDIRECT_URI="http://localhost:8080/callback"
+DEVICE_CODE_REDIRECT_URI="urn:ietf:wg:oauth:2.0:oob"
 
 echo "Creating Entra ID app registration: ${APP_NAME}"
 echo ""
@@ -119,17 +119,36 @@ fi
 rm -f /tmp/current-api.json /tmp/updated-api.json
 echo "✅ Clients pre-authorized"
 
-# Add redirect URI for device code flow
+# Add redirect URIs for device code flow, VS Code OAuth, and demo client
+echo "Configuring redirect URIs..."
 az ad app update \
     --id "${APP_ID}" \
-    --public-client-redirect-uris "${REDIRECT_URI}"
+    --public-client-redirect-uris "${DEVICE_CODE_REDIRECT_URI}" \
+    --web-redirect-uris "http://127.0.0.1:33418" "https://vscode.dev/redirect" "http://localhost:8090/callback"
 
 if [ $? -ne 0 ]; then
-    echo "❌ Failed to configure public client redirect URIs"
+    echo "❌ Failed to configure redirect URIs"
     exit 1
 fi
 
-echo "✅ Public client configured"
+echo "✅ Redirect URIs configured"
+echo "   Public client: device code flow"
+echo "   Web: VS Code OAuth, demo client (port 8090)"
+
+# Set as confidential client (allows client secrets for demo)
+# Note: isFallbackPublicClient=false means the app uses client secrets
+# This is needed for the demo client with authorization code flow
+echo "Configuring client type (confidential for demo with secrets)..."
+az ad app update \
+    --id "${APP_ID}" \
+    --set isFallbackPublicClient=false
+
+if [ $? -ne 0 ]; then
+    echo "❌ Failed to configure client type"
+    exit 1
+fi
+
+echo "✅ Client type configured (confidential - supports client secrets)"
 
 # Get tenant ID
 TENANT_ID=$(az account show --query tenantId -o tsv)
@@ -151,8 +170,17 @@ echo "✅ Pre-authorized clients:"
 echo "   - Azure CLI (for Device Code Flow)"
 echo "   - VS Code (for PRM-based authentication)"
 echo ""
+echo "✅ Redirect URIs configured:"
+echo "   - urn:ietf:wg:oauth:2.0:oob (device code flow)"
+echo "   - http://127.0.0.1:33418 (VS Code)"
+echo "   - https://vscode.dev/redirect (VS Code)"
+echo "   - http://localhost:8090/callback (demo client)"
+echo ""
 echo "📝 Save these values - you'll need them for deployment!"
 echo ""
 echo "Add to your .env file:"
 echo "AZURE_TENANT_ID=${TENANT_ID}"
 echo "AZURE_CLIENT_ID=${APP_ID}"
+echo ""
+echo "💡 To enable the demo client with full OAuth flow:"
+echo "   Run: ./scripts/generate-client-secret.sh"

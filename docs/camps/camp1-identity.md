@@ -458,12 +458,13 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     - **OAuth 2.1 scope** (`access_as_user`) for delegated permissions
     - **Device Code Flow** support for CLI authentication  
-    - **Protected Resource Metadata (PRM)** support for VS Code auto-auth
+    - **Authorization Code + PKCE** support for browser-based flows
+    - **Protected Resource Metadata (PRM)** endpoints for OAuth discovery
     - **Pre-authorized clients:**
         - Azure CLI (`04b07795-8ddb-461a-bbee-02f9e1bf7b46`) - for Device Code Flow
-        - VS Code (`aebc6443-996d-45c2-90f0-388ff96faa56`) - for PRM-based auth
+        - VS Code (`aebc6443-996d-45c2-90f0-388ff96faa56`) - for future MCP client support
 
-    This enables both authentication methods with a single registration.
+    This enables both authentication methods (Option A and B) with a single registration.
 
     ```bash
     cd camps/camp1-identity
@@ -483,7 +484,10 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
     ✅ API scope created
     Pre-authorizing clients (Azure CLI + VS Code)...
     ✅ Clients pre-authorized
-    ✅ Public client configured
+    ✅ Redirect URIs configured
+       Public client: device code flow
+       Web: VS Code OAuth, demo client (port 8090)
+    ✅ Client type configured (confidential - supports client secrets)
 
     ✅ Entra ID Application Registered!
     ====================================
@@ -495,6 +499,12 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
     ✅ Pre-authorized clients:
        - Azure CLI (for Device Code Flow)
        - VS Code (for PRM-based authentication)
+    
+    ✅ Redirect URIs configured:
+       - urn:ietf:wg:oauth:2.0:oob (device code flow)
+       - http://127.0.0.1:33418 (VS Code)
+       - https://vscode.dev/redirect (VS Code)
+       - http://localhost:8090/callback (demo client)
 
     📝 Save these values - you'll need them for deployment!
 
@@ -510,7 +520,7 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
         
         Think of your MCP server as a building that needs security. This script creates a "doorman" (Entra ID app registration) who knows:
         
-        1. **Who's allowed in** (Azure CLI and VS Code)
+        1. **Who's allowed in** (Azure CLI, VS Code, and your demo client)
         2. **What they can do** (access the MCP server on your behalf)
         3. **How to verify their ID** (checking OAuth tokens)
         
@@ -542,14 +552,36 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
            - Azure CLI (04b07795-8ddb-461a-bbee-02f9e1bf7b46)
            - VS Code (aebc6443-996d-45c2-90f0-388ff96faa56)
         ```
-        These are Microsoft's official client IDs for Azure CLI and VS Code (these IDs are the same for everyone). Pre-authorizing them means users won't see a scary consent prompt saying "Azure CLI wants to access your data" - Microsoft already trusts these clients, and now your app does too.
+        These are Microsoft's official client IDs for Azure CLI and VS Code (these IDs are the same for everyone). Pre-authorizing them means users won't see a consent prompt - Microsoft already trusts these clients, and now your app does too.
         
-        **5. Configure public client (device code flow)**
+        **5. Configure redirect URIs**
         ```
-        ✅ Public client configured
-        Redirect URI: http://localhost:8080/callback
+        ✅ Redirect URIs configured
+           Public client: urn:ietf:wg:oauth:2.0:oob (device code flow)
+           Web: localhost:8090/callback (demo client), VS Code endpoints
         ```
-        This enables the "Device Code Flow" - the authentication method where you sign in via a browser. The redirect URI is where the authentication response gets sent after you log in.
+        These define where OAuth responses get sent after authentication:
+        - **Device code flow**: Special "out of band" URI for CLI tools
+        - **Demo client**: Local server on port 8090 for authorization code flow
+        - **VS Code**: Standard VS Code OAuth redirect URIs (for future use)
+        
+        **6. Configure client type**
+        ```
+        ✅ Client type configured (confidential)
+           isFallbackPublicClient: false
+           Supports: Client secrets, Authorization Code flow
+        ```
+        This sets the app as a **confidential client**, which means it can securely store and use client secrets. This is required for the demo client's authorization code flow.
+        
+        - **Confidential client** (what we have): Can use secrets for token exchange, suitable for backend apps
+        - **Public client**: Cannot store secrets securely, used for mobile/desktop apps
+        
+        !!! note "Production Consideration"
+            While this demo uses client secrets for simplicity, production environments should prefer:
+            
+            - **Device Code Flow** (Option A) - No secrets needed, great for CLI tools
+            - **Managed Identity** - For Azure-hosted services (no secrets to manage)
+            - **Certificate-based authentication** - More secure than client secrets
         
         **Why this matters:**
         
@@ -568,7 +600,7 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
         - Badges expire daily
         - The security desk (Entra ID) keeps a log of who came in
         - Lost badges can be deactivated instantly
-        - Only approved badge readers (Azure CLI, VS Code) work with your doors
+        - Only approved badge readers (Azure CLI, demo client, VS Code) work with your doors
 
     ---
 
@@ -671,18 +703,18 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     ### Step 5c: Authenticate (Choose Your Path)
 
-    This camp offers **two authentication methods**. Both are valid - choose based on your needs:
+    This camp offers **two authentication methods**. Both demonstrate OAuth 2.1 security - choose based on your needs:
 
     | Method | Best For | What You'll Learn |
     |--------|----------|-------------------|
     | **Option A: Device Code Flow** | CLI tools, understanding OAuth mechanics | See the token, decode it, understand JWT claims |
-    | **Option B: VS Code + PRM** | IDE integration, production experience | How real MCP clients (GitHub Copilot, Claude Desktop) authenticate |
+    | **Option B: Authorization Code + PKCE Demo** | Browser-based flows, production patterns | Complete OAuth flow with PRM discovery |
 
     !!! tip "Recommendation"
-        Try **both paths** to understand when to use each pattern:
+        Try **both paths** to understand different OAuth grant types:
         
         - Start with **Option A** to understand what's inside a JWT token
-        - Then try **Option B** to see how production MCP clients work
+        - Then try **Option B** to see PRM discovery and authorization code flow in action
 
     ---
 
@@ -843,14 +875,14 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     ---
 
-    #### Option B: VS Code + PRM (Production Experience)
+    #### Option B: Authorization Code + PKCE Demo (Production OAuth Flow)
 
-    **Best for:** IDE integration, seeing how production MCP clients work
+    **Best for:** Understanding browser-based OAuth, PRM discovery, production authentication patterns
 
-    This is how GitHub Copilot, Claude Desktop, and other MCP clients authenticate, by using Protected Resource Metadata (RFC 9728) for automatic OAuth discovery.
+    This demo shows how modern MCP clients discover OAuth configuration and perform the complete authorization code + PKCE flow with Entra ID.
 
     ??? info "What is Protected Resource Metadata (PRM)?"
-        **Protected Resource Metadata (PRM)** is a standardized way for OAuth resource servers to advertise their authentication requirements. Think of it as a "menu" that tells clients how to authenticate.
+        **Protected Resource Metadata (PRM)** is a standardized way for OAuth resource servers to advertise their authentication requirements. It's defined in RFC 9728 and enables automatic OAuth discovery.
 
         **The Problem It Solves:**
         
@@ -864,23 +896,27 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
         **How PRM Works:**
         
-        PRM is a simple JSON endpoint at `/.well-known/oauth-protected-resource` that advertises:
+        When a client connects to your protected resource without authentication:
         
-        ```json
-        {
-          "resource": "https://your-server.com",
-          "authorization_servers": ["https://login.microsoftonline.com/.../v2.0"],
-          "scopes_supported": ["api://your-client-id/access_as_user"],
-          "bearer_methods_supported": ["header"]
-        }
-        ```
+        1. Server returns `401 Unauthorized` with a special header:
+           ```
+           WWW-Authenticate: Bearer resource_metadata="https://server/.well-known/oauth-protected-resource"
+           ```
         
-        When a smart client (like VS Code, Claude Desktop, or GitHub Copilot) sees your server URL, it automatically:
+        2. Client fetches the PRM endpoint and gets:
+           ```json
+           {
+             "resource": "https://your-server.com",
+             "authorization_servers": ["https://login.microsoftonline.com/.../v2.0"],
+             "scopes_supported": ["api://your-client-id/access_as_user"],
+             "bearer_methods_supported": ["header"]
+           }
+           ```
         
-        1. **Fetches** `/.well-known/oauth-protected-resource`
-        2. **Reads** which auth server and scopes are needed
-        3. **Handles** the OAuth flow automatically
-        4. **Manages** token refresh for the user
+        3. Client automatically knows:
+           - Which OAuth server to use
+           - What scope to request
+           - How to send the access token
         
         **Real-world analogy:**
         
@@ -889,89 +925,139 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
         
         **Why It Matters for MCP:**
         
-        MCP clients like VS Code can connect to your server with **zero manual configuration**. Users just provide the URL, and everything else happens automatically. This is the gold standard for production OAuth deployments.
+        Future MCP clients (like VS Code with MCP, Claude Desktop, GitHub Copilot) can connect to your server with **zero manual configuration**. Users just provide the URL, and everything else happens automatically.
         
-        **RFC 9728:** PRM is an official IETF standard (RFC 9728) that's part of the modern OAuth ecosystem. By implementing it, your MCP server is production-ready and follows industry best practices.
+        **RFC 9728:** PRM is an official IETF standard that's part of the modern OAuth ecosystem. By implementing it, your MCP server follows industry best practices.
 
-    ##### How It Works
+    #### Run the PRM Demo Client
 
-    When VS Code connects to an MCP server:
+    We've built a Python client that demonstrates the complete PRM + PKCE flow:
 
-    1. VS Code fetches `/.well-known/oauth-protected-resource` from the server
-    2. The PRM response tells VS Code:
-        - Authorization server: `https://login.microsoftonline.com/{tenant}/v2.0`
-        - Required scope: `api://{client-id}/access_as_user`
-        - How to send token: `Authorization: Bearer` header
-    3. VS Code handles the entire OAuth flow automatically
-    4. You authenticate once in the browser
-    5. VS Code manages tokens for all future requests
+    **Step 1: Navigate to camp1-identity**
+    
+    ```bash
+    cd camps/camp1-identity
+    ```
+    
+    **Step 2: Generate client secret for token exchange**
+    
+    ```bash
+    ./scripts/generate-client-secret.sh
+    ```
+    
+    This creates a client secret for local testing (expires in 30 days). The secret is saved to `demo-client/.env` and is git-ignored.
+    
+    !!! note "Client Secrets in Production"
+        This demo uses a client secret for simplicity, but production public clients should use:
 
-    **No manual token copying required!**
-
-    ##### Setup
-
-    **1. Create VS Code MCP configuration:**
-
-    Create or update `.vscode/mcp.json` in your workspace:
-
-    ```json
-    {
-      "mcpServers": {
-        "camp1-secure": {
-          "type": "sse",
-          "url": "https://your-container-app.azurecontainerapps.io/mcp"
-        }
-      }
-    }
+        - Device Code Flow (Option A) for CLI tools
+        - Authorization Code + PKCE without secrets for native/mobile apps
+        - Or implement backend-for-frontend (BFF) pattern
+        
+        Client secrets are appropriate for confidential clients (server-to-server) but not for public clients in production.
+    
+    **Step 3: Run the demo**
+    
+    ```bash
+    # Get your configuration
+    eval "$(azd env get-values | sed 's/^/export /')"
+    
+    # Run the demo (uv handles dependencies automatically)
+    cd demo-client
+    uv run --project .. python mcp_prm_client.py \
+      "${SECURE_SERVER_URL}" \
+      "${AZURE_CLIENT_ID}"
     ```
 
-    Replace `your-container-app` with your actual URL from `azd env get-values`.
+    #### What Happens
 
-    !!! note "Notice: No token or authorization header needed!"
-        VS Code discovers authentication requirements automatically via PRM.
+    The demo will walk through each phase of the OAuth flow:
 
-    **2. Start the MCP server in VS Code:**
-
-    - Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
-    - Run `MCP: List Servers`
-    - Select `camp1-secure` and choose `Start Server`
-
-    **3. Authenticate when prompted:**
-
-    - VS Code opens a browser window
-    - Sign in with your Microsoft account
-    - Grant consent if prompted
-    - Return to VS Code - you're connected!
-
-    ##### What's Happening Behind the Scenes
-
+    **Phase 1: PRM Discovery**
     ```
-    VS Code              MCP Server           Entra ID
-    |                    |                    |
-    |--GET /.well-known/oauth-protected-resource-->|
-    |<---PRM JSON (auth server, scope)-------------|
-    |                    |                    |
-    |--GET /.well-known/oauth-authorization-server--->
-    |<---OAuth metadata (endpoints)----------------|
-    |                    |                    |
-    |--Authorization Code + PKCE flow (browser)---->
-    |<---Access Token--------------------------------|
-    |                    |                    |
-    |--POST /mcp (with Bearer token)-------->|
-    |<---MCP Response------------------------|
+    ✓ Received WWW-Authenticate header
+      Bearer resource_metadata="https://your-server/.well-known/oauth-protected-resource"
+    ✓ Found PRM endpoint
+    ✓ Fetched PRM metadata:
+      Resource: https://your-server.azurecontainerapps.io
+      Authorization Server: https://login.microsoftonline.com/.../v2.0
+      Scopes: api://your-client-id/access_as_user
     ```
 
-    ##### Verify PRM Endpoint
+    **Phase 2: Authorization Server Discovery**
+    ```
+    ✓ Fetching: https://login.microsoftonline.com/.../.well-known/openid-configuration
+    ✓ Authorization endpoint discovered
+    ✓ Token endpoint discovered
+    ```
 
-    You can check that the PRM endpoint is working:
+    **Phase 3: PKCE Authorization Code Flow**
+    ```
+    ✓ Generated PKCE code_challenge
+    ✓ Opening browser for authentication...
+    ✓ Received authorization code
+    ✓ State validated
+    ✓ Exchanging authorization code for access token...
+      Using client secret from .env file
+    ✓ Access token acquired
+      Token type: Bearer
+      Expires in: 3894 seconds
+    ```
+
+    **Phase 4: Authenticated MCP Requests**
+    ```
+    ✓ Sending request to: https://your-server/mcp
+      Method: tools/list
+    ✓ Success! Tools listed with JWT authentication
+    ```
+
+    #### What You Just Did
+
+    :material-check: **PRM Discovery** - Server told client how to authenticate (RFC 9728)  
+    :material-check: **OAuth Server Discovery** - Client found Entra ID endpoints automatically  
+    :material-check: **PKCE Flow** - Secure authorization code exchange with proof key  
+    :material-check: **JWT Token** - Received signed token from Entra ID (expires in ~1 hour)  
+    :material-check: **Authenticated MCP** - Made MCP requests with Bearer token  
+
+    This is exactly how production MCP clients will work once they fully implement PRM support!
+
+    ??? tip "Explore the Demo Code"
+        The demo client is fully commented and demonstrates:
+        
+        - PRM discovery from WWW-Authenticate header
+        - OAuth server metadata parsing
+        - PKCE code challenge generation
+        - Local callback server for authorization code
+        - Token exchange with client authentication
+        - MCP JSON-RPC requests with Bearer token
+        
+        See [demo-client/README.md](../../camps/camp1-identity/demo-client/README.md) and [mcp_prm_client.py](../../camps/camp1-identity/demo-client/mcp_prm_client.py) for implementation details.
+
+    #### Verify PRM Endpoint Manually
+
+    You can also check the PRM endpoint directly:
 
     ```bash
     SECURE_URL=$(azd env get-values | grep SECURE_SERVER_URL | cut -d= -f2 | tr -d '"')
+    
+    # Check WWW-Authenticate header on 401
+    curl -i "${SECURE_URL}/mcp" \
+      -H "Content-Type: application/json" \
+      -d '{"jsonrpc":"2.0","method":"initialize","id":1}'
+    ```
+
+    **Look for:**
+    ```
+    HTTP/2 401
+    www-authenticate: Bearer resource_metadata="https://your-server/.well-known/oauth-protected-resource"
+    ```
+
+    **Fetch the PRM metadata:**
+    ```bash
     curl -s "${SECURE_URL}/.well-known/oauth-protected-resource" | jq .
     ```
 
     **Expected output:**
-
     ```json
     {
       "resource": "https://your-app.azurecontainerapps.io",
@@ -981,38 +1067,27 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
       "scopes_supported": [
         "api://{client-id}/access_as_user"
       ],
-      "bearer_methods_supported": ["header"]
+      "bearer_methods_supported": ["header"],
+      "token_formats_supported": ["jwt"]
     }
     ```
 
-    ##### Troubleshooting
-
-    **VS Code prompts for wrong auth endpoint**
-
-    If VS Code tries to authenticate at `https://your-app/authorize` instead of Entra ID:
-    
-    - Verify PRM endpoint is accessible (curl command above)
-    - Check that `AZURE_TENANT_ID` and `AZURE_CLIENT_ID` are set in the Container App
-    - Redeploy if needed: `azd deploy --service secure-server`
-
-    **Authentication succeeds but MCP requests fail with 401**
-
-    - Verify the token scope matches: `api://{client-id}/access_as_user`
-    - Check that VS Code client is pre-authorized (should be from Step 5a)
-    - Verify audience in JWT matches your CLIENT_ID (decode at [jwt.ms](https://jwt.ms))
+    !!! success "PRM Implementation Complete!"
+        Your server now implements RFC 9728 Protected Resource Metadata. When MCP clients (VS Code, Claude Desktop, etc.) add full PRM support for pre-registered OAuth apps, they'll be able to connect to your server automatically with zero configuration!
 
     ---
 
     ### Understanding the Two Paths
 
-    | Aspect | Device Code Flow | VS Code + PRM |
-    |--------|------------------|---------------|
-    | **Token visibility** | ✅ You see and decode the JWT | ❌ Hidden (managed by VS Code) |
-    | **Learning value** | High - understand JWT claims | High - see production patterns |
-    | **Setup complexity** | Low - run script, copy token | Very low - just add URL |
-    | **Ongoing friction** | High - copy token every ~1 hour | None - VS Code handles renewal |
-    | **Use in production** | CLI tools, automation | IDE integrations, user apps |
-    | **OAuth flow** | Device Code Grant | Authorization Code + PKCE |
+    | Aspect | Option A: Device Code Flow | Option B: Authorization Code + PKCE Demo |
+    |--------|----------------------------|-------------------------------------------|
+    | **Token visibility** | You see and decode the JWT | Token displayed in terminal output |
+    | **Learning value** | High - understand JWT claims | High - see PRM discovery and production OAuth patterns |
+    | **Setup complexity** | Low - run script, copy token | Medium - generate secret, run demo |
+    | **Ongoing friction** | High - copy token every ~1 hour | Medium - demo restart after ~1 hour |
+    | **Use in production** | CLI tools, automation, headless environments | Browser-based apps, native clients |
+    | **OAuth flow** | Device Code Grant | Authorization Code Grant with PKCE |
+    | **PRM demonstration** | Manual configuration needed | Automatic discovery via PRM |
 
     **Key insight:** Both methods result in the **same JWT validation** on the server. The server doesn't know (or care) which flow was used - it just validates the token.
 
@@ -1039,20 +1114,6 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
     :material-check: **Not Before (`nbf`):** Token is valid now (not used too early)
 
     **Decode your JWT at [jwt.ms](https://jwt.ms) to see the claims!**
-
-    ---
-
-    ### Security Improvements
-
-    | Aspect | Before (Static Token) | After (OAuth 2.1 JWT) |
-    |--------|----------------------|----------------------|
-    | **Expiration** | Never | ~1 hour |
-    | **Revocation** | Impossible | Possible via Entra ID |
-    | **Audience** | Not validated | Validated (prevents confused deputy) |
-    | **Tampering** | Possible | Cryptographically prevented |
-    | **Rotation** | Manual, risky | Automatic via token refresh |
-    | **User Context** | Generic | Rich user claims (name, email, roles) |
-    | **Client auto-discovery** | Not supported | PRM enables zero-config (VS Code) |
 
 ??? note "Waypoint 6: Validate Security"
 
@@ -1181,33 +1242,20 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     | Security Control | Vulnerable Server | Secure Server |
     |------------------|-------------------|---------------|
-    | **Authentication** | Static token | OAuth 2.1 JWT |
-    | **Token Storage** | Env var (Portal visible) | Not applicable (JWT per request) |
+    | **Authentication** | Static token (`camp1_demo_token_INSECURE`) | OAuth 2.1 JWT with Entra ID |
+    | **Token Storage** | Hardcoded in env var (visible in Portal) | Not applicable - JWT per request |
     | **Token Expiration** | Never | ~1 hour |
-    | **Azure Credentials** | Connection strings | Managed Identity |
-    | **Secrets Management** | Env vars | Key Vault |
-    | **Audience Validation** | No | Yes |
-    | **RBAC** | Not applicable | Least-privilege |
-    | **Audit Logs** | None | Azure Monitor |
-
----
-
-## Key Concepts Mastered
-
-### 1. Managed Identity
-**Passwordless authentication** for Azure services. Azure automatically manages credentials - no secrets to store, rotate, or protect!
-
-### 2. Azure Key Vault
-**Centralized secret management** with RBAC, versioning, and audit logs. Secrets are encrypted at rest and in transit, with fine-grained access control.
-
-### 3. OAuth 2.1 with PKCE
-**Modern authentication** with short-lived tokens, cryptographic proof, and enhanced security against interception attacks.
-
-### 4. JWT Validation
-**Comprehensive token validation** including signature, issuer, audience, and expiration. Prevents tampering, token reuse, and confused deputy attacks.
-
-### 5. Least-Privilege RBAC
-**Grant only necessary permissions.** Managed Identity has "Key Vault Secrets User" role - can read secrets but not manage vault, create secrets, or delete.
+    | **Token Revocation** | Impossible | Possible via Entra ID |
+    | **Token Tampering** | Possible (plain string) | Cryptographically prevented (signed JWT) |
+    | **Audience Validation** | No - token works for any service | Yes - `aud` claim prevents confused deputy |
+    | **User Context** | Generic `client_id` only | Rich claims (name, email, roles, tenant) |
+    | **Token Rotation** | Manual, risky | Automatic via token refresh |
+    | **Client Discovery** | Manual configuration | PRM (RFC 9728) enables zero-config |
+    | **Azure Credentials** | Connection strings in env vars | Managed Identity (passwordless) |
+    | **Secrets Management** | Environment variables | Azure Key Vault |
+    | **RBAC** | Not applicable | Least-privilege (Key Vault Secrets User) |
+    | **Audit Logs** | None | Azure Monitor tracks all access |
+    | **Production Ready** | ❌ Security vulnerabilities | ✅ Enterprise-grade security |
 
 ---
 

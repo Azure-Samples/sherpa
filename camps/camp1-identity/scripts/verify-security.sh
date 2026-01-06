@@ -98,5 +98,3 @@ else
     echo "   Please resolve issues before production use!"
     exit 1
 fi
-echo "🔒 Security posture: SECURE"
-echo "   Ready for OAuth 2.1 upgrade!"
