@@ -1031,7 +1031,7 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
         - Token exchange with client authentication
         - MCP JSON-RPC requests with Bearer token
         
-        See [demo-client/README.md](../../camps/camp1-identity/demo-client/README.md) and [mcp_prm_client.py](../../camps/camp1-identity/demo-client/mcp_prm_client.py) for implementation details.
+        See `demo-client/README.md` and `demo-client/mcp_prm_client.py` in the [camp1-identity directory](https://github.com/Azure-Samples/sherpa/tree/main/camps/camp1-identity/demo-client) for implementation details.
 
     #### Verify PRM Endpoint Manually
 
