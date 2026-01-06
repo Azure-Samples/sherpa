@@ -60,6 +60,33 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     The vulnerable server uses the same `StaticTokenVerifier` pattern from Base Camp, but now deployed to Azure where the vulnerabilities become even more dangerous.
 
+    ??? info "What is StaticTokenVerifier? (Optional - Skip if you completed Base Camp)"
+        If you skipped Base Camp, here's what you need to know:
+        
+        **StaticTokenVerifier** is a simple (and insecure) authentication method that checks incoming requests against a hardcoded list of valid tokens:
+        
+        ```python
+        # Example: How the vulnerable server "authenticates"
+        auth = StaticTokenVerifier(
+            tokens={
+                "camp1_demo_token_INSECURE": {"client_id": "user_001"}
+            }
+        )
+        ```
+        
+        **Why this is insecure:**
+        
+        - **Tokens are hardcoded** - Stored in plain text in environment variables
+        - **No expiration** - Once issued, valid forever
+        - **No rotation** - Can't change tokens without redeploying
+        - **No cryptographic validation** - Just string matching
+        - **No user context** - Can't tell who's actually using the token
+        - **Easy to steal** - Visible in Portal, logs, and code
+        
+        In this camp, we'll migrate from this vulnerable pattern to **JWTVerifier** with OAuth 2.1, which solves all these problems using industry-standard authentication with Microsoft Entra ID.
+
+    Let's start by provisioning the Azure infrastructure and deploying both servers:
+
     ```bash
     cd camps/camp1-identity
     azd provision
@@ -98,18 +125,18 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     The vulnerable server is now running in Azure with:
 
-    - ❌ **Token stored in plain-text environment variables**
-    - ❌ **Token never expires**
-    - ❌ **No audience validation**
-    - ❌ **Secrets visible in Azure Portal**
+    ❌ **Token stored in plain-text environment variables**  
+    ❌ **Token never expires**  
+    ❌ **No audience validation**  
+    ❌ **Secrets visible in Azure Portal**
 
-    **This demonstrates OWASP MCP01 (Token Mismanagement) and MCP07 (Insufficient Auth) in a cloud environment!**
+    This demonstrates **OWASP MCP01 (Token Mismanagement)** and **MCP07 (Insufficient Auth)** in a cloud environment!
 
     ### Save Your Deployment Information
 
     ```bash
-    # Get your container app URL
-    azd env get-values | grep -E "AZURE_CONTAINER_APP_URL|AZURE_RESOURCE_GROUP|AZURE_KEY_VAULT"
+    # Get your deployment info
+    azd env get-values | grep -E "VULNERABLE_SERVER_URL|SECURE_SERVER_URL|AZURE_RESOURCE_GROUP|AZURE_KEY_VAULT"
     ```
 
     Keep these values handy - you'll need them for the exploits!
@@ -427,19 +454,21 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     ### Step 5a: Register Entra ID Application
 
-    First, we need to register an application in Entra ID that represents our MCP server:
+    This script creates and configures an Entra ID app registration with:
+
+    - **OAuth 2.1 scope** (`access_as_user`) for delegated permissions
+    - **Device Code Flow** support for CLI authentication  
+    - **Protected Resource Metadata (PRM)** support for VS Code auto-auth
+    - **Pre-authorized clients:**
+        - Azure CLI (`04b07795-8ddb-461a-bbee-02f9e1bf7b46`) - for Device Code Flow
+        - VS Code (`aebc6443-996d-45c2-90f0-388ff96faa56`) - for PRM-based auth
+
+    This enables both authentication methods with a single registration.
 
     ```bash
     cd camps/camp1-identity
     ./scripts/register-entra-app.sh
     ```
-
-    This script:
-    
-    - Creates an Entra ID app registration
-    - Configures it for device code flow
-    - Sets the identifier URI (the "audience")
-    - Outputs the Client ID and Tenant ID
 
     **Expected output:**
 
@@ -450,19 +479,96 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     ✅ App ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
     Setting identifier URI...
-    Configuring public client (device code flow)...
+    Exposing API scope...
+    ✅ API scope created
+    Pre-authorizing clients (Azure CLI + VS Code)...
+    ✅ Clients pre-authorized
+    ✅ Public client configured
 
     ✅ Entra ID Application Registered!
     ====================================
     App Name: sherpa-mcp-camp1-1234567890
     Client ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-    Tenant ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    Tenant ID: yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
     Identifier URI: api://xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
+    ✅ Pre-authorized clients:
+       - Azure CLI (for Device Code Flow)
+       - VS Code (for PRM-based authentication)
+
     📝 Save these values - you'll need them for deployment!
+
+    Add to your .env file:
+    AZURE_TENANT_ID=yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
+    AZURE_CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
     ```
 
     **Save these values!** You'll need them for deployment.
+
+    ??? info "What's happening behind the scenes?"
+        **Creating a "Doorman" for Your Server**
+        
+        Think of your MCP server as a building that needs security. This script creates a "doorman" (Entra ID app registration) who knows:
+        
+        1. **Who's allowed in** (Azure CLI and VS Code)
+        2. **What they can do** (access the MCP server on your behalf)
+        3. **How to verify their ID** (checking OAuth tokens)
+        
+        **Step-by-step breakdown:**
+        
+        **1. Create the app registration**
+        ```
+        App Name: sherpa-mcp-camp1-1234567890
+        Client ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        ```
+        This creates a unique identity for your MCP server in Azure. The Client ID is like a serial number - it uniquely identifies your app in Microsoft's identity system. *Your actual Client ID will be different - a unique GUID generated just for you.*
+        
+        **2. Set identifier URI**
+        ```
+        Identifier URI: api://xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        ```
+        This creates a globally unique "address" for your server. When clients request access, they say "I want to access `api://xxxxxxxx...`" - this prevents confusion with other apps.
+        
+        **3. Expose API scope**
+        ```
+        ✅ API scope created
+        Scope: access_as_user
+        ```
+        This defines what permission clients are asking for: "access the MCP server as the currently signed-in user". It's like saying "I'm not asking for admin access, just let me do what the logged-in user is allowed to do."
+        
+        **4. Pre-authorize trusted clients**
+        ```
+        ✅ Clients pre-authorized
+           - Azure CLI (04b07795-8ddb-461a-bbee-02f9e1bf7b46)
+           - VS Code (aebc6443-996d-45c2-90f0-388ff96faa56)
+        ```
+        These are Microsoft's official client IDs for Azure CLI and VS Code (these IDs are the same for everyone). Pre-authorizing them means users won't see a scary consent prompt saying "Azure CLI wants to access your data" - Microsoft already trusts these clients, and now your app does too.
+        
+        **5. Configure public client (device code flow)**
+        ```
+        ✅ Public client configured
+        Redirect URI: http://localhost:8080/callback
+        ```
+        This enables the "Device Code Flow" - the authentication method where you sign in via a browser. The redirect URI is where the authentication response gets sent after you log in.
+        
+        **Why this matters:**
+        
+        - **No more hardcoded passwords!** Instead of storing a static token like `camp1_demo_token_INSECURE`, your server will validate cryptographically signed tokens from Microsoft.
+        - **Tokens expire automatically** - even if someone steals a token, it only works for about an hour.
+        - **You can revoke access** - if something goes wrong, you can disable the app registration and all tokens immediately stop working.
+        - **Full audit trail** - Microsoft logs every authentication, so you know who accessed what and when.
+        
+        **Real-world analogy:**
+        
+        **Before (static token):** Like having one key that everyone shares, never changes, and works forever. If anyone copies it, they have permanent access.
+        
+        **After (OAuth with Entra ID):** Like having a security badge system where:
+
+        - Each person gets their own temporary badge
+        - Badges expire daily
+        - The security desk (Entra ID) keeps a log of who came in
+        - Lost badges can be deactivated instantly
+        - Only approved badge readers (Azure CLI, VS Code) work with your doors
 
     ---
 
@@ -488,11 +594,58 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
     ./scripts/configure-secure-server.sh
     ```
 
+    **What this script does:**
+
     This updates the Container App to use your Entra ID application client ID for JWT validation (instead of the Managed Identity client ID).
 
-    This deploys the secure version with:
+    ??? info "Why do we need two different Client IDs?"
+        **Understanding the Two Identities**
+
+        Your deployment actually has **two separate identities** in Azure:
+
+        1. **Managed Identity Client ID** - The identity of your Container App itself
+            - Created automatically when you provisioned infrastructure
+            - Used by the Container App to authenticate TO other Azure services (like Key Vault)
+            - Think of it as "who the app is" when talking to Azure
+        
+        2. **Entra ID App Registration Client ID** - The identity users authenticate WITH
+            - Created by the `register-entra-app.sh` script
+            - Used to validate JWT tokens FROM users
+            - Think of it as "who the app represents" when users sign in
+
+        **The Key Difference:**
+
+        - **Managed Identity (app → Azure):** "I'm Container App XYZ, let me read secrets from Key Vault"
+        - **App Registration (user → app):** "I'm a user with a token for App ABC, let me access the MCP server"
+
+        **What happens without this configuration:**
+
+        If you skip this step, the Container App would try to validate JWT tokens against the Managed Identity Client ID instead of your App Registration Client ID. This means:
+        
+        ❌ User tokens would have the wrong `aud` (audience) claim  
+        ❌ JWT validation would fail with "Invalid audience"  
+        ❌ Users couldn't authenticate even with valid tokens
+
+        **Real-world analogy:**
+
+        - **Managed Identity** = Your company badge (authenticates you TO the building)
+        - **App Registration** = Your customer portal (authenticates customers TO you)
+        
+        You wouldn't use your company badge to verify customer identities - same principle here!
+
+        **What the script sets:**
+
+        ```bash
+        # Sets AZURE_CLIENT_ID to your App Registration ID
+        # This tells JWTVerifier: "Expect tokens with aud=<app-registration-client-id>"
+        ```
+
+        This ensures the server validates tokens against the correct identity.
+
+    The secure server now includes:
     
-    :material-check: `JWTVerifier` instead of `StaticTokenVerifier`  
+    :material-check: `JWTVerifier` for token validation  
+    :material-check: Protected Resource Metadata (PRM) endpoint at `/.well-known/oauth-protected-resource`  
     :material-check: Audience validation (checks the `aud` claim)  
     :material-check: Expiration checking (rejects expired tokens)  
     :material-check: Signature validation (ensures token not tampered)  
@@ -516,172 +669,80 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     ---
 
-    ### Step 5c: Get Access Token
+    ### Step 5c: Authenticate (Choose Your Path)
 
-    Now you need to authenticate to get a JWT token. Choose your preferred method:
+    This camp offers **two authentication methods**. Both are valid - choose based on your needs:
 
-    #### Option A: Device Code Flow (Easier)
+    | Method | Best For | What You'll Learn |
+    |--------|----------|-------------------|
+    | **Option A: Device Code Flow** | CLI tools, understanding OAuth mechanics | See the token, decode it, understand JWT claims |
+    | **Option B: VS Code + PRM** | IDE integration, production experience | How real MCP clients (GitHub Copilot, Claude Desktop) authenticate |
+
+    !!! tip "Recommendation"
+        Try **both paths** to understand when to use each pattern:
+        
+        - Start with **Option A** to understand what's inside a JWT token
+        - Then try **Option B** to see how production MCP clients work
+
+    ---
+
+    #### Option A: Device Code Flow (Understanding OAuth)
+
+    **Best for:** Learning OAuth mechanics, CLI automation, headless environments
+
+    This flow helps you understand JWT tokens by making them visible:
 
     ```bash
     ./scripts/get-mcp-token.sh
     ```
 
-    This will:
+    **What happens:**
     
-    1. Prompt you to authenticate in a browser
-    2. You'll sign in with your Azure account
-    3. The script receives a JWT token
-    4. Token is valid for ~1 hour
+    1. Script opens browser for authentication
+    2. You sign in with your Azure account
+    3. Azure CLI receives a JWT token
+    4. Token is printed to terminal (you can decode it at [jwt.ms](https://jwt.ms))
 
     ??? info "What's happening behind the scenes?"
         **OAuth Delegated Permissions Flow**
         
-        When you run the token script, here's what happens:
+        When you run the token script:
         
         1. **Azure CLI requests a token** with scope `api://{YOUR_CLIENT_ID}/access_as_user`
         2. **You authenticate** with your Azure credentials (browser popup)
         3. **Entra ID issues a JWT token** containing:
-            - `aud` (audience): Your Entra ID application client ID (`7a9024ef...`)
-            - `iss` (issuer): Your Entra ID tenant (`https://login.microsoftonline.com/{TENANT_ID}/v2.0`)
-            - `scp` (scope): `access_as_user` (delegated permission)
+            - `aud` (audience): Your app's client ID
+            - `iss` (issuer): Your Entra ID tenant
+            - `scp` (scope): `access_as_user`
             - `exp` (expiration): ~1 hour from now
             - Your identity claims (`name`, `email`, etc.)
-        
-        **Why this works:**
-        
-        - Your Entra ID app **exposes an API** with the `access_as_user` scope
-        - Azure CLI is **pre-authorized** to request tokens for this app
-        - No admin consent needed - users can self-consent
-        - Tokens are **cryptographically signed** by Entra ID
         
         **Token validation on the server:**
         
         ```python
-        # The secure server validates:
         verifier = JWTVerifier(
             issuer=f"https://login.microsoftonline.com/{TENANT_ID}/v2.0",
-            audience=CLIENT_ID,  # Must match token's 'aud' claim
+            audience=CLIENT_ID,
             jwks_uri=f"https://login.microsoftonline.com/{TENANT_ID}/discovery/v2.0/keys"
         )
-        # Checks: signature, expiration, audience, issuer
-        claims = verifier.verify(token)
+        # Validates: signature, expiration, audience, issuer
         ```
         
-        **This is dramatically more secure than static tokens because:**
+        **Why this is more secure:**
         
         - Tokens **expire automatically** (can't be used forever)
         - Tokens are **tied to user identity** (audit trail)
-        - Tokens can be **revoked** (via Azure Portal)
+        - Tokens can be **revoked** via Entra ID
         - No secrets stored in environment variables
 
-    #### Option B: Authorization Code + PKCE (Advanced - For Learning)
-
-    !!! note "For Learning Purposes"
-        **Recommendation: Use Option A for this workshop** - it's simpler and automated.
-        
-        Option B demonstrates PKCE for educational purposes. In production:
-        
-        - **Native/mobile apps** → Use PKCE (Option B pattern)
-        - **Server-to-server** → Use client credentials
-        - **CLI tools** → Use device code flow (Option A)
-        
-        **Steps for Option B:**
-        
-        1. Run the script below - browser opens for authentication
-        2. After login, you'll see a 404 page (expected - no callback server)
-        3. Copy the `code` parameter from the URL in your browser
-        4. Follow the script's instructions to exchange code for token
-        
-        This is more complex but shows how real-world apps (like mobile apps) would implement OAuth.
+    **Save your token for testing:**
 
     ```bash
-    ./scripts/get-mcp-token-pkce.sh
-    ```
-
-    This uses **PKCE (Proof Key for Code Exchange)** for enhanced security against token interception. This is the most secure OAuth flow for public clients (like native apps or SPAs).
-
-    ??? info "What's happening behind the scenes?"
-        **PKCE (Proof Key for Code Exchange) Flow**
-        
-        PKCE solves a critical security problem: **how do you safely get OAuth tokens in apps that can't keep secrets?** Native mobile apps and single-page apps can't securely store client secrets because users can inspect the code.
-        
-        **The high-level flow:**
-        
-        1. **App generates two related values:**
-
-            - **Code verifier** - A random secret string (kept private)
-            - **Code challenge** - A cryptographic hash of the verifier (sent publicly)
-        
-        2. **Authorization request with code challenge:**
-            - Browser redirects to Entra ID with the code challenge
-            - User authenticates and consents
-            - Entra ID stores the code challenge
-            - Entra ID redirects back with an authorization code
-        
-        3. **Token exchange with code verifier:**
-            - App sends: authorization code + code verifier
-            - Entra ID verifies: hash(code_verifier) matches stored code_challenge
-            - If they match → issues JWT token
-            - If they don't match → rejects the request
-        
-        **Why this is secure:**
-        
-        Even if an attacker intercepts the authorization code (from the browser redirect), they can't use it because:
-        
-        - The code challenge was sent publicly, but it's just a hash
-        - The code verifier is kept secret by the app
-        - Without the original code verifier, they can't exchange the code for a token
-        - This proves that whoever exchanges the code is the same party who started the flow
-        
-        **Authorization code characteristics:**
-        
-        - **Single-use only** - Can't be reused (security feature)
-        - **Short-lived** - Expires in minutes
-        - **Tied to code challenge** - Must match original request
-        
-        **When to use PKCE:**
-        
-        ✅ **Mobile apps** - No way to keep client secret safe  
-        ✅ **Single-page apps (SPAs)** - JavaScript code is visible  
-        ✅ **Desktop apps** - Can be decompiled  
-        ❌ **Server-to-server** - Use client credentials instead  
-        ❌ **CLI tools** - Device code flow is simpler (Option A)
-
-    ---
-
-    ### Step 5d: Set the TOKEN Variable
-
-    Before testing, you need to set the `TOKEN` variable with the JWT you obtained in Step 5c.
-
-    **If you used Option A (Device Code Flow):**
-
-    The script printed your token. Copy it and set the variable:
-
-    ```bash
-    # Replace with the actual token from the script output
+    # Copy the token from script output and set it
     TOKEN="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIs..."
     ```
 
-    **If you used Option B (PKCE):**
-
-    The token was already set when you ran the code exchange command in step 6:
-
-    ```bash
-    TOKEN=$(curl -X POST ... | jq -r '.access_token')
-    ```
-
-    Verify your token is set:
-
-    ```bash
-    echo "Token length: ${#TOKEN}"
-    # Should show a number > 1000 (JWT tokens are long!)
-    ```
-
-    ---
-
-    ### Step 5e: Test with the JWT Token
-
-    Now test the secure server with your JWT token:
+    **Test with curl:**
 
     ```bash
     # Get secure server URL (strip quotes)
@@ -708,11 +769,258 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     **Success!** You should see a list of available tools returned, proving JWT authentication works!
 
+    ??? warning "Troubleshooting authentication issues"
+        **Problem: No session ID received (empty response)**
+        
+        This usually means authentication failed. Check:
+        
+        1. **Is your token expired?**
+           ```bash
+           # Decode your token at jwt.ms or check expiration
+           echo $TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq .exp
+           # Compare to current time: date +%s
+           ```
+           
+           Tokens expire after ~1 hour. Get a new token:
+           ```bash
+           ./scripts/get-mcp-token.sh
+           TOKEN="<new-token>"
+           ```
+        
+        2. **Is the audience correct?**
+           ```bash
+           # Check the 'aud' claim in your token
+           echo $TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq .aud
+           
+           # Compare to your CLIENT_ID
+           azd env get-values | grep AZURE_CLIENT_ID
+           ```
+           
+           If they don't match, you may need to:
+           - Ensure `configure-secure-server.sh` was run
+           - Verify `AZURE_CLIENT_ID` is set correctly in the Container App
+        
+        3. **See the full error response:**
+           ```bash
+           # Remove the SESSION_ID extraction to see full output
+           curl -v -X POST ${SECURE_URL}/mcp \
+             -H "Authorization: Bearer $TOKEN" \
+             -H "Content-Type: application/json" \
+             -H "Accept: application/json, text/event-stream" \
+             -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"curl-test","version":"1.0"}},"id":1}'
+           ```
+           
+           Look for:
+           - `401 Unauthorized` - Token is invalid/expired/wrong audience
+           - `403 Forbidden` - Token valid but lacks permissions
+           - `500 Internal Server Error` - Server configuration issue
+        
+        **Problem: curl shows transfer stats but no output**
+        
+        This happens when the response has no body. Check:
+        
+        ```bash
+        # Use -v flag to see headers and status code
+        curl -v -X POST ${SECURE_URL}/mcp \
+          -H "Authorization: Bearer $TOKEN" \
+          -H "mcp-session-id: ${SESSION_ID}" \
+          -H "Content-Type: application/json" \
+          -d '{"jsonrpc":"2.0","method":"tools/list","id":2}'
+        ```
+        
+        Common causes:
+        - Missing or invalid `mcp-session-id` header
+        - Wrong HTTP method (should be POST)
+        - Incorrect endpoint URL
+
+    **What you just did:**
+
+    :material-check: Authenticated with a **JWT token** (expires in ~1 hour, not forever!)  
+    :material-check: Server **validated the token signature** against Entra ID public keys  
+    :material-check: Server **checked the audience** (token is for THIS app, not another)  
+    :material-check: Server **verified expiration** (token is still valid)  
+    :material-check: Successfully called MCP methods with OAuth 2.1 security!
+
+    ---
+
+    #### Option B: VS Code + PRM (Production Experience)
+
+    **Best for:** IDE integration, seeing how production MCP clients work
+
+    This is how GitHub Copilot, Claude Desktop, and other MCP clients authenticate, by using Protected Resource Metadata (RFC 9728) for automatic OAuth discovery.
+
+    ??? info "What is Protected Resource Metadata (PRM)?"
+        **Protected Resource Metadata (PRM)** is a standardized way for OAuth resource servers to advertise their authentication requirements. Think of it as a "menu" that tells clients how to authenticate.
+
+        **The Problem It Solves:**
+        
+        Without PRM, every time you want to connect to a protected API, you need to manually configure:
+        
+        - Which authorization server to use (e.g., Entra ID, Auth0, Okta)
+        - What scope to request (e.g., `api://my-app/access_as_user`)
+        - How to send the token (header, query param, etc.)
+        
+        This is tedious and error-prone. Users have to read documentation, copy-paste URLs, and manually configure clients.
+
+        **How PRM Works:**
+        
+        PRM is a simple JSON endpoint at `/.well-known/oauth-protected-resource` that advertises:
+        
+        ```json
+        {
+          "resource": "https://your-server.com",
+          "authorization_servers": ["https://login.microsoftonline.com/.../v2.0"],
+          "scopes_supported": ["api://your-client-id/access_as_user"],
+          "bearer_methods_supported": ["header"]
+        }
+        ```
+        
+        When a smart client (like VS Code, Claude Desktop, or GitHub Copilot) sees your server URL, it automatically:
+        
+        1. **Fetches** `/.well-known/oauth-protected-resource`
+        2. **Reads** which auth server and scopes are needed
+        3. **Handles** the OAuth flow automatically
+        4. **Manages** token refresh for the user
+        
+        **Real-world analogy:**
+        
+        - **Without PRM:** "Here's a restaurant. Go figure out their menu, hours, and payment methods yourself."
+        - **With PRM:** "Here's a restaurant with a sign outside that lists everything you need to know."
+        
+        **Why It Matters for MCP:**
+        
+        MCP clients like VS Code can connect to your server with **zero manual configuration**. Users just provide the URL, and everything else happens automatically. This is the gold standard for production OAuth deployments.
+        
+        **RFC 9728:** PRM is an official IETF standard (RFC 9728) that's part of the modern OAuth ecosystem. By implementing it, your MCP server is production-ready and follows industry best practices.
+
+    ##### How It Works
+
+    When VS Code connects to an MCP server:
+
+    1. VS Code fetches `/.well-known/oauth-protected-resource` from the server
+    2. The PRM response tells VS Code:
+        - Authorization server: `https://login.microsoftonline.com/{tenant}/v2.0`
+        - Required scope: `api://{client-id}/access_as_user`
+        - How to send token: `Authorization: Bearer` header
+    3. VS Code handles the entire OAuth flow automatically
+    4. You authenticate once in the browser
+    5. VS Code manages tokens for all future requests
+
+    **No manual token copying required!**
+
+    ##### Setup
+
+    **1. Create VS Code MCP configuration:**
+
+    Create or update `.vscode/mcp.json` in your workspace:
+
+    ```json
+    {
+      "mcpServers": {
+        "camp1-secure": {
+          "type": "sse",
+          "url": "https://your-container-app.azurecontainerapps.io/mcp"
+        }
+      }
+    }
+    ```
+
+    Replace `your-container-app` with your actual URL from `azd env get-values`.
+
+    !!! note "Notice: No token or authorization header needed!"
+        VS Code discovers authentication requirements automatically via PRM.
+
+    **2. Start the MCP server in VS Code:**
+
+    - Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+    - Run `MCP: List Servers`
+    - Select `camp1-secure` and choose `Start Server`
+
+    **3. Authenticate when prompted:**
+
+    - VS Code opens a browser window
+    - Sign in with your Microsoft account
+    - Grant consent if prompted
+    - Return to VS Code - you're connected!
+
+    ##### What's Happening Behind the Scenes
+
+    ```
+    VS Code              MCP Server           Entra ID
+    |                    |                    |
+    |--GET /.well-known/oauth-protected-resource-->|
+    |<---PRM JSON (auth server, scope)-------------|
+    |                    |                    |
+    |--GET /.well-known/oauth-authorization-server--->
+    |<---OAuth metadata (endpoints)----------------|
+    |                    |                    |
+    |--Authorization Code + PKCE flow (browser)---->
+    |<---Access Token--------------------------------|
+    |                    |                    |
+    |--POST /mcp (with Bearer token)-------->|
+    |<---MCP Response------------------------|
+    ```
+
+    ##### Verify PRM Endpoint
+
+    You can check that the PRM endpoint is working:
+
+    ```bash
+    SECURE_URL=$(azd env get-values | grep SECURE_SERVER_URL | cut -d= -f2 | tr -d '"')
+    curl -s "${SECURE_URL}/.well-known/oauth-protected-resource" | jq .
+    ```
+
+    **Expected output:**
+
+    ```json
+    {
+      "resource": "https://your-app.azurecontainerapps.io",
+      "authorization_servers": [
+        "https://login.microsoftonline.com/{tenant-id}/v2.0"
+      ],
+      "scopes_supported": [
+        "api://{client-id}/access_as_user"
+      ],
+      "bearer_methods_supported": ["header"]
+    }
+    ```
+
+    ##### Troubleshooting
+
+    **VS Code prompts for wrong auth endpoint**
+
+    If VS Code tries to authenticate at `https://your-app/authorize` instead of Entra ID:
+    
+    - Verify PRM endpoint is accessible (curl command above)
+    - Check that `AZURE_TENANT_ID` and `AZURE_CLIENT_ID` are set in the Container App
+    - Redeploy if needed: `azd deploy --service secure-server`
+
+    **Authentication succeeds but MCP requests fail with 401**
+
+    - Verify the token scope matches: `api://{client-id}/access_as_user`
+    - Check that VS Code client is pre-authorized (should be from Step 5a)
+    - Verify audience in JWT matches your CLIENT_ID (decode at [jwt.ms](https://jwt.ms))
+
+    ---
+
+    ### Understanding the Two Paths
+
+    | Aspect | Device Code Flow | VS Code + PRM |
+    |--------|------------------|---------------|
+    | **Token visibility** | ✅ You see and decode the JWT | ❌ Hidden (managed by VS Code) |
+    | **Learning value** | High - understand JWT claims | High - see production patterns |
+    | **Setup complexity** | Low - run script, copy token | Very low - just add URL |
+    | **Ongoing friction** | High - copy token every ~1 hour | None - VS Code handles renewal |
+    | **Use in production** | CLI tools, automation | IDE integrations, user apps |
+    | **OAuth flow** | Device Code Grant | Authorization Code + PKCE |
+
+    **Key insight:** Both methods result in the **same JWT validation** on the server. The server doesn't know (or care) which flow was used - it just validates the token.
+
     ---
 
     ### Understanding JWT Validation
 
-    The secure server validates **every request**:
+    Regardless of which authentication path you chose, the secure server validates **every request** the same way:
 
     ```python
     auth = JWTVerifier(
@@ -744,6 +1052,7 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
     | **Tampering** | Possible | Cryptographically prevented |
     | **Rotation** | Manual, risky | Automatic via token refresh |
     | **User Context** | Generic | Rich user claims (name, email, roles) |
+    | **Client auto-discovery** | Not supported | PRM enables zero-config (VS Code) |
 
 ??? note "Waypoint 6: Validate Security"
 

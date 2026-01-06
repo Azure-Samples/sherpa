@@ -115,6 +115,11 @@ module secureServer 'modules/container-app.bicep' = {
         name: 'AZURE_TENANT_ID'
         value: !empty(azureTenantId) ? azureTenantId : tenant().tenantId
       }
+      {
+        name: 'RESOURCE_URL'
+        // Use the predictable FQDN pattern: <app-name>.<env-default-domain>
+        value: 'https://${abbrs.containerApp}secure-${suffix}.${containerAppsEnv.outputs.defaultDomain}'
+      }
     ]
   }
 }
