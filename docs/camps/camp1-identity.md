@@ -185,7 +185,7 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     **Now wait an hour... or a day... or even a month...** Run the same command again - **it STILL works!** The token never expires.
 
-    !!! danger "Security Impact: Double Threat"
+    ??? danger "Security Impact: Double Threat"
         **Easy to Steal:**
         
         - Anyone with **Reader** access to the Container App can steal the token
@@ -432,23 +432,29 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
 ??? success "Waypoint 5: Upgrade to OAuth 2.1 with JWT Validation"
 
-    ### What is OAuth 2.1?
-
-    **OAuth 2.1** is the modern authentication standard that fixes the security issues of static tokens:
-
-    - **Tokens expire** - Short-lived tokens reduce breach impact
-    - **PKCE (Proof Key for Code Exchange)** - Prevents token interception
-    - **Audience validation** - Tokens are tied to specific services
-    - **JWT (JSON Web Tokens)** - Cryptographically signed, tamper-proof
-    - **Integration with Entra ID** - Enterprise identity provider
-
-    **How it works:**
+    Static tokens served us well in Waypoint 4, but they have a fatal flaw: they never expire. If someone gets hold of `camp1_demo_token_INSECURE`, they have permanent access—and there's no way to revoke it. Time to upgrade to OAuth 2.1 with Microsoft Entra ID.
     
-    1. Client authenticates with Entra ID (Microsoft's identity platform)
-    2. Entra ID issues a JWT token (valid for ~1 hour)
-    3. Client sends JWT to MCP server
-    4. Server validates: signature, issuer, audience, expiration
-    5. If valid, server processes request
+    In this waypoint, you'll replace static token authentication with cryptographically-signed JWT tokens (RFC 7519) that expire after an hour. Your secure server will validate every token's signature, audience, issuer, and expiration - eliminating the risks of hardcoded credentials. You'll test two OAuth flows: Device Code Flow (perfect for CLI tools) and Authorization Code + PKCE (the production-ready browser flow).
+    
+    As a bonus, you'll implement Protected Resource Metadata (RFC 9728)—a standard that lets OAuth clients automatically discover your server's authentication requirements. No more manual configuration. Just give a client your URL, and PRM handles the rest. This is how modern MCP clients like VS Code, Claude Desktop, and GitHub Copilot will connect to your server in the future.
+
+    ??? info "What is OAuth 2.1?"
+
+        **OAuth 2.1** is the modern authentication standard that fixes the security issues of static tokens:
+
+        - **Tokens expire** - Short-lived tokens reduce breach impact
+        - **PKCE (Proof Key for Code Exchange)** - Prevents token interception
+        - **Audience validation** - Tokens are tied to specific services
+        - **JWT (JSON Web Tokens)** - Cryptographically signed, tamper-proof
+        - **Integration with Entra ID** - Enterprise identity provider
+
+        **How it works:**
+        
+        1. Client authenticates with Entra ID (Microsoft's identity platform)
+        2. Entra ID issues a JWT token (valid for ~1 hour)
+        3. Client sends JWT to MCP server
+        4. Server validates: signature, issuer, audience, expiration
+        5. If valid, server processes request
 
     ---
 
@@ -604,7 +610,7 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     ---
 
-    ### Step 5b: Update Environment and Deploy Secure Server
+    ### Step 5b: Configure Secure Server with Entra ID
 
     Update your azd environment with the Entra ID values:
 
@@ -614,13 +620,7 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
     azd env set AZURE_TENANT_ID "<your-tenant-id>"
     ```
 
-    Now deploy the secure server:
-
-    ```bash
-    azd deploy --service secure-server
-    ```
-
-    Configure the secure server with your Entra ID application client ID:
+    Now configure the secure server to use these values for JWT validation:
 
     ```bash
     ./scripts/configure-secure-server.sh
@@ -628,7 +628,7 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     **What this script does:**
 
-    This updates the Container App to use your Entra ID application client ID for JWT validation (instead of the Managed Identity client ID).
+    This updates the Container App's environment variables to use your Entra ID application client ID for JWT validation (instead of the Managed Identity client ID). The container automatically restarts to pick up the new configuration—no redeploy needed!
 
     ??? info "Why do we need two different Client IDs?"
         **Understanding the Two Identities**
@@ -686,12 +686,12 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
     **What's different in the code:**
 
     ```python
-    # Before (vulnerable):
+    # Before (vulnerable server):
     auth = StaticTokenVerifier(
         tokens={"camp1_demo_token_INSECURE": {"client_id": "user_001"}}
     )
     
-    # After (secure):
+    # After (secure server):
     auth = JWTVerifier(
         jwks_uri=f"https://login.microsoftonline.com/{TENANT_ID}/discovery/v2.0/keys",
         audience=CLIENT_ID,  # ✅ Audience validation!
