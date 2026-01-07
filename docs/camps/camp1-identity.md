@@ -1178,46 +1178,46 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
     !!! tip "Extra Credit - Not Required"
         The automated script above validates all the essential security controls. The steps below are **optional** and provide hands-on experience with testing authentication and authorization failures. Great for deeper learning, but feel free to skip ahead to the Security Checklist!
 
-    #### 1. Verify Token Expiration
+    ??? example "Verify Token Expiration"
 
-    Try using an old/expired token:
+        Try using an old/expired token:
 
-    ```bash
-    # This should FAIL with "Token expired" or "Invalid token"
-    curl -X POST ${SECURE_URL}/mcp \
-      -H "Authorization: Bearer expired_or_old_token" \
-      -H "Content-Type: application/json" \
-      -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
-    ```
+        ```bash
+        # This should FAIL with "Token expired" or "Invalid token"
+        curl -X POST ${SECURE_URL}/mcp \
+        -H "Authorization: Bearer expired_or_old_token" \
+        -H "Content-Type: application/json" \
+        -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+        ```
 
-    **Expected:** 401 Unauthorized or similar error
+        **Expected:** 401 Unauthorized or similar error
 
-    #### 2. Verify Audience Validation
+    ??? example "Verify Audience Validation"
 
-    Try using a token with wrong audience:
+        Try using a token with wrong audience:
 
-    ```bash
-    # Get a token for a different resource (e.g., Microsoft Graph)
-    WRONG_TOKEN=$(az account get-access-token --resource https://graph.microsoft.com --query accessToken -o tsv)
-    
-    # This should FAIL because audience is wrong
-    curl -X POST ${SECURE_URL}/mcp \
-      -H "Authorization: Bearer $WRONG_TOKEN" \
-      -H "Content-Type: application/json" \
-      -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
-    ```
+        ```bash
+        # Get a token for a different resource (e.g., Microsoft Graph)
+        WRONG_TOKEN=$(az account get-access-token --resource https://graph.microsoft.com --query accessToken -o tsv)
+        
+        # This should FAIL because audience is wrong
+        curl -X POST ${SECURE_URL}/mcp \
+        -H "Authorization: Bearer $WRONG_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+        ```
 
-    **Expected:** 401 Unauthorized - audience validation failed
+        **Expected:** 401 Unauthorized - audience validation failed
 
-    #### 3. Verify No Secrets in Environment Variables
+    ??? example "Verify No Secrets in Environment Variables"
 
-    1. Open [Azure Portal](https://portal.azure.com)
-    2. Navigate to your **secure** Container App
-    3. Go to **Settings** → **Environment variables**
-    4. Verify: No `REQUIRED_TOKEN` variable!
-    5. Only configuration: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `KEY_VAULT_URL`
+        1. Open [Azure Portal](https://portal.azure.com)
+        2. Navigate to your **secure** Container App
+        3. Go to **Settings** → **Environment variables**
+        4. Verify: No `REQUIRED_TOKEN` variable!
+        5. Only configuration: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `KEY_VAULT_URL`
 
-    **Expected:** No secret values visible, only configuration references
+        **Expected:** No secret values visible, only configuration references
 
     ---
 
