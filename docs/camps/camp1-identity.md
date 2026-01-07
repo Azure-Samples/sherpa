@@ -718,362 +718,361 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     ---
 
-    #### Option A: Device Code Flow (Understanding OAuth)
+    ??? example "Option A: Device Code Flow (Understaning OAuth)"
 
-    **Best for:** Learning OAuth mechanics, CLI automation, headless environments
+        **Best for:** Learning OAuth mechanics, CLI automation, headless environments
 
-    This flow helps you understand JWT tokens by making them visible:
+        This flow helps you understand JWT tokens by making them visible:
 
-    ```bash
-    ./scripts/get-mcp-token.sh
-    ```
-
-    **What happens:**
-    
-    1. Script opens browser for authentication
-    2. You sign in with your Azure account
-    3. Azure CLI receives a JWT token
-    4. Token is printed to terminal (you can decode it at [jwt.ms](https://jwt.ms))
-
-    ??? info "What's happening behind the scenes?"
-        **OAuth Delegated Permissions Flow**
-        
-        When you run the token script:
-        
-        1. **Azure CLI requests a token** with scope `api://{YOUR_CLIENT_ID}/access_as_user`
-        2. **You authenticate** with your Azure credentials (browser popup)
-        3. **Entra ID issues a JWT token** containing:
-            - `aud` (audience): Your app's client ID
-            - `iss` (issuer): Your Entra ID tenant
-            - `scp` (scope): `access_as_user`
-            - `exp` (expiration): ~1 hour from now
-            - Your identity claims (`name`, `email`, etc.)
-        
-        **Token validation on the server:**
-        
-        ```python
-        verifier = JWTVerifier(
-            issuer=f"https://login.microsoftonline.com/{TENANT_ID}/v2.0",
-            audience=CLIENT_ID,
-            jwks_uri=f"https://login.microsoftonline.com/{TENANT_ID}/discovery/v2.0/keys"
-        )
-        # Validates: signature, expiration, audience, issuer
+        ```bash
+        ./scripts/get-mcp-token.sh
         ```
+
+        **What happens:**
         
-        **Why this is more secure:**
+        1. Script opens browser for authentication
+        2. You sign in with your Azure account
+        3. Azure CLI receives a JWT token
+        4. Token is printed to terminal (you can decode it at [jwt.ms](https://jwt.ms))
+
+        ??? info "What's happening behind the scenes?"
+            **OAuth Delegated Permissions Flow**
+            
+            When you run the token script:
+            
+            1. **Azure CLI requests a token** with scope `api://{YOUR_CLIENT_ID}/access_as_user`
+            2. **You authenticate** with your Azure credentials (browser popup)
+            3. **Entra ID issues a JWT token** containing:
+                - `aud` (audience): Your app's client ID
+                - `iss` (issuer): Your Entra ID tenant
+                - `scp` (scope): `access_as_user`
+                - `exp` (expiration): ~1 hour from now
+                - Your identity claims (`name`, `email`, etc.)
+            
+            **Token validation on the server:**
+            
+            ```python
+            verifier = JWTVerifier(
+                issuer=f"https://login.microsoftonline.com/{TENANT_ID}/v2.0",
+                audience=CLIENT_ID,
+                jwks_uri=f"https://login.microsoftonline.com/{TENANT_ID}/discovery/v2.0/keys"
+            )
+            # Validates: signature, expiration, audience, issuer
+            ```
+            
+            **Why this is more secure:**
+            
+            - Tokens **expire automatically** (can't be used forever)
+            - Tokens are **tied to user identity** (audit trail)
+            - Tokens can be **revoked** via Entra ID
+            - No secrets stored in environment variables
+
+        **Save your token for testing:**
+
+        ```bash
+        # Copy the token from script output and set it
+        TOKEN="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIs..."
+        ```
+
+        **Test with curl:**
+
+        ```bash
+        # Get secure server URL (strip quotes)
+        SECURE_URL=$(azd env get-values | grep SECURE_SERVER_URL | cut -d= -f2 | tr -d '"')
         
-        - Tokens **expire automatically** (can't be used forever)
-        - Tokens are **tied to user identity** (audit trail)
-        - Tokens can be **revoked** via Entra ID
-        - No secrets stored in environment variables
+        # Step 1: Initialize MCP session and capture session ID from response headers
+        RESPONSE=$(curl -i -X POST ${SECURE_URL}/mcp \
+        -H "Authorization: Bearer $TOKEN" \
+        -H "Content-Type: application/json" \
+        -H "Accept: application/json, text/event-stream" \
+        -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"curl-test","version":"1.0"}},"id":1}')
+        
+        SESSION_ID=$(echo "$RESPONSE" | grep -i "mcp-session-id:" | awk '{print $2}' | tr -d '\r')
+        echo "Session ID: $SESSION_ID"
+        
+        # Step 2: List available tools using the session ID
+        curl -s -X POST ${SECURE_URL}/mcp \
+        -H "Authorization: Bearer $TOKEN" \
+        -H "Content-Type: application/json" \
+        -H "Accept: application/json, text/event-stream" \
+        -H "mcp-session-id: ${SESSION_ID}" \
+        -d '{"jsonrpc":"2.0","method":"tools/list","id":2}'
+        ```
 
-    **Save your token for testing:**
+        **Success!** You should see a list of available tools returned, proving JWT authentication works!
 
-    ```bash
-    # Copy the token from script output and set it
-    TOKEN="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIs..."
-    ```
+        ??? warning "Troubleshooting authentication issues"
+            **Problem: No session ID received (empty response)**
+            
+            This usually means authentication failed. Check:
+            
+            1. **Is your token expired?**
+            ```bash
+            # Decode your token at jwt.ms or check expiration
+            echo $TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq .exp
+            # Compare to current time: date +%s
+            ```
+            
+            Tokens expire after ~1 hour. Get a new token:
+            ```bash
+            ./scripts/get-mcp-token.sh
+            TOKEN="<new-token>"
+            ```
+            
+            2. **Is the audience correct?**
+            ```bash
+            # Check the 'aud' claim in your token
+            echo $TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq .aud
+            
+            # Compare to your CLIENT_ID
+            azd env get-values | grep AZURE_CLIENT_ID
+            ```
+            
+            If they don't match, you may need to:
+            - Ensure `configure-secure-server.sh` was run
+            - Verify `AZURE_CLIENT_ID` is set correctly in the Container App
+            
+            3. **See the full error response:**
+            ```bash
+            # Remove the SESSION_ID extraction to see full output
+            curl -v -X POST ${SECURE_URL}/mcp \
+                -H "Authorization: Bearer $TOKEN" \
+                -H "Content-Type: application/json" \
+                -H "Accept: application/json, text/event-stream" \
+                -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"curl-test","version":"1.0"}},"id":1}'
+            ```
+            
+            Look for:
+            - `401 Unauthorized` - Token is invalid/expired/wrong audience
+            - `403 Forbidden` - Token valid but lacks permissions
+            - `500 Internal Server Error` - Server configuration issue
+            
+            **Problem: curl shows transfer stats but no output**
+            
+            This happens when the response has no body. Check:
+            
+            ```bash
+            # Use -v flag to see headers and status code
+            curl -v -X POST ${SECURE_URL}/mcp \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "mcp-session-id: ${SESSION_ID}" \
+            -H "Content-Type: application/json" \
+            -d '{"jsonrpc":"2.0","method":"tools/list","id":2}'
+            ```
+            
+            Common causes:
+            - Missing or invalid `mcp-session-id` header
+            - Wrong HTTP method (should be POST)
+            - Incorrect endpoint URL
 
-    **Test with curl:**
+        **What you just did:**
 
-    ```bash
-    # Get secure server URL (strip quotes)
-    SECURE_URL=$(azd env get-values | grep SECURE_SERVER_URL | cut -d= -f2 | tr -d '"')
+        :material-check: Authenticated with a **JWT token** (expires in ~1 hour, not forever!)  
+        :material-check: Server **validated the token signature** against Entra ID public keys  
+        :material-check: Server **checked the audience** (token is for THIS app, not another)  
+        :material-check: Server **verified expiration** (token is still valid)  
+        :material-check: Successfully called MCP methods with OAuth 2.1 security!
+
     
-    # Step 1: Initialize MCP session and capture session ID from response headers
-    RESPONSE=$(curl -i -X POST ${SECURE_URL}/mcp \
-      -H "Authorization: Bearer $TOKEN" \
-      -H "Content-Type: application/json" \
-      -H "Accept: application/json, text/event-stream" \
-      -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"curl-test","version":"1.0"}},"id":1}')
-    
-    SESSION_ID=$(echo "$RESPONSE" | grep -i "mcp-session-id:" | awk '{print $2}' | tr -d '\r')
-    echo "Session ID: $SESSION_ID"
-    
-    # Step 2: List available tools using the session ID
-    curl -s -X POST ${SECURE_URL}/mcp \
-      -H "Authorization: Bearer $TOKEN" \
-      -H "Content-Type: application/json" \
-      -H "Accept: application/json, text/event-stream" \
-      -H "mcp-session-id: ${SESSION_ID}" \
-      -d '{"jsonrpc":"2.0","method":"tools/list","id":2}'
-    ```
+    ??? example "Option B: Authorization Code + PKCE Demo (Production OAuth Flow)"
 
-    **Success!** You should see a list of available tools returned, proving JWT authentication works!
+        **Best for:** Understanding browser-based OAuth, PRM discovery, production authentication patterns
 
-    ??? warning "Troubleshooting authentication issues"
-        **Problem: No session ID received (empty response)**
-        
-        This usually means authentication failed. Check:
-        
-        1. **Is your token expired?**
-           ```bash
-           # Decode your token at jwt.ms or check expiration
-           echo $TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq .exp
-           # Compare to current time: date +%s
-           ```
-           
-           Tokens expire after ~1 hour. Get a new token:
-           ```bash
-           ./scripts/get-mcp-token.sh
-           TOKEN="<new-token>"
-           ```
-        
-        2. **Is the audience correct?**
-           ```bash
-           # Check the 'aud' claim in your token
-           echo $TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq .aud
-           
-           # Compare to your CLIENT_ID
-           azd env get-values | grep AZURE_CLIENT_ID
-           ```
-           
-           If they don't match, you may need to:
-           - Ensure `configure-secure-server.sh` was run
-           - Verify `AZURE_CLIENT_ID` is set correctly in the Container App
-        
-        3. **See the full error response:**
-           ```bash
-           # Remove the SESSION_ID extraction to see full output
-           curl -v -X POST ${SECURE_URL}/mcp \
-             -H "Authorization: Bearer $TOKEN" \
-             -H "Content-Type: application/json" \
-             -H "Accept: application/json, text/event-stream" \
-             -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"curl-test","version":"1.0"}},"id":1}'
-           ```
-           
-           Look for:
-           - `401 Unauthorized` - Token is invalid/expired/wrong audience
-           - `403 Forbidden` - Token valid but lacks permissions
-           - `500 Internal Server Error` - Server configuration issue
-        
-        **Problem: curl shows transfer stats but no output**
-        
-        This happens when the response has no body. Check:
+        This demo shows how modern MCP clients discover OAuth configuration and perform the complete authorization code + PKCE flow with Entra ID.
+
+        ??? info "What is Protected Resource Metadata (PRM)?"
+            **Protected Resource Metadata (PRM)** is a standardized way for OAuth resource servers to advertise their authentication requirements. It's defined in RFC 9728 and enables automatic OAuth discovery.
+
+            **The Problem It Solves:**
+            
+            Without PRM, every time you want to connect to a protected API, you need to manually configure:
+            
+            - Which authorization server to use (e.g., Entra ID, Auth0, Okta)
+            - What scope to request (e.g., `api://my-app/access_as_user`)
+            - How to send the token (header, query param, etc.)
+            
+            This is tedious and error-prone. Users have to read documentation, copy-paste URLs, and manually configure clients.
+
+            **How PRM Works:**
+            
+            When a client connects to your protected resource without authentication:
+            
+            1. Server returns `401 Unauthorized` with a special header:
+            ```
+            WWW-Authenticate: Bearer resource_metadata="https://server/.well-known/oauth-protected-resource"
+            ```
+            
+            2. Client fetches the PRM endpoint and gets:
+            ```json
+            {
+                "resource": "https://your-server.com",
+                "authorization_servers": ["https://login.microsoftonline.com/.../v2.0"],
+                "scopes_supported": ["api://your-client-id/access_as_user"],
+                "bearer_methods_supported": ["header"]
+            }
+            ```
+            
+            3. Client automatically knows:
+            - Which OAuth server to use
+            - What scope to request
+            - How to send the access token
+            
+            **Real-world analogy:**
+            
+            - **Without PRM:** "Here's a restaurant. Go figure out their menu, hours, and payment methods yourself."
+            - **With PRM:** "Here's a restaurant with a sign outside that lists everything you need to know."
+            
+            **Why It Matters for MCP:**
+            
+            Future MCP clients (like VS Code with MCP, Claude Desktop, GitHub Copilot) can connect to your server with **zero manual configuration**. Users just provide the URL, and everything else happens automatically.
+            
+            **RFC 9728:** PRM is an official IETF standard that's part of the modern OAuth ecosystem. By implementing it, your MCP server follows industry best practices.
+
+        #### Run the PRM Demo Client
+
+        We've built a Python client that demonstrates the complete PRM + PKCE flow:
+
+        **Step 1: Navigate to camp1-identity**
         
         ```bash
-        # Use -v flag to see headers and status code
-        curl -v -X POST ${SECURE_URL}/mcp \
-          -H "Authorization: Bearer $TOKEN" \
-          -H "mcp-session-id: ${SESSION_ID}" \
-          -H "Content-Type: application/json" \
-          -d '{"jsonrpc":"2.0","method":"tools/list","id":2}'
+        cd camps/camp1-identity
         ```
         
-        Common causes:
-        - Missing or invalid `mcp-session-id` header
-        - Wrong HTTP method (should be POST)
-        - Incorrect endpoint URL
-
-    **What you just did:**
-
-    :material-check: Authenticated with a **JWT token** (expires in ~1 hour, not forever!)  
-    :material-check: Server **validated the token signature** against Entra ID public keys  
-    :material-check: Server **checked the audience** (token is for THIS app, not another)  
-    :material-check: Server **verified expiration** (token is still valid)  
-    :material-check: Successfully called MCP methods with OAuth 2.1 security!
-
-    ---
-
-    #### Option B: Authorization Code + PKCE Demo (Production OAuth Flow)
-
-    **Best for:** Understanding browser-based OAuth, PRM discovery, production authentication patterns
-
-    This demo shows how modern MCP clients discover OAuth configuration and perform the complete authorization code + PKCE flow with Entra ID.
-
-    ??? info "What is Protected Resource Metadata (PRM)?"
-        **Protected Resource Metadata (PRM)** is a standardized way for OAuth resource servers to advertise their authentication requirements. It's defined in RFC 9728 and enables automatic OAuth discovery.
-
-        **The Problem It Solves:**
+        **Step 2: Generate client secret for token exchange**
         
-        Without PRM, every time you want to connect to a protected API, you need to manually configure:
+        ```bash
+        ./scripts/generate-client-secret.sh
+        ```
         
-        - Which authorization server to use (e.g., Entra ID, Auth0, Okta)
-        - What scope to request (e.g., `api://my-app/access_as_user`)
-        - How to send the token (header, query param, etc.)
+        This creates a client secret for local testing (expires in 30 days). The secret is saved to `demo-client/.env` and is git-ignored.
         
-        This is tedious and error-prone. Users have to read documentation, copy-paste URLs, and manually configure clients.
+        !!! note "Client Secrets in Production"
+            This demo uses a client secret for simplicity, but production public clients should use:
 
-        **How PRM Works:**
+            - Device Code Flow (Option A) for CLI tools
+            - Authorization Code + PKCE without secrets for native/mobile apps
+            - Or implement backend-for-frontend (BFF) pattern
+            
+            Client secrets are appropriate for confidential clients (server-to-server) but not for public clients in production.
         
-        When a client connects to your protected resource without authentication:
+        **Step 3: Run the demo**
         
-        1. Server returns `401 Unauthorized` with a special header:
-           ```
-           WWW-Authenticate: Bearer resource_metadata="https://server/.well-known/oauth-protected-resource"
-           ```
+        ```bash
+        # Get your configuration
+        eval "$(azd env get-values | sed 's/^/export /')"
         
-        2. Client fetches the PRM endpoint and gets:
-           ```json
-           {
-             "resource": "https://your-server.com",
-             "authorization_servers": ["https://login.microsoftonline.com/.../v2.0"],
-             "scopes_supported": ["api://your-client-id/access_as_user"],
-             "bearer_methods_supported": ["header"]
-           }
-           ```
+        # Run the demo (uv handles dependencies automatically)
+        cd demo-client
+        uv run --project .. python mcp_prm_client.py \
+        "${SECURE_SERVER_URL}" \
+        "${AZURE_CLIENT_ID}"
+        ```
+
+        #### What Happens
+
+        The demo will walk through each phase of the OAuth flow:
+
+        **Phase 1: PRM Discovery**
+        ```
+        ✓ Received WWW-Authenticate header
+        Bearer resource_metadata="https://your-server/.well-known/oauth-protected-resource"
+        ✓ Found PRM endpoint
+        ✓ Fetched PRM metadata:
+        Resource: https://your-server.azurecontainerapps.io
+        Authorization Server: https://login.microsoftonline.com/.../v2.0
+        Scopes: api://your-client-id/access_as_user
+        ```
+
+        **Phase 2: Authorization Server Discovery**
+        ```
+        ✓ Fetching: https://login.microsoftonline.com/.../.well-known/openid-configuration
+        ✓ Authorization endpoint discovered
+        ✓ Token endpoint discovered
+        ```
+
+        **Phase 3: PKCE Authorization Code Flow**
+        ```
+        ✓ Generated PKCE code_challenge
+        ✓ Opening browser for authentication...
+        ✓ Received authorization code
+        ✓ State validated
+        ✓ Exchanging authorization code for access token...
+        Using client secret from .env file
+        ✓ Access token acquired
+        Token type: Bearer
+        Expires in: 3894 seconds
+        ```
+
+        **Phase 4: Authenticated MCP Requests**
+        ```
+        ✓ Sending request to: https://your-server/mcp
+        Method: tools/list
+        ✓ Success! Tools listed with JWT authentication
+        ```
+
+        #### What You Just Did
+
+        :material-check: **PRM Discovery** - Server told client how to authenticate (RFC 9728)  
+        :material-check: **OAuth Server Discovery** - Client found Entra ID endpoints automatically  
+        :material-check: **PKCE Flow** - Secure authorization code exchange with proof key  
+        :material-check: **JWT Token** - Received signed token from Entra ID (expires in ~1 hour)  
+        :material-check: **Authenticated MCP** - Made MCP requests with Bearer token  
+
+        This is exactly how production MCP clients will work once they fully implement PRM support!
+
+        #### Verify PRM Endpoint Manually
+
+        You can also check the PRM endpoint directly:
+
+        ```bash
+        SECURE_URL=$(azd env get-values | grep SECURE_SERVER_URL | cut -d= -f2 | tr -d '"')
         
-        3. Client automatically knows:
-           - Which OAuth server to use
-           - What scope to request
-           - How to send the access token
-        
-        **Real-world analogy:**
-        
-        - **Without PRM:** "Here's a restaurant. Go figure out their menu, hours, and payment methods yourself."
-        - **With PRM:** "Here's a restaurant with a sign outside that lists everything you need to know."
-        
-        **Why It Matters for MCP:**
-        
-        Future MCP clients (like VS Code with MCP, Claude Desktop, GitHub Copilot) can connect to your server with **zero manual configuration**. Users just provide the URL, and everything else happens automatically.
-        
-        **RFC 9728:** PRM is an official IETF standard that's part of the modern OAuth ecosystem. By implementing it, your MCP server follows industry best practices.
+        # Check WWW-Authenticate header on 401
+        curl -i "${SECURE_URL}/mcp" \
+        -H "Content-Type: application/json" \
+        -d '{"jsonrpc":"2.0","method":"initialize","id":1}'
+        ```
 
-    #### Run the PRM Demo Client
+        **Look for:**
+        ```
+        HTTP/2 401
+        www-authenticate: Bearer resource_metadata="https://your-server/.well-known/oauth-protected-resource"
+        ```
 
-    We've built a Python client that demonstrates the complete PRM + PKCE flow:
+        **Fetch the PRM metadata:**
+        ```bash
+        curl -s "${SECURE_URL}/.well-known/oauth-protected-resource" | jq .
+        ```
 
-    **Step 1: Navigate to camp1-identity**
-    
-    ```bash
-    cd camps/camp1-identity
-    ```
-    
-    **Step 2: Generate client secret for token exchange**
-    
-    ```bash
-    ./scripts/generate-client-secret.sh
-    ```
-    
-    This creates a client secret for local testing (expires in 30 days). The secret is saved to `demo-client/.env` and is git-ignored.
-    
-    !!! note "Client Secrets in Production"
-        This demo uses a client secret for simplicity, but production public clients should use:
+        **Expected output:**
+        ```json
+        {
+        "resource": "https://your-app.azurecontainerapps.io",
+        "authorization_servers": [
+            "https://login.microsoftonline.com/{tenant-id}/v2.0"
+        ],
+        "scopes_supported": [
+            "api://{client-id}/access_as_user"
+        ],
+        "bearer_methods_supported": ["header"],
+        "token_formats_supported": ["jwt"]
+        }
+        ```
 
-        - Device Code Flow (Option A) for CLI tools
-        - Authorization Code + PKCE without secrets for native/mobile apps
-        - Or implement backend-for-frontend (BFF) pattern
-        
-        Client secrets are appropriate for confidential clients (server-to-server) but not for public clients in production.
-    
-    **Step 3: Run the demo**
-    
-    ```bash
-    # Get your configuration
-    eval "$(azd env get-values | sed 's/^/export /')"
-    
-    # Run the demo (uv handles dependencies automatically)
-    cd demo-client
-    uv run --project .. python mcp_prm_client.py \
-      "${SECURE_SERVER_URL}" \
-      "${AZURE_CLIENT_ID}"
-    ```
+        !!! success "PRM Implementation Complete!"
+            Your server now implements RFC 9728 Protected Resource Metadata. When MCP clients (VS Code, Claude Desktop, etc.) add full PRM support for pre-registered OAuth apps, they'll be able to connect to your server automatically with zero configuration!
 
-    #### What Happens
-
-    The demo will walk through each phase of the OAuth flow:
-
-    **Phase 1: PRM Discovery**
-    ```
-    ✓ Received WWW-Authenticate header
-      Bearer resource_metadata="https://your-server/.well-known/oauth-protected-resource"
-    ✓ Found PRM endpoint
-    ✓ Fetched PRM metadata:
-      Resource: https://your-server.azurecontainerapps.io
-      Authorization Server: https://login.microsoftonline.com/.../v2.0
-      Scopes: api://your-client-id/access_as_user
-    ```
-
-    **Phase 2: Authorization Server Discovery**
-    ```
-    ✓ Fetching: https://login.microsoftonline.com/.../.well-known/openid-configuration
-    ✓ Authorization endpoint discovered
-    ✓ Token endpoint discovered
-    ```
-
-    **Phase 3: PKCE Authorization Code Flow**
-    ```
-    ✓ Generated PKCE code_challenge
-    ✓ Opening browser for authentication...
-    ✓ Received authorization code
-    ✓ State validated
-    ✓ Exchanging authorization code for access token...
-      Using client secret from .env file
-    ✓ Access token acquired
-      Token type: Bearer
-      Expires in: 3894 seconds
-    ```
-
-    **Phase 4: Authenticated MCP Requests**
-    ```
-    ✓ Sending request to: https://your-server/mcp
-      Method: tools/list
-    ✓ Success! Tools listed with JWT authentication
-    ```
-
-    #### What You Just Did
-
-    :material-check: **PRM Discovery** - Server told client how to authenticate (RFC 9728)  
-    :material-check: **OAuth Server Discovery** - Client found Entra ID endpoints automatically  
-    :material-check: **PKCE Flow** - Secure authorization code exchange with proof key  
-    :material-check: **JWT Token** - Received signed token from Entra ID (expires in ~1 hour)  
-    :material-check: **Authenticated MCP** - Made MCP requests with Bearer token  
-
-    This is exactly how production MCP clients will work once they fully implement PRM support!
-
-    ??? tip "Explore the Demo Code"
-        The demo client is fully commented and demonstrates:
-        
-        - PRM discovery from WWW-Authenticate header
-        - OAuth server metadata parsing
-        - PKCE code challenge generation
-        - Local callback server for authorization code
-        - Token exchange with client authentication
-        - MCP JSON-RPC requests with Bearer token
-        
-        See `demo-client/README.md` and `demo-client/mcp_prm_client.py` in the [camp1-identity directory](https://github.com/Azure-Samples/sherpa/tree/main/camps/camp1-identity/demo-client) for implementation details.
-
-    #### Verify PRM Endpoint Manually
-
-    You can also check the PRM endpoint directly:
-
-    ```bash
-    SECURE_URL=$(azd env get-values | grep SECURE_SERVER_URL | cut -d= -f2 | tr -d '"')
-    
-    # Check WWW-Authenticate header on 401
-    curl -i "${SECURE_URL}/mcp" \
-      -H "Content-Type: application/json" \
-      -d '{"jsonrpc":"2.0","method":"initialize","id":1}'
-    ```
-
-    **Look for:**
-    ```
-    HTTP/2 401
-    www-authenticate: Bearer resource_metadata="https://your-server/.well-known/oauth-protected-resource"
-    ```
-
-    **Fetch the PRM metadata:**
-    ```bash
-    curl -s "${SECURE_URL}/.well-known/oauth-protected-resource" | jq .
-    ```
-
-    **Expected output:**
-    ```json
-    {
-      "resource": "https://your-app.azurecontainerapps.io",
-      "authorization_servers": [
-        "https://login.microsoftonline.com/{tenant-id}/v2.0"
-      ],
-      "scopes_supported": [
-        "api://{client-id}/access_as_user"
-      ],
-      "bearer_methods_supported": ["header"],
-      "token_formats_supported": ["jwt"]
-    }
-    ```
-
-    !!! success "PRM Implementation Complete!"
-        Your server now implements RFC 9728 Protected Resource Metadata. When MCP clients (VS Code, Claude Desktop, etc.) add full PRM support for pre-registered OAuth apps, they'll be able to connect to your server automatically with zero configuration!
+        ??? tip "Explore the Demo Code"
+            The demo client (`demo-client/mcp_prm_client.py`) is fully commented and demonstrates the complete OAuth flow:
+            
+            - **PRM discovery** from WWW-Authenticate header
+            - **OAuth server metadata parsing** (.well-known/openid-configuration)
+            - **PKCE code challenge generation** (SHA256 hash of verifier)
+            - **Local callback server** for authorization code (port 8090)
+            - **Token exchange** with client authentication
+            - **MCP JSON-RPC requests** with Bearer token
+            
+            See the [camp1-identity/demo-client directory](https://github.com/Azure-Samples/sherpa/tree/main/camps/camp1-identity/demo-client) on GitHub for the complete implementation with `README.md` and full source code.            
 
     ---
 
