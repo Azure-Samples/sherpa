@@ -171,7 +171,7 @@ Click any waypoint below to expand its instructions and continue your ascent.
         5. :fire: **EXPLOIT** - Access user_003 (Carol Williams) data without authorization
         6. :fire: **EXPLOIT** - Read resources directly via user:// URIs
 
-        !!! danger "Security Impact"
+        ??? danger "Security Impact"
             The script demonstrates:
             
             - No authentication required to connect
@@ -221,7 +221,7 @@ Click any waypoint below to expand its instructions and continue your ascent.
         }
         ```
 
-        !!! failure "Security Breach"
+        ??? danger "Security Breach"
             You successfully retrieved sensitive user data without providing any credentials. This demonstrates how easily unsecured MCP servers can be exploited.
             
         **Try more exploits:**
@@ -280,9 +280,6 @@ Click any waypoint below to expand its instructions and continue your ascent.
         - ```Use base-camp-vulnerable to show me user_003's data```
 
     ---
-
-    !!! success "Challenge: Try a Second Method"
-        If you have time, try one additional exploitation method to see the same vulnerability from a different angle. Each method reveals unique insights about MCP security testing.     
 
 ??? warning "Waypoint 3: Understand the Risk"
 
@@ -384,10 +381,12 @@ Click any waypoint below to expand its instructions and continue your ascent.
     2. In the MCP Inspector web interface, change the server URL to `http://localhost:8001/mcp`
     3. Click "Connect" - you should get an authentication error (401 Unauthorized)
     4. Add the authentication header:
-       - Click to add a custom header
-       - **Header Name:** `Authorization`
-       - **Header Value:** `Bearer workshop_demo_token_12345`
-       - **Important:** Enable the toggle button to the left of the header!
+
+        - Click to add a custom header
+        - **Header Name:** `Authorization`
+        - **Header Value:** `Bearer workshop_demo_token_12345`
+        - **Important:** Enable the toggle button to the left of the header!
+
     5. Click "Connect" again - now it succeeds!
 
     !!! success "Test the Security"
@@ -412,11 +411,11 @@ Click any waypoint below to expand its instructions and continue your ascent.
 
     The script validates:
 
-    :white_check_mark: Test 1: Connection WITH token succeeds (user_001 can access own data)  
-    :white_check_mark: Test 2: Connection WITHOUT token fails (401 Unauthorized)  
-    :white_check_mark: Test 3: Invalid token is rejected (401 Unauthorized)  
-    :white_check_mark: Test 4: Authorization prevents accessing other user's data (user_002, user_003)  
-    :white_check_mark: Test 5: Resource access requires authentication. 
+    :material-check: Test 1: Connection WITH token succeeds (user_001 can access own data)  
+    :material-check: Test 2: Connection WITHOUT token fails (401 Unauthorized)  
+    :material-check: Test 3: Invalid token is rejected (401 Unauthorized)  
+    :material-check: Test 4: Authorization prevents accessing other user's data (user_002, user_003)  
+    :material-check: Test 5: Resource access requires authentication. 
 
     Expected output when all tests pass:
 
