@@ -101,6 +101,8 @@ extra:
     - icon: fontawesome/brands/microsoft
       link: https://azure.microsoft.com
   analytics:
+    provider: google
+    property: G-4X6V7HSB1J
     feedback:
       title: Was this page helpful?
       ratings:
