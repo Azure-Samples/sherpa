@@ -1,0 +1,35 @@
+<!--
+  OAuth token validation policy
+  Validates tokens from Entra ID for MCP access
+-->
+<policies>
+  <inbound>
+    <base />
+    <!-- Validate Azure AD JWT Token -->
+    <validate-azure-ad-token tenant-id="{{tenant-id}}" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized">
+      <audiences>
+        <audience>{{mcp-app-client-id}}</audience>
+      </audiences>
+    </validate-azure-ad-token>
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+    <!-- Handle authentication errors with proper WWW-Authenticate header -->
+    <choose>
+      <when condition="@(context.Response.StatusCode == 401)">
+        <return-response>
+          <set-status code="401" reason="Unauthorized" />
+          <set-header name="WWW-Authenticate" exists-action="override">
+            <value>Bearer error="invalid_token", resource_metadata="{{apim-gateway-url}}/.well-known/oauth-protected-resource"</value>
+          </set-header>
+        </return-response>
+      </when>
+    </choose>
+  </on-error>
+</policies>

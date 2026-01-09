@@ -1,0 +1,31 @@
+<!--
+  RFC 9728 Protected Resource Metadata
+  Enables OAuth discovery for MCP clients like VS Code
+-->
+<policies>
+  <inbound>
+    <base />
+    <return-response>
+      <set-status code="200" reason="OK" />
+      <set-header name="Content-Type" exists-action="override">
+        <value>application/json</value>
+      </set-header>
+      <set-body>@{
+        return JsonConvert.SerializeObject(new {
+          resource = "{{apim-gateway-url}}",
+          authorization_servers = new[] { "https://login.microsoftonline.com/{{tenant-id}}/v2.0" },
+          bearer_methods_supported = new[] { "header" }
+        });
+      }</set-body>
+    </return-response>
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

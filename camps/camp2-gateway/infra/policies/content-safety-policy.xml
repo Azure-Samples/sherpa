@@ -1,0 +1,65 @@
+<!--
+  Content Safety policy for MCP servers
+  Blocks harmful content and prompt injection attempts
+-->
+<policies>
+  <inbound>
+    <base />
+    <!-- Extract request body for analysis -->
+    <set-variable name="request-body" value="@(context.Request.Body.As<string>(preserveContent: true))" />
+    <!-- Call Content Safety API -->
+    <send-request mode="new" response-variable-name="safety-response" timeout="10" ignore-error="false">
+      <set-url>@("https://" + "{{content-safety-backend-id}}" + "/contentsafety/text:analyze?api-version=2023-10-01")</set-url>
+      <set-method>POST</set-method>
+      <set-header name="Content-Type" exists-action="override">
+        <value>application/json</value>
+      </set-header>
+      <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+      <set-body>@{
+        return JsonConvert.SerializeObject(new {
+          text = (string)context.Variables["request-body"],
+          categories = new[] { "Hate", "Violence", "Sexual", "SelfHarm" },
+          blocklistNames = new[] { "prompt-injection" },
+          haltOnBlocklistHit = true
+        });
+      }</set-body>
+    </send-request>
+    <!-- Check safety results and block if harmful -->
+    <choose>
+      <when condition="@(((IResponse)context.Variables["safety-response"]).StatusCode == 200)">
+        <set-variable name="safety-result" value="@(((IResponse)context.Variables["safety-response"]).Body.As<JObject>())" />
+        <choose>
+          <when condition="@{\n            var result = (JObject)context.Variables["safety-result"];\n            var blocklistsMatch = result["blocklistsMatch"];\n            return blocklistsMatch != null && ((JArray)blocklistsMatch).Count > 0;\n          }">
+            <return-response>
+              <set-status code="400" reason="Bad Request" />
+              <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+              </set-header>
+              <set-body>@{
+                return JsonConvert.SerializeObject(new {
+                  error = "Content blocked by safety policy",
+                  reason = "Potential prompt injection or harmful content detected"
+                });
+              }</set-body>
+            </return-response>
+          </when>
+        </choose>
+      </when>
+      <otherwise>
+        <!-- Log safety check failure but allow request to proceed -->
+        <trace source="content-safety-policy" severity="warning">
+          <message>@($"Content Safety API returned status code: {((IResponse)context.Variables["safety-response"]).StatusCode}")</message>
+        </trace>
+      </otherwise>
+    </choose>
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

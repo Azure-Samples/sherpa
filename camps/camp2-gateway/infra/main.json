@@ -1,0 +1,1418 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "languageVersion": "2.0",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "11313184088465530475"
+    }
+  },
+  "functions": [
+    {
+      "namespace": "_1",
+      "members": {
+        "getAdjustedRegion": {
+          "parameters": [
+            {
+              "type": "string",
+              "name": "location"
+            },
+            {
+              "type": "object",
+              "name": "map"
+            }
+          ],
+          "output": {
+            "type": "string",
+            "value": "[coalesce(tryGet(tryGet(parameters('map'), 'overrides'), parameters('location')), if(contains(coalesce(tryGet(parameters('map'), 'supportedRegions'), createArray()), parameters('location')), parameters('location'), coalesce(tryGet(parameters('map'), 'default'), parameters('location'))))]"
+          },
+          "metadata": {
+            "__bicep_imported_from!": {
+              "sourceTemplate": "modules/region-selector.bicep"
+            }
+          }
+        }
+      }
+    },
+    {
+      "namespace": "__bicep",
+      "members": {
+        "getApiCenterRegion": {
+          "parameters": [
+            {
+              "type": "string",
+              "name": "location"
+            }
+          ],
+          "output": {
+            "type": "string",
+            "value": "[_1.getAdjustedRegion(parameters('location'), variables('_1.apiCenterRegionMap'))]"
+          },
+          "metadata": {
+            "description": "Based on an intended region, gets a supported region for API Center.",
+            "__bicep_imported_from!": {
+              "sourceTemplate": "modules/region-selector.bicep"
+            }
+          }
+        },
+        "getApimBasicV2Region": {
+          "parameters": [
+            {
+              "type": "string",
+              "name": "location"
+            }
+          ],
+          "output": {
+            "type": "string",
+            "value": "[_1.getAdjustedRegion(parameters('location'), variables('_1.apimBasicV2RegionMap'))]"
+          },
+          "metadata": {
+            "description": "Based on an intended region, gets a supported region for API Management BasicV2 SKU.",
+            "__bicep_imported_from!": {
+              "sourceTemplate": "modules/region-selector.bicep"
+            }
+          }
+        },
+        "getContentSafetyRegion": {
+          "parameters": [
+            {
+              "type": "string",
+              "name": "location"
+            }
+          ],
+          "output": {
+            "type": "string",
+            "value": "[_1.getAdjustedRegion(parameters('location'), variables('_1.contentSafetyRegionMap'))]"
+          },
+          "metadata": {
+            "description": "Based on an intended region, gets a supported region for Content Safety.",
+            "__bicep_imported_from!": {
+              "sourceTemplate": "modules/region-selector.bicep"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Primary location for all resources"
+      }
+    },
+    "tenantId": {
+      "type": "string",
+      "defaultValue": "[tenant().tenantId]",
+      "metadata": {
+        "description": "Entra ID Tenant ID"
+      }
+    },
+    "publisherEmail": {
+      "type": "string",
+      "defaultValue": "admin@example.com",
+      "metadata": {
+        "description": "Publisher email for APIM"
+      }
+    },
+    "publisherName": {
+      "type": "string",
+      "defaultValue": "Sherpa Workshop",
+      "metadata": {
+        "description": "Publisher name for APIM"
+      }
+    },
+    "mcpAppClientId": {
+      "type": "string",
+      "metadata": {
+        "description": "MCP Resource App Client ID"
+      }
+    },
+    "apimClientAppId": {
+      "type": "string",
+      "metadata": {
+        "description": "APIM Client App ID for Credential Manager"
+      }
+    }
+  },
+  "variables": {
+    "environmentName": "[resourceGroup().name]",
+    "tags": {
+      "azd-env-name": "[variables('environmentName')]",
+      "camp": "camp2-gateway"
+    },
+    "apiCenterLocation": "[__bicep.getApiCenterRegion(parameters('location'))]",
+    "apimLocation": "[__bicep.getApimBasicV2Region(parameters('location'))]",
+    "contentSafetyLocation": "[__bicep.getContentSafetyRegion(parameters('location'))]",
+    "resourceToken": "[toLower(uniqueString(resourceGroup().id, parameters('location')))]",
+    "prefix": "[format('{0}-{1}', variables('environmentName'), variables('resourceToken'))]",
+    "_1.apiCenterRegionMap": {
+      "supportedRegions": [
+        "eastus",
+        "westeurope",
+        "uksouth",
+        "centralindia",
+        "australiaeast",
+        "francecentral",
+        "swedencentral",
+        "canadacentral"
+      ],
+      "overrides": {
+        "westus": "westus2",
+        "westus2": "eastus",
+        "westus3": "eastus",
+        "eastus2": "eastus",
+        "centralus": "eastus",
+        "southcentralus": "eastus",
+        "northcentralus": "eastus",
+        "northeurope": "westeurope",
+        "southeastasia": "australiaeast",
+        "eastasia": "australiaeast"
+      },
+      "default": "eastus"
+    },
+    "_1.apimBasicV2RegionMap": {
+      "supportedRegions": [
+        "australiacentral",
+        "australiaeast",
+        "australiasoutheast",
+        "brazilsouth",
+        "canadacentral",
+        "centralindia",
+        "centralus",
+        "eastasia",
+        "eastus",
+        "eastus2",
+        "francecentral",
+        "germanywestcentral",
+        "italynorth",
+        "japaneast",
+        "koreacentral",
+        "northcentralus",
+        "northeurope",
+        "norwayeast",
+        "southafricanorth",
+        "southcentralus",
+        "southindia",
+        "swedencentral",
+        "switzerlandnorth",
+        "uaenorth",
+        "uksouth",
+        "ukwest",
+        "westeurope",
+        "westus",
+        "westus2"
+      ],
+      "overrides": {
+        "westus3": "westus2"
+      },
+      "default": "westus2"
+    },
+    "_1.contentSafetyRegionMap": {
+      "supportedRegions": [
+        "australiaeast",
+        "brazilsouth",
+        "canadacentral",
+        "centralindia",
+        "eastus",
+        "eastus2",
+        "francecentral",
+        "germanywestcentral",
+        "japaneast",
+        "koreacentral",
+        "northcentralus",
+        "norwayeast",
+        "southafricanorth",
+        "southcentralus",
+        "southindia",
+        "swedencentral",
+        "switzerlandnorth",
+        "uaenorth",
+        "uksouth",
+        "westeurope",
+        "westus",
+        "westus2",
+        "westus3"
+      ],
+      "overrides": {
+        "centralus": "eastus2",
+        "northeurope": "westeurope",
+        "southeastasia": "australiaeast",
+        "eastasia": "australiaeast"
+      },
+      "default": "eastus2"
+    }
+  },
+  "resources": {
+    "logAnalytics": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "log-analytics",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[format('log-{0}', variables('prefix'))]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "13338803429609703866"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2022-10-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                },
+                "retentionInDays": 30
+              }
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('name'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            }
+          }
+        }
+      }
+    },
+    "containerRegistry": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "container-registry",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[format('cr{0}', replace(variables('prefix'), '-', ''))]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "3705504911141233139"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ContainerRegistry/registries",
+              "apiVersion": "2023-07-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "Basic"
+              },
+              "properties": {
+                "adminUserEnabled": true
+              }
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('name'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            },
+            "loginServer": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('name')), '2023-07-01').loginServer]"
+            }
+          }
+        }
+      }
+    },
+    "managedIdentity": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "managed-identity",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[format('id-apim-{0}', variables('prefix'))]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "961936974269228376"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]"
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('name'))]"
+            },
+            "principalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('name')), '2023-01-31').principalId]"
+            },
+            "clientId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('name')), '2023-01-31').clientId]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            }
+          }
+        }
+      }
+    },
+    "containerAppsEnv": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "container-apps-env",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[format('cae-{0}', variables('prefix'))]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          },
+          "logAnalyticsWorkspaceId": {
+            "value": "[reference('logAnalytics').outputs.id.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "13707165330223680198"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "logAnalyticsWorkspaceId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/managedEnvironments",
+              "apiVersion": "2023-05-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "appLogsConfiguration": {
+                  "destination": "log-analytics",
+                  "logAnalyticsConfiguration": {
+                    "customerId": "[reference(parameters('logAnalyticsWorkspaceId'), '2022-10-01').customerId]",
+                    "sharedKey": "[listKeys(parameters('logAnalyticsWorkspaceId'), '2022-10-01').primarySharedKey]"
+                  }
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/managedEnvironments', parameters('name'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            },
+            "defaultDomain": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.App/managedEnvironments', parameters('name')), '2023-05-01').defaultDomain]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "logAnalytics"
+      ]
+    },
+    "containerApps": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "container-apps",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "environmentId": {
+            "value": "[reference('containerAppsEnv').outputs.id.value]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          },
+          "containerRegistryName": {
+            "value": "[reference('containerRegistry').outputs.name.value]"
+          },
+          "prefix": {
+            "value": "[variables('prefix')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "3157335779425068604"
+            }
+          },
+          "parameters": {
+            "environmentId": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "containerRegistryName": {
+              "type": "string"
+            },
+            "prefix": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "resourceToken": "[substring(replace(parameters('prefix'), '-', ''), 0, min(length(replace(parameters('prefix'), '-', '')), 10))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/containerApps",
+              "apiVersion": "2023-05-01",
+              "name": "[format('ca-sherpa-{0}', variables('resourceToken'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "environmentId": "[parameters('environmentId')]",
+                "configuration": {
+                  "ingress": {
+                    "external": true,
+                    "targetPort": 8000,
+                    "transport": "http",
+                    "allowInsecure": false
+                  },
+                  "registries": [
+                    {
+                      "server": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').loginServer]",
+                      "username": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').username]",
+                      "passwordSecretRef": "registry-password"
+                    }
+                  ],
+                  "secrets": [
+                    {
+                      "name": "registry-password",
+                      "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').passwords[0].value]"
+                    }
+                  ]
+                },
+                "template": {
+                  "containers": [
+                    {
+                      "name": "sherpa-mcp-server",
+                      "image": "[format('{0}/sherpa-mcp-server:latest', reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').loginServer)]",
+                      "resources": {
+                        "cpu": "[json('0.5')]",
+                        "memory": "1Gi"
+                      },
+                      "env": [
+                        {
+                          "name": "PORT",
+                          "value": "8000"
+                        }
+                      ]
+                    }
+                  ],
+                  "scale": {
+                    "minReplicas": 1,
+                    "maxReplicas": 3
+                  }
+                }
+              }
+            },
+            {
+              "type": "Microsoft.App/containerApps",
+              "apiVersion": "2023-05-01",
+              "name": "[format('ca-trail-{0}', variables('resourceToken'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "environmentId": "[parameters('environmentId')]",
+                "configuration": {
+                  "ingress": {
+                    "external": true,
+                    "targetPort": 8000,
+                    "transport": "http",
+                    "allowInsecure": false
+                  },
+                  "registries": [
+                    {
+                      "server": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').loginServer]",
+                      "username": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').username]",
+                      "passwordSecretRef": "registry-password"
+                    }
+                  ],
+                  "secrets": [
+                    {
+                      "name": "registry-password",
+                      "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').passwords[0].value]"
+                    }
+                  ]
+                },
+                "template": {
+                  "containers": [
+                    {
+                      "name": "trail-api",
+                      "image": "[format('{0}/trail-api:latest', reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2023-07-01').loginServer)]",
+                      "resources": {
+                        "cpu": "[json('0.5')]",
+                        "memory": "1Gi"
+                      },
+                      "env": [
+                        {
+                          "name": "PORT",
+                          "value": "8000"
+                        }
+                      ]
+                    }
+                  ],
+                  "scale": {
+                    "minReplicas": 1,
+                    "maxReplicas": 3
+                  }
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "sherpaMcpServerUrl": {
+              "type": "string",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', format('ca-sherpa-{0}', variables('resourceToken'))), '2023-05-01').configuration.ingress.fqdn)]"
+            },
+            "sherpaMcpServerFqdn": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.App/containerApps', format('ca-sherpa-{0}', variables('resourceToken'))), '2023-05-01').configuration.ingress.fqdn]"
+            },
+            "trailApiUrl": {
+              "type": "string",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', format('ca-trail-{0}', variables('resourceToken'))), '2023-05-01').configuration.ingress.fqdn)]"
+            },
+            "trailApiFqdn": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.App/containerApps', format('ca-trail-{0}', variables('resourceToken'))), '2023-05-01').configuration.ingress.fqdn]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "containerAppsEnv",
+        "containerRegistry"
+      ]
+    },
+    "contentSafety": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "content-safety",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[format('cs-{0}', variables('prefix'))]"
+          },
+          "location": {
+            "value": "[variables('contentSafetyLocation')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          },
+          "apimIdentityPrincipalId": {
+            "value": "[reference('managedIdentity').outputs.principalId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "8598639371438134050"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "apimIdentityPrincipalId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.CognitiveServices/accounts",
+              "apiVersion": "2023-05-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "kind": "ContentSafety",
+              "sku": {
+                "name": "F0"
+              },
+              "properties": {
+                "customSubDomainName": "[parameters('name')]",
+                "publicNetworkAccess": "Enabled"
+              }
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', parameters('name'))]",
+              "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), parameters('apimIdentityPrincipalId'), 'Cognitive Services User')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')]",
+                "principalId": "[parameters('apimIdentityPrincipalId')]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            },
+            "endpoint": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2023-05-01').endpoint]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "managedIdentity"
+      ]
+    },
+    "apim": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "apim",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[format('apim-{0}', variables('prefix'))]"
+          },
+          "location": {
+            "value": "[variables('apimLocation')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          },
+          "publisherEmail": {
+            "value": "[parameters('publisherEmail')]"
+          },
+          "publisherName": {
+            "value": "[parameters('publisherName')]"
+          },
+          "managedIdentityId": {
+            "value": "[reference('managedIdentity').outputs.id.value]"
+          },
+          "managedIdentityClientId": {
+            "value": "[reference('managedIdentity').outputs.clientId.value]"
+          },
+          "apimClientAppId": {
+            "value": "[parameters('apimClientAppId')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "223804891476647395"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "publisherEmail": {
+              "type": "string"
+            },
+            "publisherName": {
+              "type": "string"
+            },
+            "managedIdentityId": {
+              "type": "string"
+            },
+            "managedIdentityClientId": {
+              "type": "string"
+            },
+            "apimClientAppId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ApiManagement/service",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "BasicV2",
+                "capacity": 1
+              },
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', parameters('managedIdentityId'))]": {}
+                }
+              },
+              "properties": {
+                "publisherEmail": "[parameters('publisherEmail')]",
+                "publisherName": "[parameters('publisherName')]"
+              }
+            },
+            {
+              "type": "Microsoft.ApiManagement/service/namedValues",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[format('{0}/{1}', parameters('name'), 'managed-identity-client-id')]",
+              "properties": {
+                "displayName": "managed-identity-client-id",
+                "value": "[parameters('managedIdentityClientId')]",
+                "secret": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service', parameters('name'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ApiManagement/service/namedValues",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[format('{0}/{1}', parameters('name'), 'apim-client-app-id')]",
+              "properties": {
+                "displayName": "apim-client-app-id",
+                "value": "[parameters('apimClientAppId')]",
+                "secret": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service', parameters('name'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ApiManagement/service/namedValues",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[format('{0}/{1}', parameters('name'), 'apim-gateway-url')]",
+              "properties": {
+                "displayName": "apim-gateway-url",
+                "value": "[reference(resourceId('Microsoft.ApiManagement/service', parameters('name')), '2023-05-01-preview').gatewayUrl]",
+                "secret": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service', parameters('name'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ApiManagement/service', parameters('name'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            },
+            "gatewayUrl": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ApiManagement/service', parameters('name')), '2023-05-01-preview').gatewayUrl]"
+            },
+            "managementUrl": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ApiManagement/service', parameters('name')), '2023-05-01-preview').managementApiUrl]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "managedIdentity"
+      ]
+    },
+    "apimBackends": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "apim-backends",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "apimName": {
+            "value": "[reference('apim').outputs.name.value]"
+          },
+          "sherpaMcpServerUrl": {
+            "value": "[reference('containerApps').outputs.sherpaMcpServerUrl.value]"
+          },
+          "trailApiUrl": {
+            "value": "[reference('containerApps').outputs.trailApiUrl.value]"
+          },
+          "contentSafetyEndpoint": {
+            "value": "[reference('contentSafety').outputs.endpoint.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "3727984430974172726"
+            }
+          },
+          "parameters": {
+            "apimName": {
+              "type": "string"
+            },
+            "sherpaMcpServerUrl": {
+              "type": "string"
+            },
+            "trailApiUrl": {
+              "type": "string"
+            },
+            "contentSafetyEndpoint": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ApiManagement/service/backends",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[format('{0}/{1}', parameters('apimName'), 'sherpa-mcp-backend')]",
+              "properties": {
+                "protocol": "http",
+                "url": "[parameters('sherpaMcpServerUrl')]"
+              }
+            },
+            {
+              "type": "Microsoft.ApiManagement/service/backends",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[format('{0}/{1}', parameters('apimName'), 'trail-api-backend')]",
+              "properties": {
+                "protocol": "http",
+                "url": "[parameters('trailApiUrl')]"
+              }
+            },
+            {
+              "type": "Microsoft.ApiManagement/service/backends",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[format('{0}/{1}', parameters('apimName'), 'content-safety-backend')]",
+              "properties": {
+                "protocol": "http",
+                "url": "[parameters('contentSafetyEndpoint')]",
+                "credentials": {
+                  "header": {
+                    "Ocp-Apim-Subscription-Key": []
+                  }
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "sherpaBackendId": {
+              "type": "string",
+              "value": "sherpa-mcp-backend"
+            },
+            "trailApiBackendId": {
+              "type": "string",
+              "value": "trail-api-backend"
+            },
+            "contentSafetyBackendId": {
+              "type": "string",
+              "value": "content-safety-backend"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "apim",
+        "containerApps",
+        "contentSafety"
+      ]
+    },
+    "apimMcpServers": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "apim-mcp-servers",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "apimName": {
+            "value": "[reference('apim').outputs.name.value]"
+          },
+          "sherpaBackendId": {
+            "value": "[reference('apimBackends').outputs.sherpaBackendId.value]"
+          },
+          "trailApiBackendId": {
+            "value": "[reference('apimBackends').outputs.trailApiBackendId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "9294405690616720085"
+            }
+          },
+          "parameters": {
+            "apimName": {
+              "type": "string"
+            },
+            "sherpaBackendId": {
+              "type": "string"
+            },
+            "trailApiBackendId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ApiManagement/service/apis",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[format('{0}/{1}', parameters('apimName'), 'sherpa-mcp-api')]",
+              "properties": {
+                "displayName": "Sherpa MCP Server",
+                "path": "sherpa-mcp",
+                "protocols": [
+                  "https"
+                ],
+                "subscriptionRequired": false,
+                "type": "http"
+              }
+            },
+            {
+              "type": "Microsoft.ApiManagement/service/apis",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[format('{0}/{1}', parameters('apimName'), 'trail-mcp-api')]",
+              "properties": {
+                "displayName": "Trail MCP Server",
+                "path": "trail-mcp",
+                "protocols": [
+                  "https"
+                ],
+                "subscriptionRequired": false,
+                "type": "http"
+              }
+            },
+            {
+              "type": "Microsoft.ApiManagement/service/apis",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[format('{0}/{1}', parameters('apimName'), 'oauth-prm')]",
+              "properties": {
+                "displayName": "OAuth PRM Metadata",
+                "description": "RFC 9728 Protected Resource Metadata for OAuth discovery",
+                "path": "/.well-known/oauth-protected-resource",
+                "protocols": [
+                  "https"
+                ],
+                "subscriptionRequired": false
+              }
+            }
+          ],
+          "outputs": {
+            "sherpaApiId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ApiManagement/service/apis', parameters('apimName'), 'sherpa-mcp-api')]"
+            },
+            "trailApiId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ApiManagement/service/apis', parameters('apimName'), 'trail-mcp-api')]"
+            },
+            "prmApiId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ApiManagement/service/apis', parameters('apimName'), 'oauth-prm')]"
+            },
+            "configuredSherpaBackend": {
+              "type": "string",
+              "value": "[parameters('sherpaBackendId')]"
+            },
+            "configuredTrailBackend": {
+              "type": "string",
+              "value": "[parameters('trailApiBackendId')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "apim",
+        "apimBackends"
+      ]
+    },
+    "apimPolicies": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "apim-policies",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "apimName": {
+            "value": "[reference('apim').outputs.name.value]"
+          },
+          "tenantId": {
+            "value": "[parameters('tenantId')]"
+          },
+          "mcpAppClientId": {
+            "value": "[parameters('mcpAppClientId')]"
+          },
+          "contentSafetyBackendId": {
+            "value": "[reference('apimBackends').outputs.contentSafetyBackendId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "16430762256867796314"
+            }
+          },
+          "parameters": {
+            "apimName": {
+              "type": "string"
+            },
+            "tenantId": {
+              "type": "string"
+            },
+            "mcpAppClientId": {
+              "type": "string"
+            },
+            "contentSafetyBackendId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ApiManagement/service/namedValues",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[format('{0}/{1}', parameters('apimName'), 'tenant-id')]",
+              "properties": {
+                "displayName": "tenant-id",
+                "value": "[parameters('tenantId')]",
+                "secret": false
+              }
+            },
+            {
+              "type": "Microsoft.ApiManagement/service/namedValues",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[format('{0}/{1}', parameters('apimName'), 'mcp-app-client-id')]",
+              "properties": {
+                "displayName": "mcp-app-client-id",
+                "value": "[parameters('mcpAppClientId')]",
+                "secret": false
+              }
+            },
+            {
+              "type": "Microsoft.ApiManagement/service/namedValues",
+              "apiVersion": "2023-05-01-preview",
+              "name": "[format('{0}/{1}', parameters('apimName'), 'content-safety-backend-id')]",
+              "properties": {
+                "displayName": "content-safety-backend-id",
+                "value": "[parameters('contentSafetyBackendId')]",
+                "secret": false
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "apim",
+        "apimBackends"
+      ]
+    },
+    "apiCenter": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "api-center",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[format('apic-{0}', variables('prefix'))]"
+          },
+          "location": {
+            "value": "[variables('apiCenterLocation')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "17595479207614294563"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ApiCenter/services",
+              "apiVersion": "2024-06-01-preview",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {}
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ApiCenter/services', parameters('name'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            }
+          }
+        }
+      }
+    }
+  },
+  "outputs": {
+    "AZURE_RESOURCE_GROUP": {
+      "type": "string",
+      "value": "[resourceGroup().name]"
+    },
+    "AZURE_LOCATION": {
+      "type": "string",
+      "value": "[parameters('location')]"
+    },
+    "AZURE_CONTAINER_REGISTRY_NAME": {
+      "type": "string",
+      "value": "[reference('containerRegistry').outputs.name.value]"
+    },
+    "AZURE_CONTAINER_REGISTRY_ENDPOINT": {
+      "type": "string",
+      "value": "[reference('containerRegistry').outputs.loginServer.value]"
+    },
+    "APIM_GATEWAY_URL": {
+      "type": "string",
+      "value": "[reference('apim').outputs.gatewayUrl.value]"
+    },
+    "APIM_NAME": {
+      "type": "string",
+      "value": "[reference('apim').outputs.name.value]"
+    },
+    "APIM_LOCATION": {
+      "type": "string",
+      "value": "[variables('apimLocation')]"
+    },
+    "SHERPA_MCP_SERVER_URL": {
+      "type": "string",
+      "value": "[reference('containerApps').outputs.sherpaMcpServerUrl.value]"
+    },
+    "TRAIL_API_URL": {
+      "type": "string",
+      "value": "[reference('containerApps').outputs.trailApiUrl.value]"
+    },
+    "CONTENT_SAFETY_ENDPOINT": {
+      "type": "string",
+      "value": "[reference('contentSafety').outputs.endpoint.value]"
+    },
+    "CONTENT_SAFETY_LOCATION": {
+      "type": "string",
+      "value": "[variables('contentSafetyLocation')]"
+    },
+    "API_CENTER_NAME": {
+      "type": "string",
+      "value": "[reference('apiCenter').outputs.name.value]"
+    },
+    "API_CENTER_LOCATION": {
+      "type": "string",
+      "value": "[variables('apiCenterLocation')]"
+    },
+    "CONTAINER_APPS_ENV_ID": {
+      "type": "string",
+      "value": "[reference('containerAppsEnv').outputs.id.value]"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+<!--
+  Base policy for MCP servers in APIM
+  Applied to all MCP server APIs
+-->
+<policies>
+  <inbound>
+    <base />
+    <!-- Set backend service -->
+    <set-backend-service backend-id="{{backend-id}}" />
+    <!-- CORS for MCP clients -->
+    <cors allow-credentials="true">
+      <allowed-origins>
+        <origin>vscode://</origin>
+        <origin>https://github.dev</origin>
+      </allowed-origins>
+      <allowed-methods>
+        <method>GET</method>
+        <method>POST</method>
+        <method>OPTIONS</method>
+      </allowed-methods>
+      <allowed-headers>
+        <header>*</header>
+      </allowed-headers>
+    </cors>
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>
