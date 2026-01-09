@@ -125,6 +125,9 @@ Before starting your expedition, ensure you have:
 :material-check: Python 3.10+ installed  
 :material-check: Basic familiarity with Azure Portal
 
+!!! info "Detailed Setup Instructions"
+    See the **[Prerequisites page](prerequisites.md)** for complete installation instructions, troubleshooting tips, and system requirements.
+
 !!! tip "No Security Expertise Required"
     This workshop is designed for developers of all skill levels. If you can write Python code and navigate the Azure Portal, you're ready to climb!
 
@@ -145,6 +148,9 @@ Ready to begin your expedition? Follow these three simple steps:
     git clone https://github.com/Azure-Samples/sherpa.git
     cd sherpa
     ```
+    
+    !!! tip "Repository Structure"
+        The repository contains the code you'll deploy and test. **Use the documentation site (this guide) to walk through the workshop.** Each camp's documentation provides step-by-step instructions for deploying and testing the code from the repository.
 
 === "Step 2: Verify Prerequisites"
 
@@ -160,14 +166,16 @@ Ready to begin your expedition? Follow these three simple steps:
     az account show
     ```
 
-=== "Step 3: Start at Base Camp"
+=== "Step 3: Begin at Base Camp"
 
-    ```bash
-    # Navigate to Base Camp to begin
-    cd camps/base-camp
+    **Follow the workshop documentation, not the repository folders!**
     
-    # Follow the README for setup instructions
-    ```
+    :material-arrow-right: **[Start Base Camp Documentation](camps/base-camp.md)**
+    
+    The Base Camp guide will walk you through when to use VS Code and the repository code for deployment and testing. Think of it this way:
+    
+    - **This documentation site** = Your workshop guide and instruction manual
+    - **The repository** = The code you'll deploy and test as directed by the guide
 
 ---
 
