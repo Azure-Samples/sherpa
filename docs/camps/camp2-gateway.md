@@ -168,276 +168,258 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
     - **Enterprise governance** - Monitor, audit, and control MCP traffic
     - **Transparent forwarding** - Upstream server receives authentic MCP protocol messages
 
-    ---
-
-    ### The Security Challenge: No Authentication
-
     **OWASP Risk:** [MCP-05 (Insufficient Access Controls)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-insufficient-access-controls/)
 
-    Without authentication, your MCP server is completely open to the internet:
-    
-    - **No identity** - Can't tell who is using the API
-    - **No access control** - Anyone on the internet can call your MCP tools
-    - **No auditability** - Can't trace actions back to users
-    - **No authorization** - Can't implement permission checks
-    - **Attack surface** - Exposed to bots, scrapers, and attackers
-
-    For production MCP servers, you need **user-level authentication with OAuth**.
+    Without authentication, your MCP server is completely open to the internet. For production MCP servers, you need **user-level authentication with OAuth**.
 
     ---
 
-    ### Step 1: Deploy Vulnerable (No Authentication)
+    ??? note "Step 1: Deploy Vulnerable Server"
 
-    Let's start by deploying the Sherpa MCP Server with no authentication at all:
+        Let's start by deploying the Sherpa MCP Server with no authentication at all:
 
-    ```bash
-    ./scripts/1.1-deploy.sh
-    ```
+        ```bash
+        ./scripts/1.1-deploy.sh
+        ```
 
-    ??? info "What does this script do?"
-        The deployment script performs these steps:
+        ??? info "What does this script do?"
+            The deployment script performs these steps:
+            
+            1. **Builds and deploys Sherpa MCP Server** - Runs `azd deploy sherpa-mcp-server` to build the Docker image and deploy to Container Apps
+            2. **Creates APIM backend** - Configures a backend in APIM pointing to the Container App URL
+            3. **Creates MCP passthrough in APIM** - Sets up a transparent gateway that forwards MCP protocol messages to Sherpa without modification
+            
+            **What is MCP passthrough?** APIM acts as an intelligent proxy that understands the MCP protocol. It can inspect MCP messages, apply policies (auth, rate limiting), and forward requests to the upstream server. The upstream Sherpa MCP Server receives native MCP protocol messages and doesn't need any awareness that APIM exists.
+            
+            This gives you a working MCP server behind APIM, but with **no authentication**.
+
+        ??? info "What is the Sherpa MCP Server?"
+            **Sherpa** is a FastMCP server that provides mountain expedition tools:
+            
+            - `get_weather` - Current weather conditions at different elevations
+            - `list_trails` - Available climbing routes and difficulty ratings
+            - `check_gear` - Verify required equipment for specific conditions
+            
+            **Why read-only?** Sherpa only exposes read operations (queries) with no write capabilities (no data modification, file system access, or system commands). This follows a key [enterprise pattern](https://microsoft.github.io/mcp-azure-security-guide/adoption/enterprise-patterns/#lessons-from-early-adopters): **separate read from write operations**. Read-only MCP servers are safer for demos and initial deployments because they limit the blast radius of potential exploits. Once you've validated security controls at the gateway (authentication, rate limiting, content safety), you can confidently add write operations or deploy separate write-enabled MCP servers with stricter controls.
+
+        **Expected output:**
+
+        ```
+        ==========================================
+        Sherpa MCP Server Deployed
+        ==========================================
         
-        1. **Builds and deploys Sherpa MCP Server** - Runs `azd deploy sherpa-mcp-server` to build the Docker image and deploy to Container Apps
-        2. **Creates APIM backend** - Configures a backend in APIM pointing to the Container App URL
-        3. **Creates MCP passthrough in APIM** - Sets up a transparent gateway that forwards MCP protocol messages to Sherpa without modification
+        Endpoint: https://apim-xxxxx.azure-api.net/sherpa/mcp
         
-        **What is MCP passthrough?** APIM acts as an intelligent proxy that understands the MCP protocol. It can inspect MCP messages, apply policies (auth, rate limiting), and forward requests to the upstream server. The upstream Sherpa MCP Server receives native MCP protocol messages and doesn't need any awareness that APIM exists.
+        Current security: NONE (completely open)
         
-        This gives you a working MCP server behind APIM, but with **no authentication**.
+        Next: Test the vulnerability from VS Code
+          1. Add the endpoint to .vscode/mcp.json
+          2. Connect without any authentication
+          3. Then run: ./scripts/1.1-fix.sh
+        ```
 
-    ??? info "What is the Sherpa MCP Server?"
-        **Sherpa** is a FastMCP server that provides mountain expedition tools:
-        
-        - `get_weather` - Current weather conditions at different elevations
-        - `list_trails` - Available climbing routes and difficulty ratings
-        - `check_gear` - Verify required equipment for specific conditions
-        
-        **Why read-only?** Sherpa only exposes read operations (queries) with no write capabilities (no data modification, file system access, or system commands). This follows a key [enterprise pattern](https://microsoft.github.io/mcp-azure-security-guide/adoption/enterprise-patterns/#lessons-from-early-adopters): **separate read from write operations**. Read-only MCP servers are safer for demos and initial deployments because they limit the blast radius of potential exploits. Once you've validated security controls at the gateway (authentication, rate limiting, content safety), you can confidently add write operations or deploy separate write-enabled MCP servers with stricter controls.
+    ??? danger "Step 2: Exploit - Anyone Can Access"
 
-    **Expected output:**
+        Test the vulnerability by connecting from VS Code:
 
-    ```
-    ==========================================
-    Sherpa MCP Server Deployed
-    ==========================================
-    
-    Endpoint: https://apim-xxxxx.azure-api.net/sherpa/mcp
-    
-    Current security: NONE (completely open)
-    
-    Next: Test the vulnerability from VS Code
-      1. Add the endpoint to .vscode/mcp.json
-      2. Connect without any authentication
-      3. Then run: ./scripts/1.1-fix.sh
-    ```
+        **1. Get your endpoints:**
 
-    ---
+        ```bash
+        azd env get-values | grep -E "SHERPA_SERVER_URL|APIM_GATEWAY_URL"
+        ```
 
-    ### Step 2: Exploit - Anyone Can Access
+        **2. Configure VS Code to connect:**
 
-    Test the vulnerability by connecting from VS Code:
+        Create or update `.vscode/mcp.json` in your workspace root:
 
-    **1. Get your endpoints:**
-
-    ```bash
-    azd env get-values | grep -E "SHERPA_SERVER_URL|APIM_GATEWAY_URL"
-    ```
-
-    **2. Configure VS Code to connect:**
-
-    Create or update `.vscode/mcp.json` in your workspace root:
-
-    ```json
-    {
-      "servers": {
-        "sherpa-direct": {
-          "type": "http",
-          "url": "https://your-container-app.azurecontainerapps.io/mcp"
-        },
-        "sherpa-via-apim": {
-          "type": "http", 
-          "url": "https://your-apim-instance.azure-api.net/sherpa/mcp"
+        ```json
+        {
+          "servers": {
+            "sherpa-direct": {
+              "type": "http",
+              "url": "https://your-container-app.azurecontainerapps.io/mcp"
+            },
+            "sherpa-via-apim": {
+              "type": "http", 
+              "url": "https://your-apim-instance.azure-api.net/sherpa/mcp"
+            }
+          }
         }
-      }
-    }
-    ```
+        ```
 
-    Replace the URLs with your actual endpoints from step 1.
+        Replace the URLs with your actual endpoints from step 1.
 
-    **3. Connect from VS Code:**
+        **3. Connect from VS Code:**
 
-    Open the `mcp.json` file in VS Code and test each endpoint individually:
+        Open the `mcp.json` file in VS Code and test each endpoint individually:
 
-    - **Test 1: Direct Container App access**
-        - Click the **Start** button above `sherpa-direct`
-        - This connects directly to the Container App, bypassing APIM
-        - Connection succeeds with **no authentication prompt**
+        - **Test 1: Direct Container App access**
+            - Click the **Start** button above `sherpa-direct`
+            - This connects directly to the Container App, bypassing APIM
+            - Connection succeeds with **no authentication prompt**
+            
+        - **Test 2: APIM Gateway access**  
+            - Click the **Start** button above `sherpa-via-apim`
+            - This connects through the APIM gateway
+            - Connection also succeeds with **no authentication prompt**
+
+        **4. Invoke tools from either connection:**
+
+        Both endpoints allow unauthenticated access. Try invoking:
+
+        - `get_weather` - See current mountain weather
+        - `check_trail_conditions` - View trail status
+        - `get_gear_recommendations` - Get equipment suggestions
+
+        ??? danger "Security Impact: Complete Exposure"
+            **The vulnerability:** VS Code connected with zero authentication!
+            
+            ❌ No login required  
+            ❌ No credentials needed  
+            ❌ Anyone with the URL can connect  
+            ❌ No audit trail of who accessed what
+            
+            **Real-world scenario:** Your MCP server exposes tools for querying customer data:
+            
+            - Anyone who discovers the URL can call `get_customer_data()`
+            - Bots and scrapers can access your tools
+            - Competitors access your business intelligence
+            - No way to stop them without taking the service offline
+            - No way to implement rate limiting per user
+            
+            This is **MCP-05: Insufficient Access Controls** - the system can't identify users or enforce authorization.
+
+    ??? success "Step 3: Fix - Add OAuth with PRM Discovery"
+
+        Apply OAuth validation and enable automatic discovery:
+
+        ```bash
+        ./scripts/1.1-fix.sh
+        ```
+
+        This script deploys:
+
+        **1. RFC 9728 PRM Metadata Endpoints**  
+        Creates two discovery endpoints for OAuth autodiscovery:
         
-    - **Test 2: APIM Gateway access**  
-        - Click the **Start** button above `sherpa-via-apim`
-        - This connects through the APIM gateway
-        - Connection also succeeds with **no authentication prompt**
+        - **RFC 9728 path-based:** `/.well-known/oauth-protected-resource/sherpa/mcp`
+        - **Suffix pattern:** `/sherpa/mcp/.well-known/oauth-protected-resource`
 
-    **4. Invoke tools from either connection:**
+        Both return the same PRM metadata:
 
-    Both endpoints allow unauthenticated access. Try invoking:
+        ```json
+        {
+          "resource": "https://apim-xxxxx.azure-api.net/sherpa/mcp",
+          "authorization_servers": [
+            "https://login.microsoftonline.com/your-tenant-id/v2.0"
+          ],
+          "scopes_supported": ["your-mcp-app-client-id/user_impersonate"],
+          "bearer_methods_supported": ["header"]
+        }
+        ```
 
-    - `get_weather` - See current mountain weather
-    - `check_trail_conditions` - View trail status
-    - `get_gear_recommendations` - Get equipment suggestions
-
-    ??? danger "Security Impact: Complete Exposure"
-        **The vulnerability:** VS Code connected with zero authentication!
+        **2. OAuth Validation Policy**  
+        Applies token validation to the Sherpa MCP API that:
         
-        ❌ No login required  
-        ❌ No credentials needed  
-        ❌ Anyone with the URL can connect  
-        ❌ No audit trail of who accessed what
+        - Validates Entra ID tokens against your tenant
+        - Checks the token audience matches your MCP app
+        - Returns a proper 401 with PRM discovery link on failure
+
+        When authentication fails, APIM returns:
+
+        ```
+        HTTP/1.1 401 Unauthorized
+        WWW-Authenticate: Bearer resource_metadata="https://apim-xxxxx.azure-api.net/.well-known/oauth-protected-resource/sherpa/mcp"
+        ```
         
-        **Real-world scenario:** Your MCP server exposes tools for querying customer data:
+        This tells OAuth clients where to discover authentication requirements.
+
+        ??? info "What is Protected Resource Metadata (RFC 9728)?"
+            **RFC 9728** defines PRM as a standard for OAuth autodiscovery. Instead of manually configuring:
+            
+            - Authorization server URL
+            - Token endpoint
+            - Required scopes
+            - Audience values
+            
+            Clients can query `/.well-known/oauth-protected-resource` and **discover everything automatically**.
+            
+            **VS Code's MCP client supports PRM**, which means:
+            
+            1. You configure just the MCP server URL
+            2. VS Code queries the PRM endpoint
+            3. VS Code automatically initiates OAuth flow with correct parameters
+            4. User signs in once
+            5. VS Code uses the token for all subsequent requests
+            
+            **No manual configuration required!** This is the modern OAuth experience.
+
+    ??? note "Step 4: Validate - Confirm OAuth Works"
+
+        Test that OAuth is enforcing authentication:
+
+        ```bash
+        ./scripts/1.1-validate.sh
+        ```
+
+        The script verifies:
+
+        - **PRM endpoint returns correct metadata** (authorization server, scopes)
+        - **Requests without tokens return 401** (authentication required)
+
+        **Expected output:**
+
+        ```
+        ==========================================
+        Waypoint 1.1: Validate OAuth
+        ==========================================
+
+        Test 1: Request without token (should return 401)
+          ✅ Result: 401 Unauthorized (token required)
+
+        Test 2: Check WWW-Authenticate header has correct resource_metadata
+          ✅ WWW-Authenticate includes /sherpa/mcp path
+
+        Test 3: Check 401 response body has correct resource_metadata
+          ✅ Response body includes /sherpa/mcp path
+
+        Test 4: RFC 9728 path-based PRM discovery
+          GET https://apim-xxxxx.azure-api.net/.well-known/oauth-protected-resource/sherpa/mcp
+          ✅ RFC 9728 PRM metadata returned
+        {
+          "resource": "https://apim-xxxxx.azure-api.net/sherpa/mcp",
+          "authorization_servers": [
+            "https://login.microsoftonline.com/your-tenant-id/v2.0"
+          ],
+          "bearer_methods_supported": [
+            "header"
+          ],
+          "scopes_supported": [
+            "your-mcp-app-client-id/user_impersonate"
+          ]
+        }
+
+        Test 5: Suffix pattern PRM discovery
+          GET https://apim-xxxxx.azure-api.net/sherpa/mcp/.well-known/oauth-protected-resource
+          ✅ Suffix PRM metadata returned
+
+        ==========================================
+        ✅ Waypoint 1.1 Complete
+        ==========================================
+
+        OAuth is properly configured. VS Code can now:
+          1. Discover PRM at either discovery path
+          2. Find the Entra ID authorization server
+          3. Obtain tokens and call the MCP API
+        ```
         
-        - Anyone who discovers the URL can call `get_customer_data()`
-        - Bots and scrapers can access your tools
-        - Competitors access your business intelligence
-        - No way to stop them without taking the service offline
-        - No way to implement rate limiting per user
-        
-        This is **MCP-05: Insufficient Access Controls** - the system can't identify users or enforce authorization.
-
-    ---
-
-    ### Step 3: Fix - Add OAuth with PRM Discovery
-
-    Apply OAuth validation and enable automatic discovery:
-
-    ```bash
-    ./scripts/1.1-fix.sh
-    ```
-
-    This script deploys:
-
-    **1. RFC 9728 PRM Metadata Endpoints**  
-    Creates two discovery endpoints for OAuth autodiscovery:
-    
-    - **RFC 9728 path-based:** `/.well-known/oauth-protected-resource/sherpa/mcp`
-    - **Suffix pattern:** `/sherpa/mcp/.well-known/oauth-protected-resource`
-
-    Both return the same PRM metadata:
-
-    ```json
-    {
-      "resource": "https://apim-xxxxx.azure-api.net/sherpa/mcp",
-      "authorization_servers": [
-        "https://login.microsoftonline.com/your-tenant-id/v2.0"
-      ],
-      "scopes_supported": ["your-mcp-app-client-id/user_impersonate"],
-      "bearer_methods_supported": ["header"]
-    }
-    ```
-
-    **2. OAuth Validation Policy**  
-    Applies token validation to the Sherpa MCP API that:
-    
-    - Validates Entra ID tokens against your tenant
-    - Checks the token audience matches your MCP app
-    - Returns a proper 401 with PRM discovery link on failure
-
-    When authentication fails, APIM returns:
-
-    ```
-    HTTP/1.1 401 Unauthorized
-    WWW-Authenticate: Bearer resource_metadata="https://apim-xxxxx.azure-api.net/.well-known/oauth-protected-resource/sherpa/mcp"
-    ```
-    
-    This tells OAuth clients where to discover authentication requirements.
-
-    ??? info "What is Protected Resource Metadata (RFC 9728)?"
-        **RFC 9728** defines PRM as a standard for OAuth autodiscovery. Instead of manually configuring:
-        
-        - Authorization server URL
-        - Token endpoint
-        - Required scopes
-        - Audience values
-        
-        Clients can query `/.well-known/oauth-protected-resource` and **discover everything automatically**.
-        
-        **VS Code's MCP client supports PRM**, which means:
-        
-        1. You configure just the MCP server URL
-        2. VS Code queries the PRM endpoint
-        3. VS Code automatically initiates OAuth flow with correct parameters
-        4. User signs in once
-        5. VS Code uses the token for all subsequent requests
-        
-        **No manual configuration required!** This is the modern OAuth experience.
-
-    ---
-
-    ### Step 4: Validate - Confirm OAuth Works
-
-    Test that OAuth is enforcing authentication:
-
-    ```bash
-    ./scripts/1.1-validate.sh
-    ```
-
-    The script verifies:
-
-    - **PRM endpoint returns correct metadata** (authorization server, scopes)
-    - **Requests without tokens return 401** (authentication required)
-
-    **Expected output:**
-
-    ```
-    ==========================================
-    Waypoint 1.1: Validate OAuth
-    ==========================================
-
-    Test 1: Request without token (should return 401)
-      ✅ Result: 401 Unauthorized (token required)
-
-    Test 2: Check WWW-Authenticate header has correct resource_metadata
-      ✅ WWW-Authenticate includes /sherpa/mcp path
-
-    Test 3: Check 401 response body has correct resource_metadata
-      ✅ Response body includes /sherpa/mcp path
-
-    Test 4: RFC 9728 path-based PRM discovery
-      GET https://apim-xxxxx.azure-api.net/.well-known/oauth-protected-resource/sherpa/mcp
-      ✅ RFC 9728 PRM metadata returned
-    {
-      "resource": "https://apim-xxxxx.azure-api.net/sherpa/mcp",
-      "authorization_servers": [
-        "https://login.microsoftonline.com/your-tenant-id/v2.0"
-      ],
-      "bearer_methods_supported": [
-        "header"
-      ],
-      "scopes_supported": [
-        "your-mcp-app-client-id/user_impersonate"
-      ]
-    }
-
-    Test 5: Suffix pattern PRM discovery
-      GET https://apim-xxxxx.azure-api.net/sherpa/mcp/.well-known/oauth-protected-resource
-      ✅ Suffix PRM metadata returned
-
-    ==========================================
-    ✅ Waypoint 1.1 Complete
-    ==========================================
-
-    OAuth is properly configured. VS Code can now:
-      1. Discover PRM at either discovery path
-      2. Find the Entra ID authorization server
-      3. Obtain tokens and call the MCP API
-    ```
-    
-    !!! tip "Test with VS Code"
-        To verify OAuth works end-to-end with a real token:
-        
-        1. Restart the `sherpa-via-apim` connection from Step 2
-        2. VS Code will discover OAuth via PRM and prompt you to sign in
-        3. After authentication, you can invoke MCP tools with a valid token
+        !!! tip "Test with VS Code"
+            To verify OAuth works end-to-end with a real token:
+            
+            1. Restart the `sherpa-via-apim` connection from Step 2
+            2. VS Code will discover OAuth via PRM and prompt you to sign in
+            3. After authentication, you can invoke MCP tools with a valid token
 
     ---
 
