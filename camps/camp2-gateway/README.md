@@ -178,6 +178,46 @@ camps/camp2-gateway/
 - Check that preprovision hook completed successfully
 - Verify `MCP_APP_CLIENT_ID` is set: `azd env get-value MCP_APP_CLIENT_ID`
 
+**VS Code MCP can't authenticate**
+- Ensure the Entra app has empty `identifierUris` (not `api://{appId}`)
+- Verify both PRM discovery paths work (see Technical Deep Dive below)
+- Check that VS Code client ID is pre-authorized on the Entra app
+
+## Technical Deep Dive: OAuth + PRM
+
+### RFC 9728 Protected Resource Metadata
+
+VS Code discovers OAuth configuration using [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728):
+
+1. **Path-based discovery** (tried first): `/.well-known/oauth-protected-resource/{path}`
+2. **Suffix pattern** (fallback): `/{path}/.well-known/oauth-protected-resource`
+
+Both endpoints must return identical PRM metadata:
+
+```json
+{
+  "resource": "https://apim.azure-api.net/sherpa/mcp",
+  "authorization_servers": ["https://login.microsoftonline.com/{tenant}/v2.0"],
+  "scopes_supported": ["{appId}/user_impersonate"]
+}
+```
+
+### Entra ID App Configuration
+
+**Critical**: The Entra app's `identifierUris` must be **empty** for VS Code MCP OAuth:
+
+| identifierUris | Scope Format | Works with VS Code? |
+|---------------|--------------|---------------------|
+| `[]` (empty) | `{appId}/scope` | ✅ Yes |
+| `api://{appId}` | `api://{appId}/scope` | ❌ No |
+
+### Key Learnings
+
+1. **PRM must bypass OAuth**: The PRM operation policy uses `<return-response>` before `<base />` to skip token validation
+2. **401 response matters**: Both the `WWW-Authenticate` header AND response body must include the correct `resource_metadata` URL with the API path
+3. **Pre-authorization**: VS Code uses Microsoft's registered app ID (`aebc6443-996d-45c2-90f0-388ff96faa56`) - add it to `preAuthorizedApplications`
+4. **No dynamic registration**: Entra ID doesn't support OAuth Dynamic Client Registration; use pre-authorized clients instead
+
 ## Cleanup
 
 ```bash

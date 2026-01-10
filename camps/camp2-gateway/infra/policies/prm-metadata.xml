@@ -1,10 +1,20 @@
 <!--
-  RFC 9728 Protected Resource Metadata
+  RFC 9728 Protected Resource Metadata (PRM)
   Enables OAuth discovery for MCP clients like VS Code
+  
+  This endpoint tells clients:
+  - Which authorization server to use (Entra ID)
+  - What scopes are required
+  - The protected resource URL
+  
+  Key learnings:
+  - Must return-response BEFORE <base /> to skip OAuth validation
+  - Scope format is {appId}/scope_name when identifierUris is empty
+  - VS Code tries multiple discovery paths, both must return the same data
 -->
 <policies>
   <inbound>
-    <base />
+    <!-- Return immediately - do NOT call <base /> which would trigger OAuth validation -->
     <return-response>
       <set-status code="200" reason="OK" />
       <set-header name="Content-Type" exists-action="override">
@@ -15,10 +25,10 @@
       </set-header>
       <set-body>@{
         return JsonConvert.SerializeObject(new {
-          resource = "{{apim-gateway-url}}",
+          resource = "{{apim-gateway-url}}/sherpa/mcp",
           authorization_servers = new[] { "https://login.microsoftonline.com/{{tenant-id}}/v2.0" },
           bearer_methods_supported = new[] { "header" },
-          scopes_supported = new[] { "api://{{mcp-app-client-id}}/user_impersonate" }
+          scopes_supported = new[] { "{{mcp-app-client-id}}/user_impersonate" }
         });
       }</set-body>
     </return-response>

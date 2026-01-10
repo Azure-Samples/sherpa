@@ -36,10 +36,12 @@ fi
 
 echo "MCP App Client ID: $MCP_APP_CLIENT_ID"
 
-# Set identifier URI
-echo "Setting identifier URI..."
-az ad app update --id "$MCP_APP_CLIENT_ID" \
-    --identifier-uris "api://$MCP_APP_CLIENT_ID"
+# IMPORTANT: Do NOT set identifier URI!
+# When identifierUris is empty, scopes are referenced as {appId}/scope_name
+# This is required for VS Code MCP OAuth to work correctly.
+# Setting identifier-uris to api://{appId} would change scope format to api://{appId}/scope_name
+# which breaks the token audience matching.
+echo "Skipping identifier URI (must be empty for VS Code MCP OAuth)..."
 
 # Create API scope
 echo "Creating OAuth scope..."
@@ -115,10 +117,10 @@ fi
 rm -f /tmp/mcp-api-full.json
 echo "VS Code pre-authorized"
 
-# Add redirect URI for OAuth callback through APIM
-echo "Adding placeholder redirect URI..."
-az ad app update --id "$MCP_APP_CLIENT_ID" \
-    --web-redirect-uris "https://placeholder.azure-api.net/auth/callback"
+# NOTE: We do NOT add VS Code redirect URIs to our app!
+# VS Code uses its OWN Entra app (managed by Microsoft) with its own redirect URIs.
+# The pre-authorization above is what allows VS Code to request tokens for our API.
+# This is a cross-app OAuth flow: VS Code (client) -> our API (resource).
 
 # Create Service Principal
 echo "Creating service principal for MCP app..."

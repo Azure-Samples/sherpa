@@ -1,6 +1,11 @@
 <!--
-  OAuth token validation policy
+  OAuth token validation policy for MCP API
   Validates tokens from Entra ID for MCP access
+  
+  Key learnings:
+  - Audience must match the Entra app's identifierUris or appId
+  - When identifierUris is empty, use appId directly (not api://appId)
+  - The resource_metadata URL must include the API path for RFC 9728 compliance
 -->
 <policies>
   <inbound>
@@ -9,7 +14,8 @@
                               failed-validation-httpcode="401" 
                               failed-validation-error-message="Unauthorized">
       <audiences>
-        <audience>api://{{mcp-app-client-id}}</audience>
+        <!-- Use appId directly when identifierUris is empty -->
+        <audience>{{mcp-app-client-id}}</audience>
       </audiences>
     </validate-azure-ad-token>
   </inbound>
@@ -26,13 +32,14 @@
         <return-response>
           <set-status code="401" reason="Unauthorized" />
           <set-header name="WWW-Authenticate" exists-action="override">
-            <value>Bearer error="invalid_token", resource_metadata="{{apim-gateway-url}}/.well-known/oauth-protected-resource"</value>
+            <!-- Must include API path for proper PRM discovery -->
+            <value>Bearer error="invalid_token", resource_metadata="{{apim-gateway-url}}/sherpa/mcp/.well-known/oauth-protected-resource"</value>
           </set-header>
           <set-body>@{
             return JsonConvert.SerializeObject(new {
               error = "unauthorized",
               message = "Valid OAuth token required",
-              resource_metadata = "{{apim-gateway-url}}/.well-known/oauth-protected-resource"
+              resource_metadata = "{{apim-gateway-url}}/sherpa/mcp/.well-known/oauth-protected-resource"
             });
           }</set-body>
         </return-response>

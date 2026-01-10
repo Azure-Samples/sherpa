@@ -1,0 +1,38 @@
+<!--
+  OAuth authorize redirect policy
+  Redirects /authorize requests to Entra ID's authorize endpoint
+  Preserves query parameters from the original request
+-->
+<policies>
+  <inbound>
+    <base />
+    <return-response>
+      <set-status code="302" reason="Found" />
+      <set-header name="Location" exists-action="override">
+        <value>@{
+          var tenantId = "{{tenant-id}}";
+          var query = context.Request.Url.Query;
+          
+          // Build the redirect URL to Entra ID
+          var entraUrl = $"https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/authorize";
+          
+          // Forward all query parameters
+          if (!string.IsNullOrEmpty(context.Request.Url.QueryString)) {
+            entraUrl += "?" + context.Request.Url.QueryString;
+          }
+          
+          return entraUrl;
+        }</value>
+      </set-header>
+    </return-response>
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

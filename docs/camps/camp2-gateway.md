@@ -383,9 +383,8 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
 
     The script verifies:
 
-    - ✅ **PRM endpoint returns correct metadata** (authorization server, scopes)
-    - ✅ **Requests without tokens return 401** (authentication required)
-    - ✅ **Valid OAuth tokens grant access** (user identity validated)
+    - **PRM endpoint returns correct metadata** (authorization server, scopes)
+    - **Requests without tokens return 401** (authentication required)
 
     **Expected output:**
 
@@ -396,10 +395,27 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
     
     1. PRM Endpoint: ✅ Returns correct metadata
     2. No Token: ✅ Returns 401 Unauthorized
-    3. Valid OAuth Token: ✅ Returns 200 OK
     
-    🎉 OAuth with PRM is working correctly!
+    🎉 OAuth policies deployed successfully!
     ```
+    
+    !!! tip "Test with VS Code"
+        To verify OAuth works end-to-end with a real token:
+        
+        1. Configure `.vscode/mcp.json`:
+           ```json
+           {
+             "servers": {
+               "sherpa": {
+                 "type": "sse",
+                 "url": "https://your-apim-url.azure-api.net/sherpa/mcp"
+               }
+             }
+           }
+           ```
+        2. Click **Start** on the sherpa server
+        3. VS Code will discover OAuth via PRM and prompt you to sign in
+        4. After authentication, you can invoke MCP tools with a valid token
 
     ---
 
