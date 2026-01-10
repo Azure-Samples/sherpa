@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: trail-api
+Version: 1.0.0
+Summary: Trail REST API for MCP Security Workshop
+Requires-Python: >=3.11
+Requires-Dist: fastapi>=0.109.0
+Requires-Dist: uvicorn>=0.27.0
+Requires-Dist: pydantic>=2.5.0
+Requires-Dist: httpx>=0.27.0

@@ -1,7 +1,7 @@
 """Static data for Trail API."""
 
 from datetime import datetime
-from src.models import Trail, TrailConditions, PermitInfo
+from src.models import Trail, TrailConditions, Permit
 
 # Trail data
 TRAILS: dict[str, Trail] = {
@@ -59,38 +59,26 @@ CONDITIONS: dict[str, TrailConditions] = {
     ),
 }
 
-# Permit data
-PERMITS: dict[str, PermitInfo] = {
-    "summit-trail": PermitInfo(
-        required=True,
-        type="Summit Access Permit",
-        cost_usd=50.00,
-        application_url="https://example.com/permits/summit",
-        processing_time_days=7,
-        requirements=[
-            "Valid government-issued ID",
-            "Emergency contact information",
-            "Proof of technical climbing experience",
-            "Summit attempt date and intended route"
-        ]
+# Permits database (in-memory for demo, backend system would manage this)
+PERMITS_DB: dict[str, Permit] = {
+    "PRM-2025-0001": Permit(
+        id="PRM-2025-0001",
+        trail_id="summit-trail",
+        trail_name="Summit Ridge Trail",
+        hiker_name="Alice Johnson",
+        hiker_email="alice@example.com",
+        planned_date="2025-01-15",
+        status="active",
+        issued_at="2025-01-08T10:30:00"
     ),
-    "base-trail": PermitInfo(
-        required=False,
-        type="None",
-        cost_usd=0.00,
-        application_url="",
-        processing_time_days=0,
-        requirements=[]
-    ),
-    "ridge-walk": PermitInfo(
-        required=True,
-        type="Alpine Zone Day Pass",
-        cost_usd=15.00,
-        application_url="https://example.com/permits/alpine",
-        processing_time_days=1,
-        requirements=[
-            "Valid government-issued ID",
-            "Emergency contact information"
-        ]
+    "PRM-2025-0002": Permit(
+        id="PRM-2025-0002",
+        trail_id="ridge-walk",
+        trail_name="Alpine Ridge Walk",
+        hiker_name="Bob Smith",
+        hiker_email="bob@example.com",
+        planned_date="2025-01-12",
+        status="active",
+        issued_at="2025-01-07T14:15:00"
     ),
 }

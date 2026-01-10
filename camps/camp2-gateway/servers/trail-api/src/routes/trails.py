@@ -7,38 +7,40 @@ from src.data import TRAILS, CONDITIONS
 router = APIRouter()
 
 
-@router.get("", response_model=list[Trail])
+@router.get("", response_model=list[Trail], operation_id="list_trails")
 async def list_trails():
     """
-    List all available trails.
+    List all available hiking trails.
     
-    Returns a list of all trails with basic information.
+    Returns a list of all trails with basic information including
+    difficulty, distance, and permit requirements.
     """
     return list(TRAILS.values())
 
 
-@router.get("/{trail_id}", response_model=Trail)
+@router.get("/{trail_id}", response_model=Trail, operation_id="get_trail")
 async def get_trail(trail_id: str):
     """
-    Get detailed information about a specific trail.
+    Get details for a specific trail.
     
-    Returns trail details including difficulty, distance, and elevation.
+    Returns trail details including difficulty, distance, elevation gain,
+    estimated time, and whether a permit is required.
     """
     if trail_id not in TRAILS:
         raise HTTPException(status_code=404, detail="Trail not found")
     return TRAILS[trail_id]
 
 
-@router.get("/{trail_id}/conditions", response_model=TrailConditions)
-async def get_trail_conditions(trail_id: str):
+@router.get("/{trail_id}/conditions", response_model=TrailConditions, operation_id="check_conditions")
+async def check_conditions(trail_id: str):
     """
-    Get current conditions for a specific trail.
+    Get current trail conditions and hazards.
     
     Returns:
     - Current status (open/closed/limited)
-    - Active hazards
-    - Weather conditions
-    - Recent updates
+    - Active hazards and warnings
+    - Weather conditions at trailhead
+    - Recent ranger notes and updates
     """    
     if trail_id not in CONDITIONS:
         raise HTTPException(status_code=404, detail="Trail not found")

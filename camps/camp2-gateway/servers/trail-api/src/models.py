@@ -25,11 +25,30 @@ class TrailConditions(BaseModel):
     notes: Optional[str] = None
 
 
-class PermitInfo(BaseModel):
-    """Permit information model."""
-    required: bool
-    type: str
-    cost_usd: float
-    application_url: str
-    processing_time_days: int
-    requirements: list[str]
+class Permit(BaseModel):
+    """Issued permit model."""
+    id: str
+    trail_id: str
+    trail_name: str
+    hiker_name: str
+    hiker_email: str
+    planned_date: str
+    status: str  # pending, active, expired, cancelled
+    issued_at: str
+
+
+class PermitRequest(BaseModel):
+    """Request model for new permit."""
+    trail_id: str
+    hiker_name: str
+    hiker_email: str
+    planned_date: str
+    emergency_contact: Optional[str] = None
+    group_size: int = 1
+
+
+class PermitResponse(BaseModel):
+    """Response model for permit operations."""
+    success: bool
+    message: str
+    permit: Optional[Permit] = None

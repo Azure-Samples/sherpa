@@ -88,7 +88,7 @@ resource trailApi 'Microsoft.App/containerApps@2024-03-01' = {
       activeRevisionsMode: 'Single'
       ingress: {
         external: true
-        targetPort: 8001
+        targetPort: 8000
         transport: 'http'
         allowInsecure: false
       }

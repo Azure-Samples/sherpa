@@ -21,54 +21,109 @@ resource trailBackend 'Microsoft.ApiManagement/service/backends@2024-06-01-previ
 }
 
 // Trail API - exposed as REST API
+// Path 'trailapi' is the APIM URL prefix, urlTemplates go directly to backend
 resource trailApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' = {
   parent: apim
   name: 'trail-api'
   properties: {
     displayName: 'Trail API'
-    description: 'REST API for trail information and permits'
-    path: 'trails'
+    description: 'REST API for trail information and permit management'
+    path: 'trailapi'
     protocols: ['https']
-    subscriptionRequired: true  // Requires subscription key
+    subscriptionRequired: true
     apiType: 'http'
     serviceUrl: backendUrl
   }
 }
 
-// Define API operations
+// ============================================
+// Trail Operations
+// ============================================
+
+// GET /trailapi/trails -> backend /trails
 resource listTrailsOp 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' = {
   parent: trailApi
   name: 'list-trails'
   properties: {
     displayName: 'List Trails'
+    description: 'List all available hiking trails'
     method: 'GET'
-    urlTemplate: '/'
+    urlTemplate: '/trails'
   }
 }
 
+// GET /trailapi/trails/{trailId} -> backend /trails/{trailId}
 resource getTrailOp 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' = {
   parent: trailApi
   name: 'get-trail'
   properties: {
     displayName: 'Get Trail'
+    description: 'Get details for a specific trail'
     method: 'GET'
-    urlTemplate: '/{trailId}'
+    urlTemplate: '/trails/{trailId}'
     templateParameters: [
       {
         name: 'trailId'
         type: 'string'
         required: true
+        description: 'Trail identifier (e.g., summit-trail, base-trail)'
       }
     ]
   }
 }
 
-resource getPermitsOp 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' = {
+// GET /trailapi/trails/{trailId}/conditions -> backend /trails/{trailId}/conditions
+resource checkConditionsOp 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' = {
   parent: trailApi
-  name: 'get-permits'
+  name: 'check-conditions'
   properties: {
-    displayName: 'Get Permits'
+    displayName: 'Check Conditions'
+    description: 'Get current trail conditions and hazards'
     method: 'GET'
+    urlTemplate: '/trails/{trailId}/conditions'
+    templateParameters: [
+      {
+        name: 'trailId'
+        type: 'string'
+        required: true
+        description: 'Trail identifier'
+      }
+    ]
+  }
+}
+
+// ============================================
+// Permit Operations
+// ============================================
+
+// GET /trailapi/permits/{permitId} -> backend /permits/{permitId}
+resource getPermitOp 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' = {
+  parent: trailApi
+  name: 'get-permit'
+  properties: {
+    displayName: 'Get Permit'
+    description: 'Retrieve a trail permit by ID'
+    method: 'GET'
+    urlTemplate: '/permits/{permitId}'
+    templateParameters: [
+      {
+        name: 'permitId'
+        type: 'string'
+        required: true
+        description: 'Permit identifier (e.g., PRM-2025-0001)'
+      }
+    ]
+  }
+}
+
+// POST /trailapi/permits -> backend /permits
+resource requestPermitOp 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' = {
+  parent: trailApi
+  name: 'request-permit'
+  properties: {
+    displayName: 'Request Permit'
+    description: 'Request a new trail permit'
+    method: 'POST'
     urlTemplate: '/permits'
   }
 }
@@ -80,7 +135,7 @@ resource trailSubscription 'Microsoft.ApiManagement/service/subscriptions@2024-0
   properties: {
     displayName: 'Trail API Basic Access'
     state: 'active'
-    scope: trailApi.id  // Scoped to Trail API only
+    scope: trailApi.id
   }
 }
 

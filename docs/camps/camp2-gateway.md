@@ -447,221 +447,341 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
         
         **This is intentional for now.** Network isolation is a defense-in-depth measure covered in a later section, where we'll configure the Container App to only accept traffic from APIM.
 
-??? note "Waypoint 1.2: Subscription Keys → OAuth"
+??? note "Waypoint 1.2: REST API → MCP Server with OAuth"
 
-    ### The Security Challenge: Subscription Keys Lack User Identity
+    **What you'll learn:** How to use [Azure API Management's REST-to-MCP](https://learn.microsoft.com/en-us/azure/api-management/export-rest-mcp-server) feature to expose an existing REST API as an MCP server. APIM automatically transforms OpenAPI operations into MCP tools, enabling AI agents to discover and call your existing APIs without any code changes.
+
+    **Key benefits of APIM's REST-to-MCP export:**
+    
+    - **Zero-code transformation** - Existing REST APIs become MCP servers automatically
+    - **OpenAPI-driven tools** - Each API operation becomes an MCP tool with proper schemas
+    - **Unified security** - Same OAuth + PRM pattern works for both native MCP and exported REST APIs
+    - **Incremental adoption** - Expose legacy REST APIs to AI agents without rewriting them
+    - **Consistent governance** - All MCP servers (native or exported) flow through the same gateway
 
     **OWASP Risk:** [MCP-05 (Insufficient Access Controls)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-insufficient-access-controls/)
 
-    Subscription keys identify **applications**, not **users**. While common for REST APIs, they have critical limitations:
-    
-    - **No user identity** - Can't tell WHO is using the API
-    - **Shared credentials** - Keys get copied, pasted, and shared across teams
-    - **All-or-nothing access** - Can't implement per-user permissions
-    - **Poor auditability** - Can't trace actions back to individual users
-
-    You need **OAuth** to add user identity on top of application identity.
+    Subscription keys are useful for **tracking and billing**, but they are NOT authentication. For AI agent access, you need OAuth with user identity.
 
     ---
 
-    ### Step 1: Deploy Trail API with Subscription Keys
+    ??? note "Step 1: Deploy Trail API as MCP Server"
 
-    Deploy a second API (Trail API provides trail permits):
+        Deploy the Trail API and expose it as an MCP server through APIM:
 
-    ```bash
-    ./scripts/1.2-deploy.sh
-    ```
+        ```bash
+        ./scripts/1.2-deploy.sh
+        ```
 
-    This deploys:
-    
-    - Container App running the Trail API (REST API, not MCP)
-    - APIM backend pointing to Trail API
-    - REST API in APIM with `subscriptionRequired: true`
-    - Subscription key (automatically generated and saved)
+        ??? info "What is the Trail API?"
+            **Trail API** is a REST API that provides trail permit management:
+            
+            | Operation | Method | Path | Description |
+            |-----------|--------|------|-------------|
+            | `list_trails` | GET | `/trails` | List all available hiking trails |
+            | `get_trail` | GET | `/trails/{id}` | Get details for a specific trail |
+            | `check_conditions` | GET | `/trails/{id}/conditions` | Current trail conditions and hazards |
+            | `get_permit` | GET | `/permits/{id}` | Retrieve a trail permit |
+            | `request_permit` | POST | `/permits` | Request a new trail permit |
+            
+            The API has a complete **OpenAPI 3.0 specification** that describes each operation's parameters, request/response schemas, and documentation.
 
-    **Expected output:**
+        ??? info "How does REST-to-MCP export work?"
+            When you export a REST API as an MCP server, APIM:
+            
+            1. **Reads the OpenAPI spec** - Parses operation definitions, parameters, and schemas
+            2. **Creates MCP tools** - Each operation becomes a tool with the same name
+            3. **Maps parameters** - Query params, path params, and body become tool arguments
+            4. **Generates descriptions** - Uses OpenAPI descriptions for tool documentation
+            5. **Handles responses** - Transforms REST responses into MCP tool results
+            
+            **Example transformation:**
+            
+            ```yaml
+            # OpenAPI Operation
+            /trails/{id}/conditions:
+              get:
+                operationId: check_conditions
+                summary: Get current trail conditions
+                parameters:
+                  - name: id
+                    in: path
+                    required: true
+                    schema:
+                      type: string
+            ```
+            
+            Becomes this MCP tool:
+            
+            ```json
+            {
+              "name": "check_conditions",
+              "description": "Get current trail conditions",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string" }
+                },
+                "required": ["id"]
+              }
+            }
+            ```
 
-    ```
-    ==========================================
-    Trail API Deployed
-    ==========================================
-    
-    Endpoint: https://apim-xxxxx.azure-api.net/trails
-    
-    Current security: Subscription key only
-    
-    Next: See why subscription keys aren't enough
-      ./scripts/1.2-exploit.sh
-    ```
-
-    **Why a separate API?** In real deployments, your MCP tools often call other backend services. The Trail API simulates a REST API that your MCP server might call.
-
-    ---
-
-    ### Step 2: Exploit - Subscription Key Limitations
-
-    See the limitations of subscription keys:
-
-    ```bash
-    ./scripts/1.2-exploit.sh
-    ```
-
-    The script simulates two users sharing the same subscription key:
-
-    ```bash
-    echo "👤 Alice uses the Trail API..."
-    curl -s -H "Ocp-Apim-Subscription-Key: ${SUBSCRIPTION_KEY}" \
-         "${APIM_URL}/trails/permits/1234"
-    
-    echo "👤 Bob uses the SAME subscription key..."
-    curl -s -H "Ocp-Apim-Subscription-Key: ${SUBSCRIPTION_KEY}" \
-         "${APIM_URL}/trails/permits/5678"
-    
-    echo "❌ Both requests succeed with the same key!"
-    echo "❌ The API can't tell Alice from Bob!"
-    echo "❌ Audit logs show the subscription, not the user!"
-    ```
-
-    **Expected output:**
-
-    ```
-    Testing Trail API with subscription key...
-    
-    👤 Alice requests permit 1234: ✅ 200 OK
-    👤 Bob requests permit 5678: ✅ 200 OK
-    
-    ❌ Security Issue: Shared credentials!
-    
-    Problem: The subscription key identifies the APPLICATION, not the USER.
-    
-    - Alice and Bob share the same key
-    - Audit logs can't distinguish between them
-    - Can't implement per-user permissions
-    - If Bob is malicious, we can't revoke just his access
-    
-    Next: Add OAuth to get user identity
-      ./scripts/1.2-fix.sh
-    ```
-
-    ??? danger "Security Impact: No User Accountability"
-        **Real-world scenario:** Data breach investigation.
+        This script deploys:
         
-        Your audit logs show:
+        - **Container App** running the Trail API (REST API with OpenAPI spec)
+        - **APIM backend** pointing to the Trail API Container App
+        - **MCP Server export** in APIM with `subscriptionRequired: true`
+        - **Subscription key** (automatically generated and saved)
+
+        **Expected output:**
+
+        ```
+        ==========================================
+        Trail API Deployed as MCP Server
+        ==========================================
         
+        REST Endpoint: https://apim-xxxxx.azure-api.net/trails
+        MCP Endpoint:  https://apim-xxxxx.azure-api.net/trails/mcp
+        
+        MCP Tools available:
+          - list_trails: List all available hiking trails
+          - get_trail: Get details for a specific trail
+          - check_conditions: Current trail conditions and hazards
+          - get_permit: Retrieve a trail permit
+          - request_permit: Request a new trail permit
+        
+        Current security: Subscription key only (no authentication!)
+        
+        Next: Test the MCP server from VS Code
+          1. Add the MCP endpoint to .vscode/mcp.json
+          2. Connect with subscription key header
+          3. Then run: ./scripts/1.2-exploit.sh
+        ```
+
+    ??? danger "Step 2: Exploit - Subscription Keys Are Not Authentication"
+
+        Test the MCP server with subscription keys and see why they're insufficient for auth:
+
+        **1. Configure VS Code to connect:**
+
+        Add the Trail MCP server to `.vscode/mcp.json`:
+
         ```json
         {
-          "timestamp": "2024-01-15T10:30:00Z",
-          "api": "/trails/permits/confidential-123",
-          "subscription": "engineering-team-key",
-          "status": 200
+          "servers": {
+            "trails-via-apim": {
+              "type": "http",
+              "url": "https://your-apim-instance.azure-api.net/trails/mcp",
+              "headers": {
+                "Ocp-Apim-Subscription-Key": "your-subscription-key"
+              }
+            }
+          }
         }
         ```
+
+        Get your subscription key:
+        ```bash
+        azd env get-value TRAILS_SUBSCRIPTION_KEY
+        ```
+
+        **2. Connect and invoke tools:**
+
+        - Click **Start** on `trails-via-apim`
+        - Connection succeeds with the subscription key
+        - Try invoking `list_trails` or `check_conditions`
+
+        **3. The authentication problem:**
+
+        The subscription key lets you connect, but it provides **zero authentication**:
+
+        ```bash
+        # Alice uses the Trail MCP server
+        curl -H "Ocp-Apim-Subscription-Key: ${KEY}" \
+             "${APIM_URL}/trails/mcp"
         
-        **The problem:**
+        # Bob uses the SAME subscription key
+        curl -H "Ocp-Apim-Subscription-Key: ${KEY}" \
+             "${APIM_URL}/trails/mcp"
         
-        - 🚨 Someone from engineering accessed confidential data
-        - ❓ Was it Alice, Bob, Charlie, or Dave?
-        - 🔍 All four share the same subscription key
-        - 📝 Audit log only shows "engineering-team-key"
-        - ⚖️ Can't prove who accessed the data for compliance
+        # ❌ Both succeed with the same key!
+        # ❌ The MCP server can't tell Alice from Bob!
+        # ❌ No way to enforce per-user permissions!
+        ```
+
+        ??? danger "Understanding Subscription Keys vs Authentication"
+            
+            **Subscription keys are good for:**
+            
+            ✅ **Tracking** - Know which application/team is calling  
+            ✅ **Billing** - Chargeback model by team or product  
+            ✅ **Rate limiting** - Different quotas per subscription tier  
+            ✅ **Product management** - Group APIs into products with different SLAs
+            
+            **Subscription keys are NOT good for:**
+            
+            ❌ **Authentication** - Can't verify WHO the user is  
+            ❌ **Authorization** - Can't enforce per-user permissions  
+            ❌ **Audit trails** - Logs show "engineering-key" not "bob@company.com"  
+            ❌ **Credential security** - Long-lived, easily shared, no expiration
+            
+            **Real-world scenario:** Data breach investigation.
+            
+            Your audit logs show:
+            ```json
+            {
+              "timestamp": "2024-01-15T10:30:00Z",
+              "tool": "get_permit",
+              "subscription": "engineering-team-key",
+              "status": "success"
+            }
+            ```
+            
+            Who accessed the permit data? Alice, Bob, Charlie, or Dave? You can't tell - they all share the same key.
+            
+            **This is MCP-05: Insufficient Access Controls** - subscription keys ≠ authentication.
+
+    ??? success "Step 3: Fix - Add OAuth for Authentication (Keep Subscription Key for Tracking)"
+
+        Add OAuth validation while keeping subscription keys for tracking/billing:
+
+        ```bash
+        ./scripts/1.2-fix.sh
+        ```
+
+        This script deploys:
+
+        **1. RFC 9728 PRM Metadata Endpoints**  
+        Creates discovery endpoints for the Trail MCP server:
         
-        **With OAuth tokens:**
-        
+        - **RFC 9728 path-based:** `/.well-known/oauth-protected-resource/trails/mcp`
+        - **Suffix pattern:** `/trails/mcp/.well-known/oauth-protected-resource`
+
+        Both return PRM metadata:
+
         ```json
         {
-          "timestamp": "2024-01-15T10:30:00Z",
-          "api": "/trails/permits/confidential-123",
-          "user": "bob@company.com",
-          "subscription": "engineering-team-key",
-          "status": 200
+          "resource": "https://apim-xxxxx.azure-api.net/trails/mcp",
+          "authorization_servers": [
+            "https://login.microsoftonline.com/your-tenant-id/v2.0"
+          ],
+          "scopes_supported": ["your-mcp-app-client-id/user_impersonate"],
+          "bearer_methods_supported": ["header"]
         }
         ```
+
+        **2. OAuth Validation Policy**  
+        Adds token validation to the Trail MCP API:
         
-        Now you know exactly who accessed what and when!
-        
-        **This is MCP-05: Insufficient Access Controls** - no user identity.
+        - Validates Entra ID tokens against your tenant
+        - Checks the token audience matches your MCP app
+        - Returns a proper 401 with PRM discovery link on failure
+        - **Keeps subscription key requirement** - for tracking and billing
 
-    ---
+        When authentication fails, APIM returns:
 
-    ### Step 3: Fix - Add OAuth (Keeps Subscription Key)
+        ```
+        HTTP/1.1 401 Unauthorized
+        WWW-Authenticate: Bearer resource_metadata="https://apim-xxxxx.azure-api.net/.well-known/oauth-protected-resource/trails/mcp"
+        ```
 
-    Apply OAuth validation while keeping subscription keys:
+        ??? tip "Why Keep Both Subscription Keys AND OAuth?"
+            For REST APIs exposed as MCP servers, the hybrid approach gives you the best of both:
+            
+            **Subscription key provides:**
+            
+            - 📊 **Usage tracking** - Know which team/app is calling
+            - 💰 **Billing & chargeback** - Bill departments by API usage
+            - 🎚️ **Product tiers** - Different rate limits per subscription
+            - 🚨 **Emergency kill switch** - Revoke app access without touching OAuth
+            
+            **OAuth token provides:**
+            
+            - 🔐 **Authentication** - Verify the user's identity
+            - 🛡️ **Authorization** - Enforce per-user permissions
+            - 📝 **Audit trail** - Log exactly who did what
+            - ⏰ **Short-lived credentials** - Automatic expiration
+            
+            **Together:** Subscription key answers "which app?" and OAuth answers "which user?"
+            
+            ```
+            Audit log with both:
+            {
+              "subscription": "engineering-team",     ← Billing
+              "user": "bob@company.com",              ← Accountability
+              "tool": "get_permit",
+              "timestamp": "2024-01-15T10:30:00Z"
+            }
+            ```
 
-    ```bash
-    ./scripts/1.2-fix.sh
-    ```
+    ??? note "Step 4: Validate - Confirm Both Credentials Required"
 
-    This applies a hybrid authentication policy:
+        Test that both subscription key AND OAuth are enforced:
 
-    ```xml
-    <validate-azure-ad-token tenant-id="your-tenant-id">
-      <client-application-ids>
-        <application-id>vscode-client-id</application-id>
-      </client-application-ids>
-      <audiences>
-        <audience>api://trail-api-id</audience>
-      </audiences>
-    </validate-azure-ad-token>
-    ```
+        ```bash
+        ./scripts/1.2-validate.sh
+        ```
 
-    **What this means:**
-    
-    - **Both credentials required** - Subscription key AND OAuth token
-    - **Application identity** - Subscription key identifies the app/team
-    - **User identity** - OAuth token identifies the individual user
-    - **Enterprise pattern** - Common for REST APIs in large organizations
+        The script verifies:
 
-    ??? tip "Why Keep Subscription Keys for REST APIs?"
-        For REST APIs (not MCP), subscription keys + OAuth is a common enterprise pattern:
-        
-        **Subscription key provides:**
-        - ✅ **Application identity** - Which team/app is calling
-        - ✅ **Usage tracking** - Bill by application
-        - ✅ **Product tiers** - Different quotas per subscription
-        - ✅ **Emergency kill switch** - Revoke app access without affecting OAuth
-        
-        **OAuth token provides:**
-        - ✅ **User identity** - WHO within the app
-        - ✅ **User-level permissions** - Role-based access control
-        - ✅ **Auditability** - Trace actions to individuals
-        - ✅ **Short-lived** - Automatic expiration
-        
-        **Together:** You get both application-level AND user-level controls.
+        - ❌ **No credentials** → 401 Unauthorized
+        - ❌ **Subscription key only** → 401 Unauthorized (needs OAuth)
+        - ❌ **OAuth token only** → 401 Unauthorized (needs subscription key)
+        - ✅ **Both credentials** → Success
 
-    ---
+        **Expected output:**
 
-    ### Step 4: Validate - Confirm Hybrid Auth Works
+        ```
+        ==========================================
+        Waypoint 1.2: Validate Trail MCP Security
+        ==========================================
 
-    Test that both credentials are required:
+        Test 1: No credentials (should fail)
+          ✅ Result: 401 Unauthorized
 
-    ```bash
-    ./scripts/1.2-validate.sh
-    ```
+        Test 2: Subscription key only (should fail - needs OAuth)
+          ✅ Result: 401 Unauthorized
 
-    The script verifies:
+        Test 3: OAuth token only (should fail - needs subscription key)
+          ✅ Result: 401 Unauthorized
+          
+        Test 4: Both credentials (should succeed)
+          ✅ Result: 200 OK
 
-    - ❌ **No credentials** - Returns 401
-    - ❌ **Subscription key only** - Returns 401 (needs OAuth)
-    - ❌ **OAuth token only** - Returns 401 (needs subscription key)
-    - ✅ **Both credentials** - Returns 200 OK
+        Test 5: RFC 9728 PRM discovery
+          GET /.well-known/oauth-protected-resource/trails/mcp
+          ✅ PRM metadata returned correctly
 
-    **Expected output:**
+        ==========================================
+        ✅ Waypoint 1.2 Complete
+        ==========================================
 
-    ```
-    ========================================
-    ✅ Hybrid Authentication Test Results
-    ========================================
-    
-    1. No credentials: ✅ 401 Unauthorized
-    2. Subscription key only: ✅ 401 Unauthorized (OAuth required)
-    3. OAuth token only: ✅ 401 Unauthorized (Subscription key required)
-    4. Both credentials: ✅ 200 OK
-    
-    🎉 Hybrid authentication is working correctly!
-    
-    Application identity: ✅ Verified via subscription key
-    User identity: ✅ Verified via OAuth token
-    ```
+        Trail MCP Server now requires:
+          - Subscription key (for tracking/billing)
+          - OAuth token (for authentication)
+        ```
+
+        !!! tip "Test with VS Code"
+            To verify the full flow works:
+            
+            1. Keep subscription key in `.vscode/mcp.json`:
+               ```json
+               {
+                 "servers": {
+                   "trails-via-apim": {
+                     "type": "http",
+                     "url": "https://your-apim-instance.azure-api.net/trails/mcp",
+                     "headers": {
+                       "Ocp-Apim-Subscription-Key": "your-subscription-key"
+                     }
+                   }
+                 }
+               }
+               ```
+            2. Restart the `trails-via-apim` connection
+            3. VS Code will discover OAuth via PRM and prompt you to sign in
+            4. After authentication, invoke `list_trails` or `check_conditions`
 
     ---
 
@@ -669,20 +789,31 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
 
     **Before (subscription key only):**
     
-    - ❌ No user identity
-    - ❌ Can't audit individual users
+    - ✅ Tracking which app/team is calling
+    - ✅ Usage-based billing possible
+    - ❌ No user authentication
+    - ❌ Can't audit individual users  
     - ❌ Can't implement per-user permissions
-    - ❌ Keys are long-lived and easily shared
 
-    **After (hybrid subscription + OAuth):**
+    **After (subscription key + OAuth):**
     
-    - ✅ Application identity from subscription key
-    - ✅ User identity from OAuth token
-    - ✅ Can track usage by both app and user
-    - ✅ Can enforce user-specific permissions
-    - ✅ Emergency controls at both levels
+    :material-check: **Tracking & billing** via subscription key  
+    :material-check: **User authentication** via OAuth token  
+    :material-check: **Audit logs** show both app AND user identity  
+    :material-check: **Per-user permissions** can be enforced  
+    :material-check: **PRM autodiscovery** - VS Code handles OAuth automatically  
 
-    **OWASP MCP-05 mitigation complete!** ✅
+    **Key lesson:** Subscription keys and OAuth serve different purposes:
+    
+    | Purpose | Subscription Key | OAuth Token |
+    |---------|-----------------|-------------|
+    | Tracking/Billing | ✅ | ❌ |
+    | Authentication | ❌ | ✅ |
+    | User Identity | ❌ | ✅ |
+    | Per-user Permissions | ❌ | ✅ |
+    | Emergency Revocation | ✅ (app level) | ✅ (user level) |
+
+    **OWASP MCP-05** mitigated! ✅
 
 ??? note "Waypoint 1.3: Rate Limiting by MCP Session"
 

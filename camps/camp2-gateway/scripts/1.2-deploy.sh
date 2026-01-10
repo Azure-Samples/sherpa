@@ -24,10 +24,13 @@ TRAIL_URL=$(azd env get-value TRAIL_API_URL)
 echo ""
 echo "Configuring APIM backend and API with subscription key..."
 
-# Deploy APIM configuration via Bicep
+# Build bicep to ARM JSON (workaround for CLI issues)
+az bicep build --file infra/waypoints/1.2-deploy-trail.bicep --outfile /tmp/trail-api.json 2>/dev/null
+
+# Deploy APIM configuration
 DEPLOYMENT_OUTPUT=$(az deployment group create \
   --resource-group "$RG" \
-  --template-file infra/waypoints/1.2-deploy-trail.bicep \
+  --template-file /tmp/trail-api.json \
   --parameters apimName="$APIM_NAME" \
                backendUrl="$TRAIL_URL" \
   --query "properties.outputs" -o json)
@@ -41,11 +44,11 @@ echo "=========================================="
 echo "Trail API Deployed"
 echo "=========================================="
 echo ""
-echo "Endpoint: $APIM_URL/trails"
+echo "Endpoint: $APIM_URL/trailapi/trails"
+echo "Subscription Key: $SUB_KEY"
 echo ""
 echo "Current security: Subscription key only"
 echo ""
 echo "Next: See why subscription keys aren't enough"
 echo "  ./scripts/1.2-exploit.sh"
-echo ""
 echo ""
