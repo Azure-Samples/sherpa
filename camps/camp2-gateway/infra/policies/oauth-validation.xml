@@ -32,14 +32,16 @@
         <return-response>
           <set-status code="401" reason="Unauthorized" />
           <set-header name="WWW-Authenticate" exists-action="override">
-            <!-- Must include API path for proper PRM discovery -->
-            <value>Bearer error="invalid_token", resource_metadata="{{apim-gateway-url}}/sherpa/mcp/.well-known/oauth-protected-resource"</value>
+            <!-- Dynamic: uses context.Api.Path for any MCP API (trim leading slash) -->
+            <value>@("Bearer error=\"invalid_token\", resource_metadata=\"" + "{{apim-gateway-url}}/" + context.Api.Path.TrimStart('/') + "/.well-known/oauth-protected-resource\"")</value>
           </set-header>
           <set-body>@{
+            var gatewayUrl = "{{apim-gateway-url}}";
+            var apiPath = context.Api.Path.TrimStart('/');
             return JsonConvert.SerializeObject(new {
               error = "unauthorized",
               message = "Valid OAuth token required",
-              resource_metadata = "{{apim-gateway-url}}/sherpa/mcp/.well-known/oauth-protected-resource"
+              resource_metadata = gatewayUrl + "/" + apiPath + "/.well-known/oauth-protected-resource"
             });
           }</set-body>
         </return-response>

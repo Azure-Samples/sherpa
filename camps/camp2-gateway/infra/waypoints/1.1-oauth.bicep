@@ -117,20 +117,9 @@ resource mcpApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-
 }
 
 // ============================================================
-// Remove subscription key requirement (OAuth replaces it)
+// Note: subscriptionRequired should be set to false separately
+// (via CLI, Portal, or the initial API import)
 // ============================================================
-resource updateMcpApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' = {
-  parent: apim
-  name: 'sherpa-mcp'
-  properties: {
-    displayName: sherpaMcpApi.properties.displayName
-    path: sherpaMcpApi.properties.path
-    protocols: sherpaMcpApi.properties.protocols
-    serviceUrl: sherpaMcpApi.properties.serviceUrl
-    subscriptionRequired: false  // OAuth replaces subscription keys
-    apiType: 'mcp'
-  }
-}
 
 output oauthConfigured bool = true
 output prmEndpointRfc9728 string = '${apimGatewayUrl}/.well-known/oauth-protected-resource/sherpa/mcp'
