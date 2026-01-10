@@ -225,8 +225,10 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
     
     Current security: NONE (completely open)
     
-    Next: See why this is dangerous
-      ./scripts/1.1-exploit.sh
+    Next: Test the vulnerability from VS Code
+      1. Add the endpoint to .vscode/mcp.json
+      2. Connect without any authentication
+      3. Then run: ./scripts/1.1-fix.sh
     ```
 
     ---
@@ -314,42 +316,40 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
 
     This script deploys:
 
-    **1. PRM Metadata Endpoint**  
-    Creates a special API at `/.well-known/oauth-protected-resource` that returns:
+    **1. RFC 9728 PRM Metadata Endpoints**  
+    Creates two discovery endpoints for OAuth autodiscovery:
+    
+    - **RFC 9728 path-based:** `/.well-known/oauth-protected-resource/sherpa/mcp`
+    - **Suffix pattern:** `/sherpa/mcp/.well-known/oauth-protected-resource`
+
+    Both return the same PRM metadata:
 
     ```json
     {
-      "resource": "api://12345678-abcd-1234-abcd-123456789012",
+      "resource": "https://apim-xxxxx.azure-api.net/sherpa/mcp",
       "authorization_servers": [
         "https://login.microsoftonline.com/your-tenant-id/v2.0"
       ],
-      "scopes_supported": ["api://12345678.../mcp.access"],
+      "scopes_supported": ["your-mcp-app-client-id/user_impersonate"],
       "bearer_methods_supported": ["header"]
     }
     ```
 
     **2. OAuth Validation Policy**  
-    Applies this policy to the Sherpa MCP API:
+    Applies token validation to the Sherpa MCP API that:
+    
+    - Validates Entra ID tokens against your tenant
+    - Checks the token audience matches your MCP app
+    - Returns a proper 401 with PRM discovery link on failure
 
-    ```xml
-    <validate-azure-ad-token tenant-id="your-tenant-id">
-      <client-application-ids>
-        <application-id>vscode-client-id</application-id>
-      </client-application-ids>
-      <audiences>
-        <audience>api://your-mcp-app-id</audience>
-      </audiences>
-    </validate-azure-ad-token>
-    ```
-
-    If the token is invalid, APIM returns:
+    When authentication fails, APIM returns:
 
     ```
     HTTP/1.1 401 Unauthorized
-    WWW-Authenticate: Bearer error="invalid_token",
-      error_description="The token is expired or invalid",
-      authorization_uri="https://login.microsoftonline.com/..."
+    WWW-Authenticate: Bearer resource_metadata="https://apim-xxxxx.azure-api.net/.well-known/oauth-protected-resource/sherpa/mcp"
     ```
+    
+    This tells OAuth clients where to discover authentication requirements.
 
     ??? info "What is Protected Resource Metadata (RFC 9728)?"
         **RFC 9728** defines PRM as a standard for OAuth autodiscovery. Instead of manually configuring:
@@ -389,33 +389,55 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
     **Expected output:**
 
     ```
-    ========================================
-    ✅ OAuth Validation Test Results
-    ========================================
-    
-    1. PRM Endpoint: ✅ Returns correct metadata
-    2. No Token: ✅ Returns 401 Unauthorized
-    
-    🎉 OAuth policies deployed successfully!
+    ==========================================
+    Waypoint 1.1: Validate OAuth
+    ==========================================
+
+    Test 1: Request without token (should return 401)
+      ✅ Result: 401 Unauthorized (token required)
+
+    Test 2: Check WWW-Authenticate header has correct resource_metadata
+      ✅ WWW-Authenticate includes /sherpa/mcp path
+
+    Test 3: Check 401 response body has correct resource_metadata
+      ✅ Response body includes /sherpa/mcp path
+
+    Test 4: RFC 9728 path-based PRM discovery
+      GET https://apim-xxxxx.azure-api.net/.well-known/oauth-protected-resource/sherpa/mcp
+      ✅ RFC 9728 PRM metadata returned
+    {
+      "resource": "https://apim-xxxxx.azure-api.net/sherpa/mcp",
+      "authorization_servers": [
+        "https://login.microsoftonline.com/your-tenant-id/v2.0"
+      ],
+      "bearer_methods_supported": [
+        "header"
+      ],
+      "scopes_supported": [
+        "your-mcp-app-client-id/user_impersonate"
+      ]
+    }
+
+    Test 5: Suffix pattern PRM discovery
+      GET https://apim-xxxxx.azure-api.net/sherpa/mcp/.well-known/oauth-protected-resource
+      ✅ Suffix PRM metadata returned
+
+    ==========================================
+    ✅ Waypoint 1.1 Complete
+    ==========================================
+
+    OAuth is properly configured. VS Code can now:
+      1. Discover PRM at either discovery path
+      2. Find the Entra ID authorization server
+      3. Obtain tokens and call the MCP API
     ```
     
     !!! tip "Test with VS Code"
         To verify OAuth works end-to-end with a real token:
         
-        1. Configure `.vscode/mcp.json`:
-           ```json
-           {
-             "servers": {
-               "sherpa": {
-                 "type": "sse",
-                 "url": "https://your-apim-url.azure-api.net/sherpa/mcp"
-               }
-             }
-           }
-           ```
-        2. Click **Start** on the sherpa server
-        3. VS Code will discover OAuth via PRM and prompt you to sign in
-        4. After authentication, you can invoke MCP tools with a valid token
+        1. Restart the `sherpa-via-apim` connection from Step 2
+        2. VS Code will discover OAuth via PRM and prompt you to sign in
+        3. After authentication, you can invoke MCP tools with a valid token
 
     ---
 
@@ -423,20 +445,25 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
 
     **Before (no authentication):**
     
-    - ❌ No authentication at all
-    - ❌ Anyone on the internet can access
-    - ❌ No audit trail
-    - ❌ No access control
+    - No authentication at all
+    - Anyone on the internet can access
+    - No audit trail
+    - No access control
 
     **After (OAuth with PRM):**
     
-    - ✅ Every request has user identity from JWT
-    - ✅ Audit logs show exactly who did what
-    - ✅ Can enforce user-specific permissions
-    - ✅ Tokens expire automatically (short-lived)
-    - ✅ VS Code authenticates automatically via PRM discovery
+    :material-check: Every request has user identity from JWT  
+    :material-check: Audit logs show exactly who did what  
+    :material-check: Can enforce user-specific permissions  
+    :material-check: Tokens expire automatically (short-lived)  
+    :material-check: VS Code authenticates automatically via PRM discovery  
 
-    **OWASP MCP-05 mitigation complete!** ✅
+    **OWASP MCP-05** mitigated at the gateway!  ✅  
+
+    !!! warning "Backend Still Exposed"
+        OAuth is now enforced at the APIM gateway, but the Container App running Sherpa is still publicly accessible. Anyone who discovers the direct Container App URL can bypass APIM entirely (as shown in Step 2's `sherpa-direct` test).
+        
+        **This is intentional for now.** Network isolation is a defense-in-depth measure covered in a later section, where we'll configure the Container App to only accept traffic from APIM.
 
 ??? note "Waypoint 1.2: Subscription Keys → OAuth"
 

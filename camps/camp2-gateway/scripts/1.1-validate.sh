@@ -86,8 +86,6 @@ if [ "$ALL_PASSED" = true ]; then
     echo "  2. Find the Entra ID authorization server"
     echo "  3. Obtain tokens and call the MCP API"
     echo ""
-    echo "Next: Deploy Trail API and learn about subscription keys"
-    echo "  ./scripts/1.2-deploy.sh"
 else
     echo "=========================================="
     echo "❌ Waypoint 1.1 Validation Failed"

@@ -10,6 +10,17 @@ echo "Camp 2: Entra ID App Registration"
 echo "=========================================="
 echo ""
 
+# Sync AZURE_LOCATION with resource group location if RG already exists
+# This ensures Bicep uses the same location as the resource group
+if [ -n "$AZURE_RESOURCE_GROUP" ]; then
+    RG_LOCATION=$(az group show -n "$AZURE_RESOURCE_GROUP" --query location -o tsv 2>/dev/null || echo "")
+    if [ -n "$RG_LOCATION" ] && [ "$RG_LOCATION" != "$AZURE_LOCATION" ]; then
+        echo "Syncing AZURE_LOCATION to resource group location: $RG_LOCATION"
+        azd env set AZURE_LOCATION "$RG_LOCATION"
+        export AZURE_LOCATION="$RG_LOCATION"
+    fi
+fi
+
 # Get tenant ID
 TENANT_ID=$(az account show --query tenantId -o tsv)
 echo "Tenant ID: $TENANT_ID"
