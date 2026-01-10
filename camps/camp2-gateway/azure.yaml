@@ -24,19 +24,19 @@ hooks:
   preprovision:
     posix:
       shell: sh
-      run: ./scripts/setup-entra-apps.sh
+      run: ./scripts/hooks/preprovision.sh
       continueOnError: false
     windows:
       shell: pwsh
-      run: ./scripts/setup-entra-apps.sh
+      run: ./scripts/hooks/preprovision.sh
       continueOnError: false
   
   postprovision:
     posix:
       shell: sh
-      run: ./scripts/post-provision.sh
+      run: ./scripts/hooks/postprovision.sh
       continueOnError: false
     windows:
       shell: pwsh
-      run: ./scripts/post-provision.sh
+      run: ./scripts/hooks/postprovision.sh
       continueOnError: false

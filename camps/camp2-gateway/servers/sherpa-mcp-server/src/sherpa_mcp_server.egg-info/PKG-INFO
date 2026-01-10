@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: sherpa-mcp-server
+Version: 1.0.0
+Summary: Sherpa MCP Server for mountain climbing assistance
+Requires-Python: >=3.11
+Requires-Dist: fastmcp>=0.4.0
+Requires-Dist: uvicorn>=0.27.0

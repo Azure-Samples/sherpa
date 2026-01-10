@@ -1,0 +1,8 @@
+pyproject.toml
+src/__init__.py
+src/server.py
+src/sherpa_mcp_server.egg-info/PKG-INFO
+src/sherpa_mcp_server.egg-info/SOURCES.txt
+src/sherpa_mcp_server.egg-info/dependency_links.txt
+src/sherpa_mcp_server.egg-info/requires.txt
+src/sherpa_mcp_server.egg-info/top_level.txt

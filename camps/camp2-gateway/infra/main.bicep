@@ -57,6 +57,7 @@ module containerRegistry 'modules/container-registry.bicep' = {
     name: 'cr${replace(prefix, '-', '')}'
     location: location
     tags: tags
+    principalId: containerAppsIdentity.outputs.principalId
   }
 }
 
@@ -65,6 +66,16 @@ module managedIdentity 'modules/managed-identity.bicep' = {
   name: 'managed-identity'
   params: {
     name: 'id-apim-${prefix}'
+    location: location
+    tags: tags
+  }
+}
+
+// Managed Identity for Container Apps
+module containerAppsIdentity 'modules/managed-identity.bicep' = {
+  name: 'container-apps-identity'
+  params: {
+    name: 'id-apps-${prefix}'
     location: location
     tags: tags
   }
@@ -81,19 +92,7 @@ module containerAppsEnv 'modules/container-apps-env.bicep' = {
   }
 }
 
-// Container Apps (Sherpa MCP Server + Trail API)
-module containerApps 'modules/container-apps.bicep' = {
-  name: 'container-apps'
-  params: {
-    environmentId: containerAppsEnv.outputs.id
-    location: location
-    tags: tags
-    containerRegistryName: containerRegistry.outputs.name
-    prefix: prefix
-  }
-}
-
-// Content Safety
+// Content Safety (deployed now, configured via waypoint 2.1)
 module contentSafety 'modules/content-safety.bicep' = {
   name: 'content-safety'
   params: {
@@ -104,7 +103,7 @@ module contentSafety 'modules/content-safety.bicep' = {
   }
 }
 
-// API Management
+// API Management (empty - APIs added via waypoint scripts)
 module apim 'modules/apim.bicep' = {
   name: 'apim'
   params: {
@@ -116,42 +115,12 @@ module apim 'modules/apim.bicep' = {
     managedIdentityId: managedIdentity.outputs.id
     managedIdentityClientId: managedIdentity.outputs.clientId
     apimClientAppId: apimClientAppId
-  }
-}
-
-// APIM Backends
-module apimBackends 'modules/apim-backends.bicep' = {
-  name: 'apim-backends'
-  params: {
-    apimName: apim.outputs.name
-    sherpaMcpServerUrl: containerApps.outputs.sherpaMcpServerUrl
-    trailApiUrl: containerApps.outputs.trailApiUrl
-    contentSafetyEndpoint: contentSafety.outputs.endpoint
-  }
-}
-
-// APIM MCP Servers (import existing + expose REST)
-module apimMcpServers 'modules/apim-mcp-servers.bicep' = {
-  name: 'apim-mcp-servers'
-  params: {
-    apimName: apim.outputs.name
-    sherpaBackendId: apimBackends.outputs.sherpaBackendId
-    trailApiUrl: apimBackends.outputs.trailApiUrl
-  }
-}
-
-// APIM Policies
-module apimPolicies 'modules/apim-policies.bicep' = {
-  name: 'apim-policies'
-  params: {
-    apimName: apim.outputs.name
     tenantId: tenantId
     mcpAppClientId: mcpAppClientId
-    contentSafetyBackendId: apimBackends.outputs.contentSafetyBackendId
   }
 }
 
-// API Center
+// API Center (empty - APIs registered via waypoint 1.3)
 module apiCenter 'modules/api-center.bicep' = {
   name: 'api-center'
   params: {
@@ -161,18 +130,34 @@ module apiCenter 'modules/api-center.bicep' = {
   }
 }
 
-// Outputs
+// Container Apps (pre-provisioned with placeholder images)
+// azd deploy will update these with actual code during workshop
+module containerApps 'modules/container-apps.bicep' = {
+  name: 'container-apps'
+  params: {
+    containerAppsEnvironmentId: containerAppsEnv.outputs.id
+    location: location
+    tags: tags
+    containerRegistryServer: containerRegistry.outputs.loginServer
+    identityId: containerAppsIdentity.outputs.id
+  }
+}
+
+// Outputs for azd and waypoint scripts
 output AZURE_RESOURCE_GROUP string = resourceGroup().name
 output AZURE_LOCATION string = location
+output AZURE_TENANT_ID string = tenantId
 output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
+output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = containerAppsEnv.outputs.id
 output APIM_GATEWAY_URL string = apim.outputs.gatewayUrl
 output APIM_NAME string = apim.outputs.name
 output APIM_LOCATION string = apimLocation
-output SHERPA_MCP_SERVER_URL string = containerApps.outputs.sherpaMcpServerUrl
-output TRAIL_API_URL string = containerApps.outputs.trailApiUrl
 output CONTENT_SAFETY_ENDPOINT string = contentSafety.outputs.endpoint
 output CONTENT_SAFETY_LOCATION string = contentSafetyLocation
 output API_CENTER_NAME string = apiCenter.outputs.name
 output API_CENTER_LOCATION string = apiCenterLocation
-output CONTAINER_APPS_ENV_ID string = containerAppsEnv.outputs.id
+output MANAGED_IDENTITY_PRINCIPAL_ID string = managedIdentity.outputs.principalId
+output MANAGED_IDENTITY_CLIENT_ID string = managedIdentity.outputs.clientId
+output SHERPA_SERVER_URL string = containerApps.outputs.sherpaServerUrl
+output TRAIL_API_URL string = containerApps.outputs.trailApiUrl

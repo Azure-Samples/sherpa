@@ -6,8 +6,10 @@ param publisherName string
 param managedIdentityId string
 param managedIdentityClientId string
 param apimClientAppId string
+param tenantId string
+param mcpAppClientId string
 
-resource apim 'Microsoft.ApiManagement/service@2023-05-01-preview' = {
+resource apim 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
   name: name
   location: location
   tags: tags
@@ -28,7 +30,7 @@ resource apim 'Microsoft.ApiManagement/service@2023-05-01-preview' = {
 }
 
 // Named value for managed identity client ID (used in policies)
-resource namedValueIdentityClientId 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
+resource namedValueIdentityClientId 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
   parent: apim
   name: 'managed-identity-client-id'
   properties: {
@@ -39,7 +41,7 @@ resource namedValueIdentityClientId 'Microsoft.ApiManagement/service/namedValues
 }
 
 // Named value for APIM client app ID (used in Credential Manager policy)
-resource namedValueApimClientId 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
+resource namedValueApimClientId 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
   parent: apim
   name: 'apim-client-app-id'
   properties: {
@@ -50,12 +52,34 @@ resource namedValueApimClientId 'Microsoft.ApiManagement/service/namedValues@202
 }
 
 // Named value for APIM Gateway URL
-resource namedValueGatewayUrl 'Microsoft.ApiManagement/service/namedValues@2023-05-01-preview' = {
+resource namedValueGatewayUrl 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
   parent: apim
   name: 'apim-gateway-url'
   properties: {
     displayName: 'apim-gateway-url'
     value: apim.properties.gatewayUrl
+    secret: false
+  }
+}
+
+// Named value for tenant ID (used in OAuth policies)
+resource namedValueTenantId 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
+  parent: apim
+  name: 'tenant-id'
+  properties: {
+    displayName: 'tenant-id'
+    value: tenantId
+    secret: false
+  }
+}
+
+// Named value for MCP app client ID (used in OAuth policies)
+resource namedValueMcpAppClientId 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
+  parent: apim
+  name: 'mcp-app-client-id'
+  properties: {
+    displayName: 'mcp-app-client-id'
+    value: mcpAppClientId
     secret: false
   }
 }

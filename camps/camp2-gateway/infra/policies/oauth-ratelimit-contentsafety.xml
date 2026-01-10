@@ -1,0 +1,72 @@
+<!--
+  OAuth + Rate Limiting + Content Safety policy
+  Full protection stack for MCP servers
+-->
+<policies>
+  <inbound>
+    <base />
+    <!-- Validate OAuth token -->
+    <validate-azure-ad-token tenant-id="{{tenant-id}}" 
+                              failed-validation-httpcode="401" 
+                              failed-validation-error-message="Unauthorized">
+      <audiences>
+        <audience>api://{{mcp-app-client-id}}</audience>
+      </audiences>
+    </validate-azure-ad-token>
+    <!-- Extract MCP session ID for rate limiting -->
+    <set-variable name="mcp-session-id" value="@(context.Request.Headers.GetValueOrDefault("Mcp-Session-Id", context.Request.Headers.GetValueOrDefault("X-Request-Id", Guid.NewGuid().ToString())))" />
+    <!-- Rate limit: 10 requests per minute per session -->
+    <rate-limit-by-key calls="10" renewal-period="60" counter-key="@((string)context.Variables["mcp-session-id"])" />
+    <!-- Content Safety check using llm-content-safety policy -->
+    <llm-content-safety backend-id="content-safety-backend">
+      <text-content>
+        <input>@(context.Request.Body.As<string>(preserveContent: true))</input>
+      </text-content>
+      <categories>
+        <category name="Hate" />
+        <category name="Violence" />
+        <category name="Sexual" />
+        <category name="SelfHarm" />
+      </categories>
+      <prompt-shields enabled="true" />
+    </llm-content-safety>
+  </inbound>
+  <backend>
+    <forward-request />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+    <choose>
+      <when condition="@(context.Response.StatusCode == 401)">
+        <return-response>
+          <set-status code="401" reason="Unauthorized" />
+          <set-header name="WWW-Authenticate" exists-action="override">
+            <value>Bearer error="invalid_token", resource_metadata="{{apim-gateway-url}}/.well-known/oauth-protected-resource"</value>
+          </set-header>
+        </return-response>
+      </when>
+      <when condition="@(context.Response.StatusCode == 429)">
+        <return-response>
+          <set-status code="429" reason="Too Many Requests" />
+          <set-header name="Retry-After" exists-action="override">
+            <value>60</value>
+          </set-header>
+        </return-response>
+      </when>
+      <when condition="@(context.LastError.Source == "llm-content-safety")">
+        <return-response>
+          <set-status code="400" reason="Bad Request" />
+          <set-body>@{
+            return JsonConvert.SerializeObject(new {
+              error = "content_blocked",
+              message = "Request blocked by content safety policy"
+            });
+          }</set-body>
+        </return-response>
+      </when>
+    </choose>
+  </on-error>
+</policies>

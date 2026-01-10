@@ -6,6 +6,7 @@ func getAdjustedRegion(location string, map object) string =>
 
 // API Center available regions
 // See: https://learn.microsoft.com/azure/api-center/overview
+// Note: API Center has limited region availability - falls back to eastus for US West regions
 var apiCenterRegionMap = {
   supportedRegions: [
     'eastus'
@@ -17,19 +18,13 @@ var apiCenterRegionMap = {
     'swedencentral'
     'canadacentral'
   ]
+  // Only override regions that need redirection to nearest supported region
   overrides: {
-    westus: 'westus2'
-    westus2: 'eastus'
-    westus3: 'eastus'
-    eastus2: 'eastus'
-    centralus: 'eastus'
-    southcentralus: 'eastus'
-    northcentralus: 'eastus'
     northeurope: 'westeurope'
     southeastasia: 'australiaeast'
     eastasia: 'australiaeast'
   }
-  default: 'eastus'
+  default: 'eastus'  // Fallback for US regions not in supportedRegions
 }
 
 @export()
@@ -38,6 +33,7 @@ func getApiCenterRegion(location string) string => getAdjustedRegion(location, a
 
 // API Management Basic v2 available regions
 // See: https://learn.microsoft.com/azure/api-management/api-management-region-availability
+// Note: BasicV2 SKU has wide availability - most regions supported
 var apimBasicV2RegionMap = {
   supportedRegions: [
     'australiacentral'
@@ -69,11 +65,10 @@ var apimBasicV2RegionMap = {
     'westeurope'
     'westus'
     'westus2'
+    'westus3'
   ]
-  overrides: {
-    westus3: 'westus2'
-  }
-  default: 'westus2'
+  overrides: {}  // No overrides needed - wide region support
+  default: 'eastus'
 }
 
 @export()
@@ -82,6 +77,9 @@ func getApimBasicV2Region(location string) string => getAdjustedRegion(location,
 
 // Content Safety available regions
 // See: https://learn.microsoft.com/azure/ai-services/content-safety/overview
+// Content Safety available regions
+// See: https://learn.microsoft.com/azure/ai-services/content-safety/overview
+// Note: Content Safety has wide availability - most regions supported
 var contentSafetyRegionMap = {
   supportedRegions: [
     'australiaeast'
@@ -108,13 +106,8 @@ var contentSafetyRegionMap = {
     'westus2'
     'westus3'
   ]
-  overrides: {
-    centralus: 'eastus2'
-    northeurope: 'westeurope'
-    southeastasia: 'australiaeast'
-    eastasia: 'australiaeast'
-  }
-  default: 'eastus2'
+  overrides: {}  // No overrides needed - wide region support
+  default: 'eastus'
 }
 
 @export()

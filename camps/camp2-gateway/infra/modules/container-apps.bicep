@@ -1,25 +1,35 @@
-param environmentId string
+@description('Container Apps Environment ID')
+param containerAppsEnvironmentId string
+
+@description('Location for all resources')
 param location string
+
+@description('Tags for all resources')
 param tags object
-param containerRegistryName string
-param prefix string
 
-// Create short resource token for Container App names (32 char limit)
-var resourceToken = substring(replace(prefix, '-', ''), 0, min(length(replace(prefix, '-', '')), 10))
+@description('Container Registry login server')
+param containerRegistryServer string
 
-// Reference existing ACR
-resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
-  name: containerRegistryName
-}
+@description('Managed Identity ID for ACR access')
+param identityId string
 
-// Sherpa MCP Server (name must be <= 32 chars)
-resource sherpaMcpServer 'Microsoft.App/containerApps@2023-05-01' = {
-  name: 'ca-sherpa-${resourceToken}'
+// Sherpa MCP Server - Pre-provisioned with placeholder
+resource sherpaMcpServer 'Microsoft.App/containerApps@2024-03-01' = {
+  name: 'sherpa-mcp-server'
   location: location
-  tags: tags
+  tags: union(tags, {
+    'azd-service-name': 'sherpa-mcp-server'
+  })
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${identityId}': {}
+    }
+  }
   properties: {
-    environmentId: environmentId
+    managedEnvironmentId: containerAppsEnvironmentId
     configuration: {
+      activeRevisionsMode: 'Single'
       ingress: {
         external: true
         targetPort: 8000
@@ -28,15 +38,8 @@ resource sherpaMcpServer 'Microsoft.App/containerApps@2023-05-01' = {
       }
       registries: [
         {
-          server: acr.properties.loginServer
-          username: acr.listCredentials().username
-          passwordSecretRef: 'registry-password'
-        }
-      ]
-      secrets: [
-        {
-          name: 'registry-password'
-          value: acr.listCredentials().passwords[0].value
+          server: containerRegistryServer
+          identity: identityId
         }
       ]
     }
@@ -44,7 +47,8 @@ resource sherpaMcpServer 'Microsoft.App/containerApps@2023-05-01' = {
       containers: [
         {
           name: 'sherpa-mcp-server'
-          image: '${acr.properties.loginServer}/sherpa-mcp-server:latest'
+          // Public placeholder - azd deploy will replace with actual image from ACR
+          image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
           resources: {
             cpu: json('0.5')
             memory: '1Gi'
@@ -58,38 +62,40 @@ resource sherpaMcpServer 'Microsoft.App/containerApps@2023-05-01' = {
         }
       ]
       scale: {
-        minReplicas: 1
-        maxReplicas: 3
+        minReplicas: 0
+        maxReplicas: 1
       }
     }
   }
 }
 
-// Trail API
-resource trailApi 'Microsoft.App/containerApps@2023-05-01' = {
-  name: 'ca-trail-${resourceToken}'
+// Trail API - Pre-provisioned with placeholder
+resource trailApi 'Microsoft.App/containerApps@2024-03-01' = {
+  name: 'trail-api'
   location: location
-  tags: tags
+  tags: union(tags, {
+    'azd-service-name': 'trail-api'
+  })
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${identityId}': {}
+    }
+  }
   properties: {
-    environmentId: environmentId
+    managedEnvironmentId: containerAppsEnvironmentId
     configuration: {
+      activeRevisionsMode: 'Single'
       ingress: {
         external: true
-        targetPort: 8000
+        targetPort: 8001
         transport: 'http'
         allowInsecure: false
       }
       registries: [
         {
-          server: acr.properties.loginServer
-          username: acr.listCredentials().username
-          passwordSecretRef: 'registry-password'
-        }
-      ]
-      secrets: [
-        {
-          name: 'registry-password'
-          value: acr.listCredentials().passwords[0].value
+          server: containerRegistryServer
+          identity: identityId
         }
       ]
     }
@@ -97,7 +103,8 @@ resource trailApi 'Microsoft.App/containerApps@2023-05-01' = {
       containers: [
         {
           name: 'trail-api'
-          image: '${acr.properties.loginServer}/trail-api:latest'
+          // Public placeholder - azd deploy will replace with actual image from ACR
+          image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
           resources: {
             cpu: json('0.5')
             memory: '1Gi'
@@ -105,20 +112,21 @@ resource trailApi 'Microsoft.App/containerApps@2023-05-01' = {
           env: [
             {
               name: 'PORT'
-              value: '8000'
+              value: '8001'
             }
           ]
         }
       ]
       scale: {
-        minReplicas: 1
-        maxReplicas: 3
+        minReplicas: 0
+        maxReplicas: 1
       }
     }
   }
 }
 
-output sherpaMcpServerUrl string = 'https://${sherpaMcpServer.properties.configuration.ingress.fqdn}'
-output sherpaMcpServerFqdn string = sherpaMcpServer.properties.configuration.ingress.fqdn
-output trailApiUrl string = 'https://${trailApi.properties.configuration.ingress.fqdn}'
+// Outputs for waypoint scripts
+output sherpaServerFqdn string = sherpaMcpServer.properties.configuration.ingress.fqdn
+output sherpaServerUrl string = 'https://${sherpaMcpServer.properties.configuration.ingress.fqdn}'
 output trailApiFqdn string = trailApi.properties.configuration.ingress.fqdn
+output trailApiUrl string = 'https://${trailApi.properties.configuration.ingress.fqdn}'

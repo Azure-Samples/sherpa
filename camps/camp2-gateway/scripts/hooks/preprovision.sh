@@ -1,10 +1,14 @@
 #!/bin/bash
-# Set up Entra ID app registrations for Camp 2
+# Preprovision hook for Camp 2
+# Creates Entra ID app registrations before infrastructure deployment
 
 set -e
 
-echo "🔐 Camp 2: Entra ID App Registration"
-echo "======================================"
+echo ""
+echo "=========================================="
+echo "Camp 2: Entra ID App Registration"
+echo "=========================================="
+echo ""
 
 # Get tenant ID
 TENANT_ID=$(az account show --query tenantId -o tsv)
@@ -26,11 +30,11 @@ MCP_APP_CLIENT_ID=$(az ad app create \
     --query appId -o tsv)
 
 if [ -z "$MCP_APP_CLIENT_ID" ]; then
-    echo "❌ Failed to create MCP app"
+    echo "Failed to create MCP app"
     exit 1
 fi
 
-echo "✅ MCP App Client ID: $MCP_APP_CLIENT_ID"
+echo "MCP App Client ID: $MCP_APP_CLIENT_ID"
 
 # Set identifier URI
 echo "Setting identifier URI..."
@@ -60,13 +64,13 @@ az ad app update --id "$MCP_APP_CLIENT_ID" \
     --set api=@/tmp/mcp-api-scope.json
 
 if [ $? -ne 0 ]; then
-    echo "❌ Failed to create API scope"
+    echo "Failed to create API scope"
     rm -f /tmp/mcp-api-scope.json
     exit 1
 fi
 
 rm -f /tmp/mcp-api-scope.json
-echo "✅ API scope created"
+echo "API scope created"
 
 # Wait for API update to propagate
 sleep 2
@@ -103,13 +107,13 @@ az ad app update --id "$MCP_APP_CLIENT_ID" \
     --set api=@/tmp/mcp-api-full.json
 
 if [ $? -ne 0 ]; then
-    echo "❌ Failed to pre-authorize VS Code"
+    echo "Failed to pre-authorize VS Code"
     rm -f /tmp/mcp-api-full.json
     exit 1
 fi
 
 rm -f /tmp/mcp-api-full.json
-echo "✅ VS Code pre-authorized"
+echo "VS Code pre-authorized"
 
 # Add redirect URI for OAuth callback through APIM
 echo "Adding placeholder redirect URI..."
@@ -129,11 +133,11 @@ APIM_CLIENT_APP_ID=$(az ad app create \
     --query appId -o tsv)
 
 if [ -z "$APIM_CLIENT_APP_ID" ]; then
-    echo "❌ Failed to create APIM client app"
+    echo "Failed to create APIM client app"
     exit 1
 fi
 
-echo "✅ APIM Client App ID: $APIM_CLIENT_APP_ID"
+echo "APIM Client App ID: $APIM_CLIENT_APP_ID"
 
 # Wait for app creation to propagate
 sleep 2
@@ -144,7 +148,7 @@ az ad app update --id "$APIM_CLIENT_APP_ID" \
     --identifier-uris "api://$APIM_CLIENT_APP_ID"
 
 if [ $? -ne 0 ]; then
-    echo "❌ Failed to set identifier URI"
+    echo "Failed to set identifier URI"
     exit 1
 fi
 
@@ -153,45 +157,40 @@ sleep 2
 
 # Create client secret for APIM app (30 days expiration for workshop)
 echo "Creating client secret for APIM app..."
-END_DATE=$(date -u -v+30d +%Y-%m-%dT%H:%M:%SZ)
+END_DATE=$(date -u -v+30d +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d "+30 days" +%Y-%m-%dT%H:%M:%SZ)
 APIM_CLIENT_SECRET=$(az ad app credential reset \
     --id "$APIM_CLIENT_APP_ID" \
     --end-date "$END_DATE" \
     --query password -o tsv)
 
 if [ -z "$APIM_CLIENT_SECRET" ]; then
-    echo "❌ Failed to create client secret"
+    echo "Failed to create client secret"
     exit 1
 fi
 
-echo "✅ Client secret created (expires in 30 days)"
+echo "Client secret created (expires in 30 days)"
 
 # Create Service Principal
 echo "Creating service principal for APIM app..."
 az ad sp create --id $APIM_CLIENT_APP_ID 2>/dev/null || echo "Service principal already exists"
 
 echo ""
-echo "======================================"
-echo "✅ Entra ID Setup Complete"
-echo "======================================"
+echo "=========================================="
+echo "Entra ID Setup Complete"
+echo "=========================================="
 echo ""
-echo "📋 MCP Resource App:"
-echo "   Client ID: $MCP_APP_CLIENT_ID"
-echo "   Identifier URI: api://$MCP_APP_CLIENT_ID"
-echo "   Pre-authorized: VS Code/GitHub Copilot"
+echo "MCP Resource App:"
+echo "  Client ID: $MCP_APP_CLIENT_ID"
+echo "  Identifier URI: api://$MCP_APP_CLIENT_ID"
+echo "  Pre-authorized: VS Code/GitHub Copilot"
 echo ""
-echo "📋 APIM Client App:"
-echo "   Client ID: $APIM_CLIENT_APP_ID"
-echo "   Has client secret for Credential Manager"
+echo "APIM Client App:"
+echo "  Client ID: $APIM_CLIENT_APP_ID"
+echo "  Has client secret for Credential Manager"
 echo ""
-echo "💾 Saving to azd environment..."
+echo "Saving to azd environment..."
 azd env set MCP_APP_CLIENT_ID "$MCP_APP_CLIENT_ID"
 azd env set APIM_CLIENT_APP_ID "$APIM_CLIENT_APP_ID"
 azd env set APIM_CLIENT_SECRET -- "$APIM_CLIENT_SECRET"
 
-echo "✅ Values saved to azd environment for infrastructure deployment"
-
-# Export for subsequent scripts (if running manually)
-export MCP_APP_CLIENT_ID
-export APIM_CLIENT_APP_ID
-export APIM_CLIENT_SECRET
+echo "Values saved to azd environment"
