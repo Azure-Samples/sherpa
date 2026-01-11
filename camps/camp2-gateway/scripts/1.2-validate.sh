@@ -7,54 +7,62 @@ cd "$SCRIPT_DIR/.."
 
 echo ""
 echo "=========================================="
-echo "Waypoint 1.2: Validate Hybrid Auth"
+echo "Waypoint 1.2: Validate Trail MCP Security"
 echo "=========================================="
 echo ""
 
 APIM_URL=$(azd env get-value APIM_GATEWAY_URL)
-SUB_KEY=$(azd env get-value TRAIL_API_SUBSCRIPTION_KEY)
+SUB_KEY=$(azd env get-value TRAIL_SUBSCRIPTION_KEY)
 
-echo "Test 1: Request with subscription key only (should fail)"
-HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$APIM_URL/trails" \
-    -H "Ocp-Apim-Subscription-Key: $SUB_KEY" 2>/dev/null || echo "000")
+echo "Test 1: No credentials (should fail)"
+HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$APIM_URL/trails/mcp" 2>/dev/null || echo "000")
 
 if [ "$HTTP_STATUS" = "401" ]; then
-    echo "  ✅ Result: 401 (OAuth token also required)"
+    echo "  Result: 401 Unauthorized (needs subscription key)"
 else
-    echo "  ❌ Result: $HTTP_STATUS (expected 401)"
+    echo "  Result: $HTTP_STATUS (expected 401)"
 fi
 
 echo ""
-echo "Test 2: Request with neither credential (should fail)"
-HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$APIM_URL/trails" 2>/dev/null || echo "000")
+echo "Test 2: Subscription key only (should fail - needs OAuth)"
+HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$APIM_URL/trails/mcp" \
+    -H "Ocp-Apim-Subscription-Key: $SUB_KEY" 2>/dev/null || echo "000")
 
 if [ "$HTTP_STATUS" = "401" ]; then
-    echo "  ✅ Result: 401 (credentials required)"
+    echo "  Result: 401 Unauthorized (OAuth also required)"
 else
-    echo "  ❌ Result: $HTTP_STATUS (expected 401)"
+    echo "  Result: $HTTP_STATUS (expected 401)"
 fi
 
 echo ""
 echo "Test 3: Check WWW-Authenticate header"
-HEADERS=$(curl -s -I "$APIM_URL/trails" 2>/dev/null || echo "")
-AUTH_HEADER=$(echo "$HEADERS" | grep -i "WWW-Authenticate" | head -1)
+RESPONSE=$(curl -s -D - "$APIM_URL/trails/mcp" -H "Ocp-Apim-Subscription-Key: $SUB_KEY" 2>/dev/null || echo "")
+AUTH_HEADER=$(echo "$RESPONSE" | grep -i "WWW-Authenticate" | head -1)
 if [ -n "$AUTH_HEADER" ]; then
-    echo "  ✅ WWW-Authenticate header present"
+    echo "  WWW-Authenticate header present"
+    echo "  $AUTH_HEADER" | sed 's/^/  /'
 else
-    echo "  ❌ No WWW-Authenticate header"
+    echo "  No WWW-Authenticate header"
+fi
+
+echo ""
+echo "Test 4: RFC 9728 PRM discovery"
+echo "  GET $APIM_URL/.well-known/oauth-protected-resource/trails/mcp"
+PRM_RESPONSE=$(curl -s "$APIM_URL/.well-known/oauth-protected-resource/trails/mcp" 2>/dev/null)
+if echo "$PRM_RESPONSE" | grep -q "authorization_servers"; then
+    echo "  PRM metadata returned correctly"
+    echo "$PRM_RESPONSE" | jq . 2>/dev/null | sed 's/^/  /' || echo "$PRM_RESPONSE" | sed 's/^/  /'
+else
+    echo "  PRM endpoint not returning expected metadata"
+    echo "  Response: $PRM_RESPONSE"
 fi
 
 echo ""
 echo "=========================================="
-echo "✅ Waypoint 1.2 Complete"
+echo "Waypoint 1.2 Complete"
 echo "=========================================="
 echo ""
-echo "Key Learnings:"
-echo "  • Subscription keys identify applications, not users"
-echo "  • OAuth tokens provide user identity"
-echo "  • Hybrid pattern: subscription key + OAuth"
-echo "  • REST APIs commonly use both"
-echo ""
-echo "Next: Add rate limiting"
-echo "  ./scripts/1.3-deploy.sh"
+echo "Trail MCP Server now requires:"
+echo "  - Subscription key (for tracking/billing)"
+echo "  - OAuth token (for authentication)"
 echo ""

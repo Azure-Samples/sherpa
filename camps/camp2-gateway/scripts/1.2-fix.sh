@@ -1,5 +1,5 @@
 #!/bin/bash
-# Waypoint 1.2: Fix - Add OAuth to Trail API
+# Waypoint 1.2: Fix - Add OAuth to Trail MCP Server
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -7,7 +7,7 @@ cd "$SCRIPT_DIR/.."
 
 echo ""
 echo "=========================================="
-echo "Waypoint 1.2: Add OAuth to Trail API"
+echo "Waypoint 1.2: Add OAuth to Trail MCP"
 echo "=========================================="
 echo ""
 
@@ -17,14 +17,17 @@ APIM_URL=$(azd env get-value APIM_GATEWAY_URL)
 TENANT_ID=$(az account show --query tenantId -o tsv)
 MCP_APP_CLIENT_ID=$(azd env get-value MCP_APP_CLIENT_ID)
 
-echo "Applying OAuth validation policy..."
-echo "  Subscription key: Still required"
-echo "  OAuth token: Now also required"
+echo "Applying OAuth validation + PRM discovery..."
+echo "  Subscription key: Still required (tracking/billing)"
+echo "  OAuth token: Now also required (authentication)"
 echo ""
+
+# Build bicep to ARM JSON (workaround for CLI issues)
+az bicep build --file infra/waypoints/1.2-oauth.bicep --outfile /tmp/trail-oauth.json 2>/dev/null
 
 az deployment group create \
   --resource-group "$RG" \
-  --template-file infra/waypoints/1.2-oauth.bicep \
+  --template-file /tmp/trail-oauth.json \
   --parameters apimName="$APIM_NAME" \
                tenantId="$TENANT_ID" \
                mcpAppClientId="$MCP_APP_CLIENT_ID" \
@@ -33,18 +36,13 @@ az deployment group create \
 
 echo ""
 echo "=========================================="
-echo "OAuth Added to Trail API"
+echo "OAuth Added to Trail MCP Server"
 echo "=========================================="
 echo ""
-echo "Changes made:"
-echo "  ✅ Subscription key still required (application identity)"
-echo "  ✅ OAuth token now also required (user identity)"
-echo "  ✅ Both must be present for access"
+echo "PRM Discovery endpoint (RFC 9728):"
+echo "  $APIM_URL/.well-known/oauth-protected-resource/trails/mcp"
 echo ""
-echo "This demonstrates the hybrid pattern:"
-echo "  - Subscription key = which application"
-echo "  - OAuth token = which user"
-echo ""
-echo "Next: Validate both are required"
-echo "  ./scripts/1.2-validate.sh"
+echo "Security now requires BOTH:"
+echo "  - Subscription key (which application)"
+echo "  - OAuth token (which user)"
 echo ""

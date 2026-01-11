@@ -1,9 +1,9 @@
 {
-	"servers": {
-		"base-camp-vulnerable": {
-			"type": "http",
-			"url": "http://localhost:8000/mcp"
-		},
+    "servers": {
+        "base-camp-vulnerable": {
+            "type": "http",
+            "url": "http://localhost:8000/mcp"
+        },
         "sherpa-direct": {
             "type": "http",
             "url": "https://your-container-app.azurecontainerapps.io/mcp"
@@ -19,5 +19,5 @@
                 "Ocp-Apim-Subscription-Key": "your-subscription-key"
             }
         }
-	}
+    }
 }

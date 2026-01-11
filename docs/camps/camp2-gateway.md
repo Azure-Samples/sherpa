@@ -648,58 +648,80 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
         ./scripts/1.2-fix.sh
         ```
 
-        This script deploys:
-
-        **1. RFC 9728 PRM Metadata Endpoints**  
-        Creates discovery endpoints for the Trail MCP server:
-        
-        - **RFC 9728 path-based:** `/.well-known/oauth-protected-resource/trails/mcp`
-        - **Suffix pattern:** `/trails/mcp/.well-known/oauth-protected-resource`
-
-        Both return PRM metadata:
-
-        ```json
-        {
-          "resource": "https://apim-xxxxx.azure-api.net/trails/mcp",
-          "authorization_servers": [
-            "https://login.microsoftonline.com/your-tenant-id/v2.0"
-          ],
-          "scopes_supported": ["your-mcp-app-client-id/user_impersonate"],
-          "bearer_methods_supported": ["header"]
-        }
-        ```
-
-        **2. OAuth Validation Policy**  
-        Adds token validation to the Trail MCP API:
-        
-        - Validates Entra ID tokens against your tenant
-        - Checks the token audience matches your MCP app
-        - Returns a proper 401 with PRM discovery link on failure
-        - **Keeps subscription key requirement** - for tracking and billing
-
-        When authentication fails, APIM returns:
+        **Expected output:**
 
         ```
-        HTTP/1.1 401 Unauthorized
-        WWW-Authenticate: Bearer resource_metadata="https://apim-xxxxx.azure-api.net/.well-known/oauth-protected-resource/trails/mcp"
+        ==========================================
+        Waypoint 1.2: Add OAuth to Trail MCP
+        ==========================================
+
+        Applying OAuth validation + PRM discovery...
+          Subscription key: Still required (tracking/billing)
+          OAuth token: Now also required (authentication)
+
+        ==========================================
+        OAuth Added to Trail MCP Server
+        ==========================================
+
+        PRM Discovery endpoint (RFC 9728):
+          https://apim-xxxxx.azure-api.net/.well-known/oauth-protected-resource/trails/mcp
+
+        Security now requires BOTH:
+          - Subscription key (which application)
+          - OAuth token (which user)
         ```
+
+        ??? info "What This Script Deploys"
+
+            **1. RFC 9728 PRM Metadata Endpoint**  
+            Creates a discovery endpoint for the Trail MCP server:
+            
+            - **RFC 9728 path-based:** `/.well-known/oauth-protected-resource/trails/mcp`
+
+            Returns PRM metadata:
+
+            ```json
+            {
+              "resource": "https://apim-xxxxx.azure-api.net/trails/mcp",
+              "authorization_servers": [
+                "https://login.microsoftonline.com/your-tenant-id/v2.0"
+              ],
+              "scopes_supported": ["your-mcp-app-client-id/user_impersonate"],
+              "bearer_methods_supported": ["header"]
+            }
+            ```
+
+            **2. OAuth Validation Policy**  
+            Adds token validation to the Trail MCP API:
+            
+            - Validates Entra ID tokens against your tenant
+            - Checks the token audience matches your MCP app
+            - Returns a proper 401 with PRM discovery link on failure
+            - **Keeps subscription key requirement** - for tracking and billing
+
+            When authentication fails, APIM returns:
+
+            ```
+            HTTP/1.1 401 Unauthorized
+            WWW-Authenticate: Bearer resource_metadata="https://apim-xxxxx.azure-api.net/.well-known/oauth-protected-resource/trails/mcp"
+            ```
 
         ??? tip "Why Keep Both Subscription Keys AND OAuth?"
             For REST APIs exposed as MCP servers, the hybrid approach gives you the best of both:
             
             **Subscription key provides:**
             
-            - 📊 **Usage tracking** - Know which team/app is calling
-            - 💰 **Billing & chargeback** - Bill departments by API usage
-            - 🎚️ **Product tiers** - Different rate limits per subscription
-            - 🚨 **Emergency kill switch** - Revoke app access without touching OAuth
+            - **Usage tracking** - Know which team/app is calling
+            - **Billing & chargeback** - Bill departments by API usage
+            - **Product tiers** - Different rate limits per subscription
+            - **Emergency kill switch** - Revoke app access without touching OAuth
             
             **OAuth token provides:**
             
-            - 🔐 **Authentication** - Verify the user's identity
-            - 🛡️ **Authorization** - Enforce per-user permissions
-            - 📝 **Audit trail** - Log exactly who did what
-            - ⏰ **Short-lived credentials** - Automatic expiration
+            - **Authentication** - Verify the user's identity
+            - **Authorization** - Enforce per-user permissions
+            - **Audit trail** - Log exactly who did what
+            - **Short-lived credentials** - Automatic expiration
             
             **Together:** Subscription key answers "which app?" and OAuth answers "which user?"
             
@@ -723,10 +745,10 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
 
         The script verifies:
 
-        - ❌ **No credentials** → 401 Unauthorized
-        - ❌ **Subscription key only** → 401 Unauthorized (needs OAuth)
-        - ❌ **OAuth token only** → 401 Unauthorized (needs subscription key)
-        - ✅ **Both credentials** → Success
+        - **No credentials** → 401 Unauthorized  
+        - **Subscription key only** → 401 Unauthorized (needs OAuth)  
+        - **WWW-Authenticate header** present with PRM discovery URL
+        - **PRM discovery** returns correct metadata
 
         **Expected output:**
 
@@ -736,23 +758,33 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
         ==========================================
 
         Test 1: No credentials (should fail)
-          ✅ Result: 401 Unauthorized
+          Result: 401 Unauthorized (needs subscription key)
 
         Test 2: Subscription key only (should fail - needs OAuth)
-          ✅ Result: 401 Unauthorized
+          Result: 401 Unauthorized (OAuth also required)
 
-        Test 3: OAuth token only (should fail - needs subscription key)
-          ✅ Result: 401 Unauthorized
-          
-        Test 4: Both credentials (should succeed)
-          ✅ Result: 200 OK
+        Test 3: Check WWW-Authenticate header
+          WWW-Authenticate header present
+          WWW-Authenticate: Bearer error="invalid_token", resource_metadata="https://apim-xxxxx.azure-api.net/trails/.well-known/oauth-protected-resource"
 
-        Test 5: RFC 9728 PRM discovery
-          GET /.well-known/oauth-protected-resource/trails/mcp
-          ✅ PRM metadata returned correctly
+        Test 4: RFC 9728 PRM discovery
+          GET https://apim-xxxxx.azure-api.net/.well-known/oauth-protected-resource/trails/mcp
+          PRM metadata returned correctly
+          {
+            "resource": "https://apim-xxxxx.azure-api.net/trails/mcp",
+            "authorization_servers": [
+              "https://login.microsoftonline.com/your-tenant-id/v2.0"
+            ],
+            "bearer_methods_supported": [
+              "header"
+            ],
+            "scopes_supported": [
+              "your-mcp-app-client-id/user_impersonate"
+            ]
+          }
 
         ==========================================
-        ✅ Waypoint 1.2 Complete
+        Waypoint 1.2 Complete
         ==========================================
 
         Trail MCP Server now requires:
@@ -787,11 +819,11 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
 
     **Before (subscription key only):**
     
-    - ✅ Tracking which app/team is calling
-    - ✅ Usage-based billing possible
-    - ❌ No user authentication
-    - ❌ Can't audit individual users  
-    - ❌ Can't implement per-user permissions
+    - Tracking which app/team is calling
+    - Usage-based billing possible
+    - No user authentication
+    - Can't audit individual users  
+    - Can't implement per-user permissions
 
     **After (subscription key + OAuth):**
     
