@@ -867,7 +867,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
 
     **OWASP MCP-05** mitigated! ✅
 
-??? note "Waypoint 1.3: Rate Limiting by MCP Session"
+??? note "Waypoint 1.3: Rate Limiting by Subscription Key"
 
     ### The Security Challenge: Unlimited Requests
 
@@ -875,10 +875,10 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
 
     Even with OAuth, a single user (or compromised account) can overwhelm your MCP servers by sending unlimited requests. This leads to:
     
-    💰 **Cost explosions** - Every MCP tool call might trigger Azure OpenAI, database queries, or API calls  
-    🐌 **Service degradation** - Slow responses for all users when one user monopolizes resources  
-    🔥 **Backend failures** - Databases and APIs can't handle the load  
-    🚫 **Denial of service** - Legitimate users can't access the service  
+    - **Cost explosions** - Every MCP tool call might trigger Azure OpenAI, database queries, or API calls
+    - **Service degradation** - Slow responses for all users when one user monopolizes resources
+    - **Backend failures** - Databases and APIs can't handle the load
+    - **Denial of service** - Legitimate users can't access the service
 
     You need **rate limiting** to protect your infrastructure and ensure fair resource distribution.
 
@@ -898,31 +898,39 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
     ./scripts/1.3-exploit.sh
     ```
 
-    This script sends 20 rapid requests with the same `Mcp-Session-Id` header.
+    This script sends 20 rapid requests using the same subscription key.
 
     **Expected output:**
 
     ```
-    Sending 20 rapid requests with same Mcp-Session-Id...
-    
-    Request 1: ✅ 200 OK
-    Request 2: ✅ 200 OK
-    ...
-    Request 20: ✅ 200 OK
-    
-    ❌ All 20 requests succeeded!
-    
-    Without rate limiting:
-    - A bug could send 1000s of requests
-    - Each request might call Azure OpenAI ($$$)
-    - Backend database could be overwhelmed
-    - Legitimate users experience slow responses
-    
-    Next: Apply rate limiting
-      ./scripts/1.3-fix.sh
+    ==========================================
+    Waypoint 1.3: No Rate Limiting
+    ==========================================
+
+    The Problem: Unlimited Requests
+    --------------------------------
+
+    Even with authentication, a single user (or compromised account)
+    can overwhelm your backend with unlimited requests.
+
+    Sending 20 rapid requests to Trail API...
+      Request 1: 200 (not rate limited)
+      Request 2: 200 (not rate limited)
+      ...
+      Request 20: 200 (not rate limited)
+
+    Results:
+      Requests that reached backend: 20
+
+    Issues identified:
+      ❌ All 20 requests reached the backend
+      ❌ No throttling protection
+      ❌ Single user can monopolize resources
+      ❌ Cost explosion risk (every request = $$)
+      ❌ No protection against runaway loops
     ```
 
-    The script demonstrates how without rate limiting, a single runaway MCP session (bug in agent code, infinite loop, etc.) can send unlimited requests.
+    The script demonstrates how without rate limiting, a single runaway client can send unlimited requests.
 
     **This is MCP-06: Inadequate Rate Limiting** - the system can't prevent resource exhaustion.
 
@@ -930,11 +938,26 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
 
     ### Step 3: Fix - Apply Rate Limiting
 
-    Apply rate limiting to both APIs:
+    Apply rate limiting to the Trail REST API:
 
     ```bash
     ./scripts/1.3-fix.sh
     ```
+
+    ??? info "What This Script Deploys"
+        The script applies rate limiting to the Trail REST API:
+        
+        | API | Path | Policy |
+        |-----|------|--------|
+        | **trail-api** | `/trailapi/*` | Rate limiting by subscription key |
+        
+        **Why only Trail API?** The Sherpa MCP API uses OAuth tokens (from Waypoint 1.1), not subscription keys. Rate limiting by subscription key only makes sense for APIs that require subscriptions—which is why we added one in Waypoint 1.2!
+        
+        The Trail API now enforces:
+        
+        - **10 requests per minute** per subscription key
+        - **429 Too Many Requests** when quota exceeded
+        - **Retry-After header** indicating when to retry
 
     This applies the policy:
 
@@ -942,31 +965,29 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
     <rate-limit-by-key 
       calls="10" 
       renewal-period="60"
-      counter-key="@(context.Request.Headers.GetValueOrDefault("Mcp-Session-Id","anonymous"))" />
+      counter-key="@(context.Subscription.Id)" />
     ```
 
     **What this means:**
     
-    - **10 requests per minute** - Per MCP session
-    - **Sessions are isolated** - Alice's 10 req/min doesn't affect Bob's 10 req/min
+    - **10 requests per minute** per subscription key
+    - **Teams are isolated** - Engineering team's quota doesn't affect Platform team's quota
     - **Automatic reset** - Counter resets every 60 seconds
-    - **Anonymous handling** - Requests without session ID get shared quota
+    - **Tiered limits** - Different subscriptions can have different quotas
 
-    ??? tip "Why Rate Limit by MCP-Session-Id?"
-        MCP clients (VS Code, Claude Desktop) maintain long-lived **sessions** with unique IDs:
+    ??? tip "Why Rate Limit by Subscription Key?"
+        In Waypoint 1.2, you learned that subscription keys provide **tracking and billing**. They're also perfect for rate limiting because:
         
-        ```
-        Mcp-Session-Id: 550e8400-e29b-41d4-a716-446655440000
-        ```
+        :material-check: **Per-team quotas** - Each team/app gets its own rate limit  
+        :material-check: **Tiered products** - Premium subscriptions can have higher limits  
+        :material-check: **Billing alignment** - Rate limits match billing tiers  
+        :material-check: **Easy to manage** - Revoke or adjust limits per subscription  
+        :material-check: **Already required** - No additional configuration needed on clients
         
-        Rate limiting by session is better than by user or IP because:
+        Combined with OAuth (which identifies the *user*), subscription keys let you implement both:
         
-        - ✅ **Sessions are ephemeral** - New VS Code window = new session
-        - ✅ **Prevents single runaway session** - Bug in one window doesn't block others
-        - ✅ **Doesn't punish users** - Alice can open multiple VS Code windows if needed
-        - ✅ **Simple to implement** - No need to parse JWTs or maintain user quotas
-        
-        Think of it like: "Each VS Code window gets 10 requests/min" - simple, fair, effective.
+        - **Per-user limits** (via JWT claims if needed)
+        - **Per-team/app limits** (via subscription key)
 
     ---
 
@@ -978,33 +999,45 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
     ./scripts/1.3-validate.sh
     ```
 
-    The script:
-    
-    1. Sends 10 requests with same `Mcp-Session-Id` - ✅ All succeed
-    2. Sends request #11 with same session ID - ❌ Returns `429 Too Many Requests`
-    3. Waits 60 seconds
-    4. Sends request again - ✅ Succeeds (quota reset)
+    The script sends 15 requests with the same subscription key. After 10 requests, additional requests should be rate limited.
 
     **Expected output:**
 
     ```
-    ========================================
-    ✅ Rate Limiting Test Results
-    ========================================
-    
-    Requests 1-10: ✅ 200 OK (within quota)
-    Request 11: ✅ 429 Too Many Requests (quota exceeded)
-    
-    Response headers from request 11:
-    X-Rate-Limit-Limit: 10
-    X-Rate-Limit-Remaining: 0
-    X-Rate-Limit-Reset: 45
-    
-    After 60 seconds...
-    Request 12: ✅ 200 OK (quota reset)
-    
-    🎉 Rate limiting is working correctly!
+    ==========================================
+    Waypoint 1.3: Validate Rate Limiting
+    ==========================================
+
+    Testing rate limiting by subscription key...
+    Limit: 10 requests per minute per subscription
+
+    Sending 15 rapid requests...
+
+      Request 1: 200 OK
+      Request 2: 200 OK
+      ...
+      Request 10: 200 OK
+      Request 11: 429 Too Many Requests (rate limited)
+      Request 12: 429 Too Many Requests (rate limited)
+      ...
+      Request 15: 429 Too Many Requests (rate limited)
+
+    Results:
+      Requests that passed rate limit: 10
+      Requests rate limited (429): 5
+
+    ✅ Rate limiting is working!
+
+    Different subscription keys get separate quotas.
+    This enables per-team/per-app rate limiting.
+
+    ==========================================
+    ✅ Waypoint 1.3 Complete
+    ==========================================
     ```
+
+    !!! note "Distributed Rate Limiting"
+        You may see slightly more than 10 requests pass (e.g., 11-12). This is expected behavior with APIM's distributed rate limiting—multiple gateway instances sync their counters periodically, so rapid requests may slightly exceed the limit before synchronization catches up. This is a minor edge case that doesn't affect the security benefit.
 
     ---
 
@@ -1012,18 +1045,19 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
 
     **Before (no rate limiting):**
     
-    - ❌ Users can send unlimited requests
-    - ❌ Single bug can cause cost explosions
-    - ❌ No fair resource distribution
-    - ❌ Backend services can be overwhelmed
+    - Users can send unlimited requests
+    - Single bug can cause cost explosions
+    - No fair resource distribution
+    - Backend services can be overwhelmed
 
-    **After (rate limiting by session):**
+    **After (rate limiting by subscription key):**
     
-    - ✅ Maximum 10 requests/min per MCP session
-    - ✅ Runaway loops are contained
-    - ✅ Fair distribution across users
-    - ✅ Backend services are protected
-    - ✅ Predictable costs
+    - Maximum 10 requests/min per subscription
+    - Runaway clients are contained
+    - Fair distribution across teams
+    - Backend services are protected
+    - Predictable costs
+    - Tiered limits possible (different quotas per subscription tier)
 
     **OWASP MCP-06 mitigation complete!** ✅
 

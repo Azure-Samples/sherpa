@@ -1,11 +1,13 @@
 <!--
   OAuth + Rate Limiting policy
-  Validates tokens and applies rate limiting by session
+  Validates tokens and applies rate limiting by subscription key
 -->
 <policies>
   <inbound>
     <base />
-    <!-- Validate OAuth token -->
+    <!-- Rate limit FIRST: 10 requests per minute per subscription key -->
+    <rate-limit-by-key calls="10" renewal-period="60" counter-key="@(context.Subscription.Id)" />
+    <!-- Then validate OAuth token -->
     <validate-azure-ad-token tenant-id="{{tenant-id}}" 
                               failed-validation-httpcode="401" 
                               failed-validation-error-message="Unauthorized">
@@ -13,10 +15,6 @@
         <audience>api://{{mcp-app-client-id}}</audience>
       </audiences>
     </validate-azure-ad-token>
-    <!-- Extract MCP session ID for rate limiting -->
-    <set-variable name="mcp-session-id" value="@(context.Request.Headers.GetValueOrDefault("Mcp-Session-Id", context.Request.Headers.GetValueOrDefault("X-Request-Id", Guid.NewGuid().ToString())))" />
-    <!-- Rate limit: 10 requests per minute per session -->
-    <rate-limit-by-key calls="10" renewal-period="60" counter-key="@((string)context.Variables["mcp-session-id"])" />
   </inbound>
   <backend>
     <forward-request />
