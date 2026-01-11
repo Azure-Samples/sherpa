@@ -875,10 +875,10 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
 
     Even with OAuth, a single user (or compromised account) can overwhelm your MCP servers by sending unlimited requests. This leads to:
     
-    - 💰 **Cost explosions** - Every MCP tool call might trigger Azure OpenAI, database queries, or API calls
-    - 🐌 **Service degradation** - Slow responses for all users when one user monopolizes resources
-    - 🔥 **Backend failures** - Databases and APIs can't handle the load
-    - 🚫 **Denial of service** - Legitimate users can't access the service
+    💰 **Cost explosions** - Every MCP tool call might trigger Azure OpenAI, database queries, or API calls  
+    🐌 **Service degradation** - Slow responses for all users when one user monopolizes resources  
+    🔥 **Backend failures** - Databases and APIs can't handle the load  
+    🚫 **Denial of service** - Legitimate users can't access the service  
 
     You need **rate limiting** to protect your infrastructure and ensure fair resource distribution.
 
