@@ -4,13 +4,20 @@
 			"type": "http",
 			"url": "http://localhost:8000/mcp"
 		},
-		"sherpa-direct": {
-			"type": "http",
-			"url": "https://your-container-app.azurecontainerapps.io/mcp"
-		},
-		"sherpa-via-apim": {
-			"type": "http", 
-			"url": "https://your-apim-instance.azure-api.net/sherpa/mcp"
-		}
+        "sherpa-direct": {
+            "type": "http",
+            "url": "https://your-container-app.azurecontainerapps.io/mcp"
+        },
+        "sherpa-via-apim": {
+            "type": "http", 
+            "url": "https://your-apim-instance.azure-api.net/sherpa/mcp"
+        },
+        "trails-via-apim": {
+            "type": "http",
+            "url": "https://your-apim-instance.azure-api.net/trails/mcp",
+            "headers": {
+                "Ocp-Apim-Subscription-Key": "your-subscription-key"
+            }
+        }
 	}
 }

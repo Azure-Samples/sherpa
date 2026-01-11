@@ -581,7 +581,7 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
 
         Get your subscription key:
         ```bash
-        azd env get-value TRAILS_SUBSCRIPTION_KEY
+        azd env get-value TRAIL_SUBSCRIPTION_KEY
         ```
 
         **2. Connect and invoke tools:**
@@ -612,17 +612,17 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
             
             **Subscription keys are good for:**
             
-            ✅ **Tracking** - Know which application/team is calling  
-            ✅ **Billing** - Chargeback model by team or product  
-            ✅ **Rate limiting** - Different quotas per subscription tier  
-            ✅ **Product management** - Group APIs into products with different SLAs
+            - **Tracking** - Know which application/team is calling  
+            - **Billing** - Chargeback model by team or product  
+            - **Rate limiting** - Different quotas per subscription tier  
+            - **Product management** - Group APIs into products with different SLAs
             
             **Subscription keys are NOT good for:**
             
-            ❌ **Authentication** - Can't verify WHO the user is  
-            ❌ **Authorization** - Can't enforce per-user permissions  
-            ❌ **Audit trails** - Logs show "engineering-key" not "bob@company.com"  
-            ❌ **Credential security** - Long-lived, easily shared, no expiration
+            - **Authentication** - Can't verify WHO the user is  
+            - **Authorization** - Can't enforce per-user permissions  
+            - **Audit trails** - Logs show "engineering-key" not "bob@company.com"  
+            - **Credential security** - Long-lived, easily shared, no expiration
             
             **Real-world scenario:** Data breach investigation.
             
@@ -636,7 +636,7 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
             }
             ```
             
-            Who accessed the permit data? Alice, Bob, Charlie, or Dave? You can't tell - they all share the same key.
+            Who accessed the permit data? Alice, Bob, Charlie, or Miranda? You can't tell - they all share the same key.
             
             **This is MCP-05: Insufficient Access Controls** - subscription keys ≠ authentication.
 
