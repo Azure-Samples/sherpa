@@ -9,13 +9,13 @@ hide:
 
 ![Gateway](../images/sherpa-gateway.png)
 
-Welcome to **Camp 2**, where you'll establish enterprise-grade API gateway security for your MCP servers. In Camp 1, you secured a single MCP server with OAuth and Managed Identity. Now imagine you have dozens of MCP servers—weather, trails, gear, permits, guides, and more. How do you enforce consistent security across all of them without duplicating authentication logic in every server?
+Welcome to **Camp 2**, where you'll establish enterprise-grade API gateway security for your MCP servers. In Camp 1, you secured a single MCP server with OAuth and Managed Identity. Now imagine you have dozens of MCP servers such as weather, trails, gear, permits, guides, and more. How do you enforce consistent security across all of them without duplicating authentication logic in every server?
 
-The answer is **API Management (APIM)**, Azure's cloud-native API gateway. Instead of securing each server individually, you'll deploy APIM as a centralized security checkpoint where **all** MCP traffic flows through a single, hardened gateway. This pattern mirrors how climbers pass through a checkpoint before accessing different mountain routes—every request gets validated, rate-limited, and filtered **before** it reaches your MCP servers.
+The answer is an **MCP gateway**: a centralized security checkpoint where **all** MCP traffic flows through a single, hardened layer. Instead of securing each server individually, you deploy the gateway to validate, rate-limit, and filter every request before it reaches your MCP servers. This pattern mirrors how climbers pass through a checkpoint before accessing different mountain routes. In Azure, **API Management (APIM)** provides this MCP gateway capability with native support for the MCP protocol.
 
 This camp follows the same **"vulnerable → exploit → fix → validate"** methodology you've used before, but now at scale with multiple MCP servers and comprehensive gateway controls.
 
-**Tech Stack:** Python, MCP, Azure API Management, Container Apps, Content Safety, API Center  
+**Tech Stack:** Python, MCP, Azure API Management, Container Apps, Content Safety, API Center, Entra  
 **Primary Risks:** [MCP-03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-misuse/) (Tool Misuse), [MCP-05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-insufficient-access-controls/) (Insufficient Access Controls), [MCP-06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-rate-limiting/) (Inadequate Rate Limiting), [MCP-09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-governance/) (Shadow MCP Servers & Governance)
 
 ## What You'll Learn
@@ -79,11 +79,11 @@ az account show && azd version && docker --version
 
 Camp 2 follows a multi-waypoint structure organized into three sections. Each waypoint follows the **vulnerable → exploit → fix → validate** pattern you know from previous camps. Click any waypoint below to expand instructions and continue your ascent.
 
-### Base Camp: Provision Infrastructure
+### Provision Infrastructure
 
-Before climbing through the waypoints, let's establish base camp by provisioning the Azure infrastructure.
+Before climbing through the waypoints, let's establish camp by provisioning the Azure infrastructure.
 
-??? note "Deploy Base Infrastructure"
+??? note "Deploy Infrastructure"
 
     ### Provision Azure Resources
 
@@ -106,29 +106,29 @@ Before climbing through the waypoints, let's establish base camp by provisioning
         **Phase 1: Pre-Provision Hook**  
         Creates Entra ID applications for OAuth:
         
-        - **MCP Resource App** - Represents your MCP server resources
+        - **MCP Resource App** - Represents your MCP server resources with scopes
         - **APIM Client App** - Used by APIM Credential Manager for backend auth
-        - **OAuth scopes** - Defines `mcp.access` scope for user authorization
-        - **Redirect URIs** - Configures VS Code authentication callbacks
+        - **VS Code Pre-authorization** - Allows VS Code to request tokens without admin consent
+        - **Service Principal** - Enables Azure RBAC for the MCP app
         
         **Phase 2: Infrastructure Deployment**  
         Provisions all Azure resources (~10 minutes):
         
-        - **API Management (Basic v2)** - The gateway itself (empty for now)
-        - **Container Apps Environment** - Hosts your MCP servers
-        - **Container Registry** - Stores Docker images
+        - **API Management (Basic v2)** - The MCP gateway (empty, APIs added via waypoint scripts)
+        - **Container Apps Environment** - Hosts your MCP servers and REST APIs
+        - **Container Registry** - Stores Docker images for deployments
         - **Content Safety (S0)** - AI-powered prompt injection detection
         - **API Center** - API governance and discovery portal
         - **Log Analytics** - Monitoring and diagnostics
-        - **Managed Identity** - For APIM to access Azure services
+        - **2x Managed Identities** - One for APIM, one for Container Apps
         - **2x Container Apps** - Sherpa MCP Server and Trail API (with placeholder images)
         
         **Phase 3: Post-Provision Hook**  
-        Configures authentication settings:
+        Configures post-deployment settings:
         
-        - Updates redirect URIs for local testing
-        - Outputs connection details for VS Code
-        - Saves environment variables for scripts
+        - Updates Entra ID redirect URI with actual APIM gateway URL
+        - Reports any region adjustments made for service availability
+        - Outputs connection details and next steps
 
     **Expected time:** ~10-15 minutes
 
@@ -148,7 +148,7 @@ Before climbing through the waypoints, let's establish base camp by provisioning
 
 ## Section 1: API Gateway & Governance
 
-In this section, you'll deploy your first MCP server behind APIM and configure OAuth with automatic discovery using Protected Resource Metadata (RFC 9728). You'll also add rate limiting and register your APIs in Azure API Center for governance.
+In this section, you'll deploy two MCP servers behind APIM: one native MCP server (Sherpa) and one REST API exported as MCP (Trail API). You'll configure OAuth with automatic discovery using Protected Resource Metadata (RFC 9728), add rate limiting, and register your MCP servers in Azure API Center for governance.
 
 !!! tip "Working Directory"
     All commands in this section should be run from the `camps/camp2-gateway` directory:
@@ -156,9 +156,20 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
     cd camps/camp2-gateway
     ```
 
-??? note "Waypoint 1.1: No Authentication → OAuth"
+??? note "Waypoint 1.1: Expose MCP Server via Gateway (No Auth → OAuth)"
 
-    **What you'll learn:** How to use [Azure API Management's MCP passthrough feature](https://learn.microsoft.com/en-us/azure/api-management/expose-existing-mcp-server) to expose and govern an existing MCP server. APIM acts as a transparent gateway that forwards MCP protocol messages while adding enterprise security controls (authentication, rate limiting, monitoring) without modifying the upstream MCP server.
+    **What you'll learn:** How to use [Azure API Management's MCP passthrough](https://learn.microsoft.com/en-us/azure/api-management/expose-existing-mcp-server) feature to expose and govern an existing MCP server. APIM acts as a transparent gateway that forwards MCP protocol messages while adding enterprise security controls (authentication, rate limiting, monitoring) without modifying the upstream MCP server.
+
+    ```
+    ┌──────────┐      ┌──────────────┐      ┌────────────────┐
+    │ VS Code  │ ───► │     APIM     │ ───► │  Sherpa MCP    │
+    │ (Client) │      │   (Gateway)  │      │    Server      │
+    └──────────┘      └──────────────┘      └────────────────┘
+                        │
+                        ├─ OAuth validation
+                        ├─ Rate limiting
+                        └─ Monitoring
+    ```
 
     **Key benefits of APIM's MCP passthrough:**
     
@@ -450,6 +461,17 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
 ??? note "Waypoint 1.2: REST API → MCP Server with OAuth"
 
     **What you'll learn:** How to use [Azure API Management's REST-to-MCP](https://learn.microsoft.com/en-us/azure/api-management/export-rest-mcp-server) feature to expose an existing REST API as an MCP server. APIM automatically transforms OpenAPI operations into MCP tools, enabling AI agents to discover and call your existing APIs without any code changes.
+
+    ```
+    ┌──────────┐      ┌──────────────┐      ┌────────────────┐
+    │ VS Code  │ ───► │     APIM     │ ───► │   Trail REST   │
+    │ (Client) │  MCP │  (Gateway)   │ REST │      API       │
+    └──────────┘      └──────────────┘      └────────────────┘
+                        │
+                        ├─ MCP ↔ REST translation
+                        ├─ OAuth validation
+                        └─ Subscription key tracking
+    ```
 
     **Key benefits of APIM's REST-to-MCP export:**
     
