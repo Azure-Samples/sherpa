@@ -35,20 +35,41 @@ DEPLOYMENT_OUTPUT=$(az deployment group create \
                backendUrl="$TRAIL_URL" \
   --query "properties.outputs" -o json)
 
-# Extract and save subscription key
+# Extract and save subscription key (for Trail Services Product)
 SUB_KEY=$(echo "$DEPLOYMENT_OUTPUT" | jq -r '.subscriptionKey.value')
-azd env set TRAIL_API_SUBSCRIPTION_KEY "$SUB_KEY"
+azd env set TRAIL_SUBSCRIPTION_KEY "$SUB_KEY"
+
+echo ""
+echo "Exporting Trail API as MCP server..."
+
+# Build and deploy MCP export layer
+az bicep build --file infra/waypoints/1.2-deploy-trail-mcp.bicep --outfile /tmp/trail-mcp.json 2>/dev/null
+
+MCP_OUTPUT=$(az deployment group create \
+  --resource-group "$RG" \
+  --template-file /tmp/trail-mcp.json \
+  --parameters apimName="$APIM_NAME" \
+  --query "properties.outputs" -o json)
+
+MCP_ENDPOINT=$(echo "$MCP_OUTPUT" | jq -r '.mcpEndpoint.value')
 
 echo ""
 echo "=========================================="
-echo "Trail API Deployed"
+echo "Trail API Deployed as MCP Server"
 echo "=========================================="
 echo ""
-echo "Endpoint: $APIM_URL/trailapi/trails"
-echo "Subscription Key: $SUB_KEY"
+echo "Trail Services Product:"
+echo "  Subscription Key: ${SUB_KEY:0:8}...${SUB_KEY: -4}"
 echo ""
-echo "Current security: Subscription key only"
+echo "REST Endpoint: $APIM_URL/trailapi/trails"
+echo "MCP Endpoint:  $MCP_ENDPOINT"
 echo ""
-echo "Next: See why subscription keys aren't enough"
-echo "  ./scripts/1.2-exploit.sh"
+echo "MCP Tools available:"
+echo "  - list_trails: List all available hiking trails"
+echo "  - get_trail: Get details for a specific trail"
+echo "  - check_conditions: Current trail conditions and hazards"
+echo "  - get_permit: Retrieve a trail permit"
+echo "  - request_permit: Request a new trail permit"
+echo ""
+echo "Current security: Subscription key only (no authentication!)"
 echo ""

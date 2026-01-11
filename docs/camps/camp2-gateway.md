@@ -541,7 +541,10 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
         Trail API Deployed as MCP Server
         ==========================================
         
-        REST Endpoint: https://apim-xxxxx.azure-api.net/trails
+        Trail Services Product:
+          Subscription Key: a1b2c3d4...x9y0
+        
+        REST Endpoint: https://apim-xxxxx.azure-api.net/trailapi/trails
         MCP Endpoint:  https://apim-xxxxx.azure-api.net/trails/mcp
         
         MCP Tools available:
@@ -552,11 +555,6 @@ In this section, you'll deploy your first MCP server behind APIM and configure O
           - request_permit: Request a new trail permit
         
         Current security: Subscription key only (no authentication!)
-        
-        Next: Test the MCP server from VS Code
-          1. Add the MCP endpoint to .vscode/mcp.json
-          2. Connect with subscription key header
-          3. Then run: ./scripts/1.2-exploit.sh
         ```
 
     ??? danger "Step 2: Exploit - Subscription Keys Are Not Authentication"

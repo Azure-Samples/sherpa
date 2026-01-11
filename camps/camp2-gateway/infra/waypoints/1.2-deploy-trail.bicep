@@ -1,5 +1,5 @@
 // Waypoint 1.2: Deploy Trail API to APIM
-// Creates backend and API with subscription key (no OAuth yet)
+// Creates backend, API, Product, and subscription key (no OAuth yet)
 
 param apimName string
 param backendUrl string
@@ -20,6 +20,19 @@ resource trailBackend 'Microsoft.ApiManagement/service/backends@2024-06-01-previ
   }
 }
 
+// Trail Services Product - bundles REST API and MCP server
+resource trailProduct 'Microsoft.ApiManagement/service/products@2024-06-01-preview' = {
+  parent: apim
+  name: 'trail-services'
+  properties: {
+    displayName: 'Trail Services'
+    description: 'Access to Trail REST API and MCP server'
+    state: 'published'
+    subscriptionRequired: true
+    approvalRequired: false
+  }
+}
+
 // Trail API - exposed as REST API
 // Path 'trailapi' is the APIM URL prefix, urlTemplates go directly to backend
 resource trailApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' = {
@@ -35,6 +48,13 @@ resource trailApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' = {
     serviceUrl: backendUrl
   }
 }
+
+// Add REST API to Product
+resource trailApiProductLink 'Microsoft.ApiManagement/service/products/apis@2024-06-01-preview' = {
+  parent: trailProduct
+  name: trailApi.name
+}
+
 
 // ============================================
 // Trail Operations
@@ -128,17 +148,18 @@ resource requestPermitOp 'Microsoft.ApiManagement/service/apis/operations@2024-0
   }
 }
 
-// Create a subscription for the Trail API
+// Create a subscription for the Trail Services Product
 resource trailSubscription 'Microsoft.ApiManagement/service/subscriptions@2024-06-01-preview' = {
   parent: apim
-  name: 'trail-api-subscription'
+  name: 'trail-services-subscription'
   properties: {
-    displayName: 'Trail API Basic Access'
+    displayName: 'Trail Services Access'
     state: 'active'
-    scope: trailApi.id
+    scope: trailProduct.id
   }
 }
 
 output trailApiId string = trailApi.id
 output trailBackendId string = trailBackend.id
+output trailProductId string = trailProduct.id
 output subscriptionKey string = trailSubscription.listSecrets().primaryKey
