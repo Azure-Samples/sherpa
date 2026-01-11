@@ -12,11 +12,10 @@ echo "=========================================="
 echo ""
 
 RG=$(azd env get-value AZURE_RESOURCE_GROUP)
-APIM_NAME=$(azd env get-value APIM_NAME)
 APIM_URL=$(azd env get-value APIM_GATEWAY_URL)
 API_CENTER_NAME=$(azd env get-value API_CENTER_NAME)
 
-echo "Registering APIs in API Center..."
+echo "Registering MCP servers in API Center..."
 echo "  API Center: $API_CENTER_NAME"
 echo ""
 
@@ -24,7 +23,6 @@ az deployment group create \
   --resource-group "$RG" \
   --template-file infra/waypoints/1.4-apicenter.bicep \
   --parameters apiCenterName="$API_CENTER_NAME" \
-               apimName="$APIM_NAME" \
                apimGatewayUrl="$APIM_URL" \
   --output none
 
@@ -33,14 +31,14 @@ echo "=========================================="
 echo "API Center Registration Complete"
 echo "=========================================="
 echo ""
-echo "Registered APIs:"
-echo "  - Sherpa MCP Server"
-echo "  - Trail API"
+echo "Registered MCP Servers:"
+echo "  - Sherpa MCP Server (/sherpa/mcp)"
+echo "  - Trails MCP Server (/trails/mcp)"
 echo ""
 echo "Benefits:"
-echo "  ✅ Central API discovery"
-echo "  ✅ Prevents shadow IT"
-echo "  ✅ Enables governance"
+echo "  ✅ Central MCP server discovery"
+echo "  ✅ Prevents shadow MCP servers"
+echo "  ✅ Enables governance & compliance"
 echo ""
 echo "View in Azure Portal:"
 echo "  https://portal.azure.com/#@/resource/subscriptions/.../resourceGroups/$RG/providers/Microsoft.ApiCenter/services/$API_CENTER_NAME"

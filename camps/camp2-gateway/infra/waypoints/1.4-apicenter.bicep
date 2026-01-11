@@ -2,58 +2,52 @@
 // Registers MCP servers for discoverability
 
 param apiCenterName string
-param apimName string
 param apimGatewayUrl string
 
 resource apiCenter 'Microsoft.ApiCenter/services@2024-03-01' existing = {
   name: apiCenterName
 }
 
-// Create workspace for MCP servers
-resource mcpWorkspace 'Microsoft.ApiCenter/services/workspaces@2024-03-01' = {
+// Use default workspace (API Center free tier only allows 1 workspace)
+resource defaultWorkspace 'Microsoft.ApiCenter/services/workspaces@2024-03-01' existing = {
   parent: apiCenter
-  name: 'mcp-servers'
-  properties: {
-    title: 'MCP Servers'
-    description: 'Model Context Protocol servers for AI assistants'
-  }
+  name: 'default'
 }
 
 // Register Sherpa MCP Server
 resource sherpaRegistration 'Microsoft.ApiCenter/services/workspaces/apis@2024-03-01' = {
-  parent: mcpWorkspace
+  parent: defaultWorkspace
   name: 'sherpa-mcp'
   properties: {
     title: 'Sherpa MCP Server'
-    description: 'MCP Server for weather, trails, and gear recommendations'
-    kind: 'rest'  // Note: API Center doesn't have MCP type yet
-    lifecycleStage: 'production'
+    summary: 'Weather forecasts, trail conditions, and gear recommendations for mountain adventures'
+    description: 'MCP Server providing real-time weather data, trail status updates, and personalized gear recommendations. Secured with OAuth 2.0 via Azure API Management at ${apimGatewayUrl}/sherpa/mcp'
+    kind: 'mcp'
     externalDocumentation: [
       {
         title: 'MCP Specification'
         url: 'https://modelcontextprotocol.io'
       }
     ]
-    customProperties: {
-      mcpEndpoint: '${apimGatewayUrl}/sherpa/mcp'
-      transportType: 'streamable'
-    }
   }
 }
 
-// Register Trail API
-resource trailRegistration 'Microsoft.ApiCenter/services/workspaces/apis@2024-03-01' = {
-  parent: mcpWorkspace
-  name: 'trail-api'
+// Register Trails MCP Server
+resource trailsMcpRegistration 'Microsoft.ApiCenter/services/workspaces/apis@2024-03-01' = {
+  parent: defaultWorkspace
+  name: 'trails-mcp'
   properties: {
-    title: 'Trail API'
-    description: 'REST API for trail information and permits'
-    kind: 'rest'
-    lifecycleStage: 'production'
-    customProperties: {
-      restEndpoint: '${apimGatewayUrl}/trails'
-    }
+    title: 'Trails MCP Server'
+    summary: 'Trail information, permit management, and hiking conditions'
+    description: 'MCP Server for browsing trails, checking conditions, and managing hiking permits. Secured with OAuth 2.0 via Azure API Management at ${apimGatewayUrl}/trails/mcp'
+    kind: 'mcp'
+    externalDocumentation: [
+      {
+        title: 'MCP Specification'
+        url: 'https://modelcontextprotocol.io'
+      }
+    ]
   }
 }
 
-output workspaceId string = mcpWorkspace.id
+output workspaceId string = defaultWorkspace.id
