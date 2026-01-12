@@ -10,7 +10,8 @@
                               failed-validation-httpcode="401" 
                               failed-validation-error-message="Unauthorized">
       <audiences>
-        <audience>api://{{mcp-app-client-id}}</audience>
+        <!-- Use appId directly when identifierUris is empty -->
+        <audience>{{mcp-app-client-id}}</audience>
       </audiences>
     </validate-azure-ad-token>
     <!-- Extract MCP session ID for rate limiting -->
@@ -18,17 +19,13 @@
     <!-- Rate limit: 10 requests per minute per session -->
     <rate-limit-by-key calls="10" renewal-period="60" counter-key="@((string)context.Variables["mcp-session-id"])" />
     <!-- Content Safety check using llm-content-safety policy -->
-    <llm-content-safety backend-id="content-safety-backend">
-      <text-content>
-        <input>@(context.Request.Body.As<string>(preserveContent: true))</input>
-      </text-content>
-      <categories>
-        <category name="Hate" />
-        <category name="Violence" />
-        <category name="Sexual" />
-        <category name="SelfHarm" />
+    <llm-content-safety backend-id="content-safety-backend" shield-prompt="true">
+      <categories output-type="EightSeverityLevels">
+        <category name="Hate" threshold="4" />
+        <category name="Violence" threshold="4" />
+        <category name="Sexual" threshold="4" />
+        <category name="SelfHarm" threshold="4" />
       </categories>
-      <prompt-shields enabled="true" />
     </llm-content-safety>
   </inbound>
   <backend>
@@ -44,8 +41,18 @@
         <return-response>
           <set-status code="401" reason="Unauthorized" />
           <set-header name="WWW-Authenticate" exists-action="override">
-            <value>Bearer error="invalid_token", resource_metadata="{{apim-gateway-url}}/.well-known/oauth-protected-resource"</value>
+            <!-- Dynamic: uses context.Api.Path for any MCP API (trim leading slash) -->
+            <value>@("Bearer error=\"invalid_token\", resource_metadata=\"" + "{{apim-gateway-url}}/" + context.Api.Path.TrimStart('/') + "/.well-known/oauth-protected-resource\"")</value>
           </set-header>
+          <set-body>@{
+            var gatewayUrl = "{{apim-gateway-url}}";
+            var apiPath = context.Api.Path.TrimStart('/');
+            return JsonConvert.SerializeObject(new {
+              error = "unauthorized",
+              message = "Valid OAuth token required",
+              resource_metadata = gatewayUrl + "/" + apiPath + "/.well-known/oauth-protected-resource"
+            });
+          }</set-body>
         </return-response>
       </when>
       <when condition="@(context.Response.StatusCode == 429)">

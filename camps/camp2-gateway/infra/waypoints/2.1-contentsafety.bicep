@@ -17,9 +17,9 @@ resource sherpaApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' exi
   name: 'sherpa-mcp'
 }
 
-resource trailApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' existing = {
+resource trailMcpApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' existing = {
   parent: apim
-  name: 'trail-api'
+  name: 'trail-mcp'
 }
 
 // Backend for Content Safety
@@ -49,9 +49,9 @@ resource sherpaPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-
   }
 }
 
-// Apply OAuth + Rate Limiting + Content Safety policy to Trail API
-resource trailPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-preview' = {
-  parent: trailApi
+// Apply OAuth + Rate Limiting + Content Safety policy to Trail MCP Server
+resource trailMcpPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-preview' = {
+  parent: trailMcpApi
   name: 'policy'
   properties: {
     format: 'rawxml'
