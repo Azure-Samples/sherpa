@@ -1325,11 +1325,11 @@ In this section, you'll add AI-powered content filtering to prevent prompt injec
         azd env get-value APIM_NAME
         ```
 
-        Go to: **Portal** → **API Management** → **[Your APIM]** → **APIs** → **Sherpa MCP Server**
+        Go to: **Portal** → **API Management** → **[Your APIM]** → **APIs** → **MCP Servers** and select one of the servers
 
-        **2. Check the inbound policy:**
+        **2. Check the policy:**
 
-        Click on **All operations** → **Inbound processing** → the **Code View** button
+        Click on **Policies**
 
         You should see the `llm-content-safety` policy:
 
