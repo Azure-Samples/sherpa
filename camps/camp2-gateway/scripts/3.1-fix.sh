@@ -12,15 +12,32 @@ echo "=========================================="
 echo ""
 
 RG=$(azd env get-value AZURE_RESOURCE_GROUP)
+APIM_URL=$(azd env get-value APIM_GATEWAY_URL)
 
 echo "Note: APIM Basic v2 Limitation"
 echo "------------------------------"
 echo ""
 echo "APIM Basic v2 does not have static outbound IPs."
+echo "This demo uses the current IP, which may change."
+echo ""
 echo "For production, consider:"
 echo "  - APIM Standard v2 with VNet integration"
 echo "  - Private Endpoints for full network isolation"
 echo "  - Header-based validation (X-Azure-FDID)"
+echo ""
+
+# Get APIM IP by resolving the gateway hostname
+echo "Resolving APIM gateway IP..."
+APIM_HOST=$(echo "$APIM_URL" | sed 's|https://||' | sed 's|http://||' | sed 's|/.*||')
+APIM_IP=$(dig +short "$APIM_HOST" A | grep -E '^[0-9]+\.' | head -1)
+
+if [ -z "$APIM_IP" ]; then
+    echo "Error: Could not resolve APIM IP address"
+    exit 1
+fi
+
+echo "APIM Gateway: $APIM_HOST"
+echo "APIM IP: $APIM_IP"
 echo ""
 
 echo "Applying Container Apps IP restrictions..."
@@ -35,31 +52,37 @@ TRAIL_CA=$(az containerapp list \
     --query "[?contains(name, 'trail')].name" -o tsv 2>/dev/null | head -1)
 
 if [ -n "$SHERPA_CA" ]; then
-    echo "Sherpa Container App: $SHERPA_CA"
+    echo "Configuring: $SHERPA_CA"
     
-    # For workshop demonstration, we'll add a restrictive rule
-    # In production, you'd use the actual APIM IPs or VNet
+    # Allow APIM IP (everything else is implicitly denied)
     az containerapp ingress access-restriction set \
         --resource-group "$RG" \
         --name "$SHERPA_CA" \
-        --rule-name "deny-direct-access" \
-        --action "Deny" \
-        --ip-address "0.0.0.0/0" \
-        --description "Block direct access - route through APIM" \
-        --output none 2>/dev/null || echo "  Note: Access restriction requires Premium tier"
+        --rule-name "allow-apim" \
+        --action "Allow" \
+        --ip-address "$APIM_IP/32" \
+        --description "Allow APIM gateway" \
+        --output none
+    
+    echo "  ✓ Allow APIM ($APIM_IP)"
+    echo "  ✓ All other IPs implicitly denied"
 fi
 
 if [ -n "$TRAIL_CA" ]; then
-    echo "Trail Container App: $TRAIL_CA"
+    echo "Configuring: $TRAIL_CA"
     
+    # Allow APIM IP (everything else is implicitly denied)
     az containerapp ingress access-restriction set \
         --resource-group "$RG" \
         --name "$TRAIL_CA" \
-        --rule-name "deny-direct-access" \
-        --action "Deny" \
-        --ip-address "0.0.0.0/0" \
-        --description "Block direct access - route through APIM" \
-        --output none 2>/dev/null || echo "  Note: Access restriction requires Premium tier"
+        --rule-name "allow-apim" \
+        --action "Allow" \
+        --ip-address "$APIM_IP/32" \
+        --description "Allow APIM gateway" \
+        --output none
+    
+    echo "  ✓ Allow APIM ($APIM_IP)"
+    echo "  ✓ All other IPs implicitly denied"
 fi
 
 echo ""

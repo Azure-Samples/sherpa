@@ -16,7 +16,7 @@ The answer is an **MCP gateway**: a centralized security checkpoint where **all*
 This camp follows the same **"vulnerable → exploit → fix → validate"** methodology you've used before, but now at scale with multiple MCP servers and comprehensive gateway controls.
 
 **Tech Stack:** Python, MCP, Azure API Management, Container Apps, Content Safety, API Center, Entra  
-**Primary Risks:** [MCP-03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-misuse/) (Tool Misuse), [MCP-05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-insufficient-access-controls/) (Insufficient Access Controls), [MCP-06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-rate-limiting/) (Inadequate Rate Limiting), [MCP-09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-governance/) (Shadow MCP Servers & Governance)
+**Primary Risks:** [MCP-03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-misuse/) (Tool Misuse), [MCP-05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-insufficient-access-controls/) (Insufficient Access Controls), [MCP-06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-rate-limiting/) (Inadequate Rate Limiting), [MCP-07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) (Insufficient Authentication & Authorization), [MCP-09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-governance/) (Shadow MCP Servers & Governance)
 
 ## What You'll Learn
 
@@ -1388,313 +1388,137 @@ In this section, you'll add AI-powered content filtering to prevent prompt injec
 
 ## Section 3: Network Security
 
-In this final section, you'll understand network isolation patterns for production deployments.
+In this final section, you'll learn about network isolation patterns to protect your MCP backends in production.
 
-??? note "Waypoint 3.1: IP Restrictions & Network Isolation"
+??? note "Understanding Network Isolation for MCP Servers"
 
     ### The Security Challenge: Direct Backend Access
 
-    **OWASP Risk:** [MCP-04 (Network Exposure)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp04-network-exposure/)
+    **OWASP Risk:** [MCP-04 (Network Exposure)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp04-network/)
 
-    Your MCP servers are running in Container Apps with public endpoints. This means:
-    
-    - 🌐 **Anyone can hit the backend directly** - Bypass APIM entirely
-    - 🚫 **Circumvent all security policies** - OAuth, rate limiting, content safety—all useless
-    - 💰 **Cost attacks** - Hit backend directly without APIM's rate limits
-    - 🕵️ **No visibility** - Requests don't appear in APIM logs
+    Your MCP servers are running in Container Apps with public endpoints. While you've added OAuth, rate limiting, and content safety at the gateway, there's a fundamental problem:
 
-    You need **network isolation** to force all traffic through APIM.
+    **Anyone who discovers your Container App URL can bypass APIM entirely.**
+
+    ```
+    https://sherpa-mcp-server.xxxxxxx.xxxxx.azurecontainerapps.io
+    ```
+
+    This URL isn't secret—it follows Azure's predictable naming pattern. An attacker who finds it can:
+
+    - **Bypass OAuth** — Call the backend directly without authentication
+    - **Bypass rate limiting** — Send unlimited requests
+    - **Bypass content safety** — Submit malicious prompts without filtering
+    - **Avoid detection** — Requests won't appear in your APIM logs
+    - **Run up costs** — Direct calls still consume your compute resources
+
+    All the security you built in Sections 1 and 2 becomes optional if backends are publicly accessible.
 
     ---
 
-    ### Step 1: Exploit - Direct Backend Access
+    ### The Solution: Network Isolation
 
-    Test accessing the backend directly:
+    The fix is straightforward in concept: **only allow traffic from APIM to reach your backends**. In practice, there are several ways to achieve this:
 
-    ```bash
-    ./scripts/3.1-exploit.sh
-    ```
-
-    The script:
-
-    ```bash
-    # Get direct Container App URL
-    SHERPA_DIRECT_URL=$(az containerapp show -n sherpa-mcp-server -g $RG --query properties.configuration.ingress.fqdn -o tsv)
-    
-    # Call it directly, bypassing APIM
-    curl https://${SHERPA_DIRECT_URL}/mcp
-    
-    # ✅ Request succeeds
-    # ❌ No OAuth validation
-    # ❌ No rate limiting
-    # ❌ No content safety filtering
-    # ❌ No APIM logs
-    ```
-
-    ??? danger "Security Impact: The Backdoor Attack"
-        **Scenario:** An attacker discovers your Container App URL (it's not secret—just part of Azure naming):
+    ??? tip "Option 1: IP Restrictions (Simple but Limited)"
         
+        Container Apps support IP-based access restrictions. You can configure an allow-list that only permits APIM's IP:
+
+        ```bash
+        # Allow only APIM's IP (everything else implicitly denied)
+        az containerapp ingress access-restriction set \
+          --name sherpa-mcp-server \
+          --resource-group $RG \
+          --rule-name "allow-apim" \
+          --ip-address "${APIM_OUTBOUND_IP}/32" \
+          --action Allow
         ```
-        https://sherpa-mcp-server.greenriver-xyz123.eastus.azurecontainerapps.io
+
+        **Limitation:** APIM Basic v2 (used in this workshop) has dynamic outbound IPs that can change during scaling or maintenance. This approach works better with **APIM Standard v2**, which provides static outbound IPs.
+
+    ??? tip "Option 2: Virtual Network Integration (Recommended for Production)"
+        
+        For true network isolation, deploy both APIM and Container Apps inside an Azure Virtual Network:
+
         ```
-        
-        They can now:
-        
-        - 🚫 Bypass OAuth completely - No authentication required
-        - 🚫 Bypass rate limiting - Send 1000 req/sec if they want
-        - 🚫 Bypass content safety - Send malicious prompts freely
-        - 🚫 Avoid detection - Requests don't appear in APIM logs
-        - 💰 Run up your costs - Direct backend calls still cost you money
-        
-        **All your APIM security is worthless if the backend is publicly accessible.**
-        
-        **This is MCP-04: Network Exposure** - no network-level isolation.
-
-    ---
-
-    ### Step 2: Fix - Apply IP Restrictions
-
-    Configure Container Apps to only accept traffic from APIM:
-
-    ```bash
-    ./scripts/3.1-fix.sh
-    ```
-
-    ??? warning "APIM Basic v2 Limitation"
-        **Important:** APIM Basic v2 (used in this workshop) has **dynamic outbound IPs** that can change, making IP restriction challenging for production.
-        
-        This waypoint demonstrates the **pattern** and shows you how it would work, but for production deployments, you should:
-        
-        **Option 1: Upgrade to Standard v2**
-        
-        - ✅ Static outbound IP address
-        - ✅ Reliable IP restriction
-        - ✅ Higher throughput
-        - 💰 Higher cost (~$250/month vs ~$125/month)
-        
-        **Option 2: Virtual Network Integration**
-        
-        - ✅ Private endpoints for Container Apps
-        - ✅ No public internet exposure
-        - ✅ Fully isolated network
-        - ✅ Works with Basic v2
-        - ⚙️ More complex setup
-        
-        **Option 3: Managed Identity Authentication**
-        
-        - ✅ Container Apps validate APIM's Managed Identity
-        - ✅ No IP restrictions needed
-        - ✅ Works with dynamic IPs
-        - ⚙️ Requires custom code in your MCP server
-        
-        For this workshop, we'll document the IP restriction approach, and you can choose the best option for your production deployment.
-
-    The script configures:
-
-    ```bash
-    # Get APIM outbound IP
-    APIM_IP=$(az apim show -n $APIM_NAME -g $RG --query publicIpAddresses[0] -o tsv)
-    
-    # Configure Container App IP restriction
-    az containerapp ingress access-restriction set \
-      -n sherpa-mcp-server \
-      -g $RG \
-      --rule-name "allow-apim" \
-      --ip-address $APIM_IP \
-      --action Allow
-    
-    az containerapp ingress access-restriction set \
-      -n sherpa-mcp-server \
-      -g $RG \
-      --rule-name "deny-all" \
-      --action Deny
-    ```
-
-    ---
-
-    ### Step 3: Validate - Confirm Restrictions Work
-
-    Test the restrictions:
-
-    ```bash
-    ./scripts/3.1-validate.sh
-    ```
-
-    The script tests:
-
-    **Test 1: Request through APIM**
-    ```bash
-    curl -H "Authorization: Bearer ${TOKEN}" \
-         "${APIM_URL}/sherpa-mcp/mcp"
-    
-    # ✅ 200 OK - APIM's IP is allowed
-    ```
-
-    **Test 2: Direct backend request**
-    ```bash
-    curl https://${SHERPA_DIRECT_URL}/mcp
-    
-    # ❌ 403 Forbidden - Your IP is blocked
-    ```
-
-    **Expected output:**
-
-    ```
-    ========================================
-    ✅ IP Restriction Test Results
-    ========================================
-    
-    1. Request through APIM: ✅ 200 OK
-       (APIM IP is allowed)
-    
-    2. Direct backend request: ✅ 403 Forbidden
-       (Your IP is blocked)
-    
-    🎉 IP restrictions are working!
-    (Note: This uses APIM's current IP, which may change)
-    ```
-
-    ---
-
-    ### What You Just Fixed
-
-    **Before (public backends):**
-    
-    - ❌ Backend accessible to anyone
-    - ❌ Can bypass all APIM security
-    - ❌ No network isolation
-    - ❌ Attacks don't appear in logs
-
-    **After (IP restrictions):**
-    
-    - ✅ Only APIM can reach backends
-    - ✅ All requests must go through security policies
-    - ✅ Network-level protection
-    - ✅ All traffic visible in APIM logs
-
-    **OWASP MCP-04 mitigation complete!** ✅
-
-    ??? tip "Production Recommendations"
-        For production deployments, consider:
-        
-        **1. Virtual Network Integration**
+                    Public Internet
+                          │
+                          ▼
+        ┌─────────────────────────────────────────────────────┐
+        │ Azure Virtual Network                               │
+        │  ┌───────────────────────────────────────────────┐  │
+        │  │ Private Subnet                                │  │
+        │  │                                               │  │
+        │  │  ┌─────────────┐       ┌──────────────────┐   │  │
+        │  │  │    APIM     │ ────► │  Container Apps  │   │  │
+        │  │  │ (external)  │       │ (internal only)  │   │  │
+        │  │  └─────────────┘       └──────────────────┘   │  │
+        │  │                                               │  │
+        │  └───────────────────────────────────────────────┘  │
+        └─────────────────────────────────────────────────────┘
         ```
-        ┌────────────────────────────────────────────┐
-        │ Azure Virtual Network                      │
-        │  ┌──────────────────────────────────────┐  │
-        │  │ Private Subnet                       │  │
-        │  │  • APIM (internal mode)              │  │
-        │  │  • Container Apps (internal ingress) │  │
-        │  │  • No public IPs                     │  │
-        │  └──────────────────────────────────────┘  │
-        └────────────────────────────────────────────┘
+
+        **Benefits:**
+        
+        - Container Apps have no public IP at all
+        - Traffic stays within Azure's backbone
+        - Defense in depth with NSGs
+
+    ??? tip "Option 3: Private Endpoints"
+        
+        Use Azure Private Link to expose your Container Apps only via private endpoints:
+
+        - APIM connects to backends via private IP
+        - No public internet traversal
+        - Can combine with VNet for full isolation
+
+    ??? tip "Option 4: Header-Based Validation"
+        
+        Add a custom header in APIM that backends validate:
+
+        **APIM Policy:**
+        ```xml
+        <set-header name="X-APIM-Gateway-Token" exists-action="override">
+          <value>{{gateway-secret}}</value>
+        </set-header>
         ```
-        
-        **2. Azure Firewall + NSGs**
-        
-        - Lock down network traffic at multiple layers
-        - WAF for additional protection
-        - DDoS protection for public endpoints
-        
-        **3. Private Link**
-        
-        - Expose APIM via Private Endpoint
-        - Clients connect through private IP
-        - Never traverse public internet
 
----
+        **Backend validation:**
+        ```python
+        if request.headers.get("X-APIM-Gateway-Token") != EXPECTED_TOKEN:
+            return Response("Forbidden", status=403)
+        ```
 
-## Testing with VS Code
-
-Now that all security controls are in place, let's connect VS Code to your fully secured MCP gateway!
-
-??? note "Configure VS Code MCP Client"
-
-    ### Add MCP Server to VS Code
-
-    1. Open VS Code Settings (⌘, or Ctrl+,)
-    2. Search for "MCP Servers"
-    3. Click **"Edit in settings.json"**
-    4. Add your Sherpa MCP configuration:
-
-    ```json
-    {
-      "github.copilot.chat.mcp.servers": {
-        "sherpa-gateway": {
-          "command": "mcp-client-sse",
-          "args": [
-            "--sse-url",
-            "https://apim-<your-resource-token>.azure-api.net/sherpa/mcp"
-          ]
-        }
-      }
-    }
-    ```
-
-    **Get your APIM URL:**
-    ```bash
-    azd env get-value APIM_GATEWAY_URL
-    ```
-
-    Replace `<your-resource-token>` with your actual gateway URL.
+        This works with dynamic IPs but requires code changes in your MCP server.
 
     ---
 
-    ### Test OAuth Flow
+    ### What This Means for Your Deployment
 
-    5. Save settings.json
-    6. Reload VS Code: ⌘+Shift+P → **"Developer: Reload Window"**
-    7. Open GitHub Copilot Chat
+    For this workshop, we've focused on the security controls that run **at the gateway layer**—OAuth, rate limiting, and content safety. These provide significant protection and are the most impactful first steps.
 
-    **What happens next:**
+    **Network isolation is the final layer** that ensures attackers can't simply bypass your gateway. When planning your production deployment, choose the approach that fits your requirements:
 
-    1. VS Code queries `/.well-known/oauth-protected-resource` (PRM endpoint)
-    2. Discovers authorization server: `https://login.microsoftonline.com/{tenant}/v2.0`
-    3. Initiates OAuth flow with PKCE
-    4. Opens browser for you to sign in
-    5. Redirects back to VS Code with authorization code
-    6. Exchanges code for access token
-    7. Stores token securely in VS Code keychain
-    8. Uses token for all subsequent MCP requests
-
-    **You'll see:**
-
-    ```
-    🔐 Sherpa Gateway requires authentication
-    
-    Opening browser to sign in...
-    ```
-
-    Sign in with your Azure account (the one with access to the MCP app).
+    | Approach | Complexity | Cost | APIM Tier Required |
+    |----------|------------|------|-------------------|
+    | IP Restrictions | Low | None | Standard v2+ (static IPs) |
+    | VNet Integration | Medium | VNet costs | Any |
+    | Private Endpoints | Medium | Private Link costs | Any |
+    | Header Validation | Low | None | Any |
 
     ---
 
-    ### Test MCP Tools
+    ### Key Takeaways
 
-    Once authenticated, try these prompts in GitHub Copilot Chat:
+    1. **Gateway security is necessary but not sufficient** — Without network isolation, all your APIM policies can be bypassed.
 
-    ```
-    @workspace What's the weather at the summit?
-    ```
+    2. **Defense in depth matters** — Layer network controls on top of application-level security.
 
-    Behind the scenes:
-    
-    1. VS Code sends request to APIM with your OAuth token
-    2. ✅ APIM validates JWT (audience, expiration, signature)
-    3. ✅ APIM checks rate limit (within 10 req/min quota)
-    4. ✅ APIM scans prompt with Content Safety (no harmful content)
-    5. ✅ APIM forwards request to Sherpa MCP Server
-    6. ✅ Sherpa calls `get_weather` tool
-    7. ✅ Response flows back through APIM
-    8. ✅ VS Code displays result
+    3. **Choose the right approach for your tier** — IP restrictions need static IPs; VNet integration works with any tier.
 
-    **Try rate limiting:**
+    4. **Monitor for direct access attempts** — Even with restrictions, log and alert on unexpected traffic patterns.
 
-    Send 15 rapid requests—the last 5 should fail with "Rate limit exceeded" after you hit 10 requests in a minute.
-
-    **Try content safety:**
-
-    Send a harmful prompt—it should be blocked before reaching the MCP server.
+    **OWASP MCP-04 awareness complete!** ✅
 
 ---
 
@@ -1748,24 +1572,24 @@ Congratulations! You've deployed a production-grade API gateway for MCP servers 
 !!! success "Architecture Patterns"
     **Gateway Pattern Benefits:**
     
-    - ✅ **Centralized security** - One place to enforce policies for all MCP servers
-    - ✅ **Consistent enforcement** - Same OAuth, rate limits, and filtering everywhere
-    - ✅ **Easy updates** - Change policies without redeploying servers
-    - ✅ **Better monitoring** - Single dashboard for all MCP traffic
-    - ✅ **Cost control** - Enforce rate limits to prevent runaway costs
+    - **Centralized security** - One place to enforce policies for all MCP servers
+    - **Consistent enforcement** - Same OAuth, rate limits, and filtering everywhere
+    - **Easy updates** - Change policies without redeploying servers
+    - **Better monitoring** - Single dashboard for all MCP traffic
+    - **Cost control** - Enforce rate limits to prevent runaway costs
     
     **Protected Resource Metadata (RFC 9728):**
     
-    - ✅ **Automatic OAuth discovery** - Clients don't need manual configuration
-    - ✅ **Better user experience** - Sign in once, works everywhere
-    - ✅ **Standards-based** - Works with any RFC 9728-compliant client
+    - **Automatic OAuth discovery** - Clients don't need manual configuration
+    - **Better user experience** - Sign in once, works everywhere
+    - **Standards-based** - Works with any RFC 9728-compliant client
     
     **Defense in Depth:**
 
-    - ✅ **OAuth** - Who you are
-    - ✅ **Rate limiting** - How much you can do
-    - ✅ **Content Safety** - What you can say
-    - ✅ **Network isolation** - Where you can access from
+    - **OAuth** - Who you are
+    - **Rate limiting** - How much you can do
+    - **Content Safety** - What you can say
+    - **Network isolation** - Where you can access from
 
 ---
 
@@ -1773,15 +1597,15 @@ Congratulations! You've deployed a production-grade API gateway for MCP servers 
 
 Before deploying to production, ensure you've configured:
 
-- [ ] **Upgrade to APIM Standard v2** for static IPs and higher throughput
-- [ ] **Virtual Network integration** for full network isolation
-- [ ] **Custom domains** with TLS certificates for APIM
-- [ ] **Azure Monitor alerts** for rate limit violations and auth failures
-- [ ] **APIM policies for each environment** (dev/staging/prod with different limits)
-- [ ] **Content Safety thresholds** tuned for your use case
-- [ ] **RBAC for API Center** so teams can self-register APIs
-- [ ] **Disaster recovery plan** with APIM backup and restore
-- [ ] **Cost monitoring** with Azure Cost Management alerts
+- **Upgrade to APIM Standard v2** for static IPs and higher throughput
+- **Virtual Network integration** for full network isolation
+- **Custom domains** with TLS certificates for APIM
+- **Azure Monitor alerts** for rate limit violations and auth failures
+- **APIM policies for each environment** (dev/staging/prod with different limits)
+- **Content Safety thresholds** tuned for your use case
+- **RBAC for API Center** so teams can self-register APIs
+- **Disaster recovery plan** with APIM backup and restore
+- **Cost monitoring** with Azure Cost Management alerts
 
 ---
 
@@ -1810,7 +1634,7 @@ az ad app delete --id $APIM_APP_ID
 
 ## What's Next?
 
-!!! success "Camp 2 Complete! 🎉"
+!!! success "Camp 2 Complete!"
     You've secured your MCP servers with enterprise-grade API gateway controls!
 
 **Continue your ascent:**
