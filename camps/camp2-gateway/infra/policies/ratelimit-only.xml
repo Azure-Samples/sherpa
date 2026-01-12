@@ -1,0 +1,37 @@
+<!--
+  Rate Limiting only policy (no OAuth)
+  For APIs that use subscription keys without OAuth
+-->
+<policies>
+  <inbound>
+    <base />
+    <!-- Rate limit: 10 requests per minute per subscription key -->
+    <rate-limit-by-key calls="10" renewal-period="60" counter-key="@(context.Subscription.Id)" />
+  </inbound>
+  <backend>
+    <forward-request />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+    <choose>
+      <when condition="@(context.Response.StatusCode == 429)">
+        <return-response>
+          <set-status code="429" reason="Too Many Requests" />
+          <set-header name="Retry-After" exists-action="override">
+            <value>60</value>
+          </set-header>
+          <set-body>@{
+            return JsonConvert.SerializeObject(new {
+              error = "rate_limit_exceeded",
+              message = "Too many requests. Please wait before retrying.",
+              retry_after = 60
+            });
+          }</set-body>
+        </return-response>
+      </when>
+    </choose>
+  </on-error>
+</policies>

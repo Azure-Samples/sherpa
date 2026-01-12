@@ -1,0 +1,1 @@
+"""Trail API routes."""

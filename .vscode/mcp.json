@@ -1,22 +1,23 @@
 {
-	"servers": {
-		"base-camp-vulnerable": {
-			"type": "http",
-			"url": "http://localhost:8000/mcp"
-		},
-		"camp1-secure": {
-			"type": "sse",
-			"url": "https://ca-secure-xaead.ashyground-55f071ab.eastus.azurecontainerapps.io/mcp",
-			"oauth": {
-				"clientId": "d1db4c8f-dd4f-44c4-9245-8c2e25f7f61c",
-				"authorizationUrl": "https://login.microsoftonline.com/16b3c013-d300-468d-ac64-7eda0820b6d3/oauth2/v2.0/authorize",
-				"tokenUrl": "https://login.microsoftonline.com/16b3c013-d300-468d-ac64-7eda0820b6d3/oauth2/v2.0/token",
-				"scope": "api://d1db4c8f-dd4f-44c4-9245-8c2e25f7f61c/access_as_user"
-			}
-		},
-		"camp1-secure-test": {
-			"type": "http",
-			"url": "https://ca-secure-xaead.ashyground-55f071ab.eastus.azurecontainerapps.io/mcp"
-		}			
-	}
+    "servers": {
+        "base-camp-vulnerable": {
+            "type": "http",
+            "url": "http://localhost:8000/mcp"
+        },
+        "sherpa-direct": {
+            "type": "http",
+            "url": "https://your-container-app.azurecontainerapps.io/mcp"
+        },
+        "sherpa-via-apim": {
+            "type": "http", 
+            "url": "https://your-apim-instance.azure-api.net/sherpa/mcp"
+        },
+        "trails-via-apim": {
+            "type": "http",
+            "url": "https://your-apim-instance.azure-api.net/trails/mcp",
+            "headers": {
+                "Ocp-Apim-Subscription-Key": "your-subscription-key"
+            }
+        }
+    }
 }

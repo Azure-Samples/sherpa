@@ -1,0 +1,51 @@
+<!--
+  OAuth token validation policy for MCP API
+  Validates tokens from Entra ID for MCP access
+  
+  Key learnings:
+  - Audience must match the Entra app's identifierUris or appId
+  - When identifierUris is empty, use appId directly (not api://appId)
+  - The resource_metadata URL must include the API path for RFC 9728 compliance
+-->
+<policies>
+  <inbound>
+    <base />
+    <validate-azure-ad-token tenant-id="{{tenant-id}}" 
+                              failed-validation-httpcode="401" 
+                              failed-validation-error-message="Unauthorized">
+      <audiences>
+        <!-- Use appId directly when identifierUris is empty -->
+        <audience>{{mcp-app-client-id}}</audience>
+      </audiences>
+    </validate-azure-ad-token>
+  </inbound>
+  <backend>
+    <forward-request />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+    <choose>
+      <when condition="@(context.Response.StatusCode == 401)">
+        <return-response>
+          <set-status code="401" reason="Unauthorized" />
+          <set-header name="WWW-Authenticate" exists-action="override">
+            <!-- Dynamic: uses context.Api.Path for any MCP API (trim leading slash) -->
+            <value>@("Bearer error=\"invalid_token\", resource_metadata=\"" + "{{apim-gateway-url}}/" + context.Api.Path.TrimStart('/') + "/.well-known/oauth-protected-resource\"")</value>
+          </set-header>
+          <set-body>@{
+            var gatewayUrl = "{{apim-gateway-url}}";
+            var apiPath = context.Api.Path.TrimStart('/');
+            return JsonConvert.SerializeObject(new {
+              error = "unauthorized",
+              message = "Valid OAuth token required",
+              resource_metadata = gatewayUrl + "/" + apiPath + "/.well-known/oauth-protected-resource"
+            });
+          }</set-body>
+        </return-response>
+      </when>
+    </choose>
+  </on-error>
+</policies>
