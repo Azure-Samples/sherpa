@@ -16,7 +16,7 @@ The answer is an **MCP gateway**: a centralized security checkpoint where **all*
 This camp follows the same **"vulnerable → exploit → fix → validate"** methodology you've used before, but now at scale with multiple MCP servers and comprehensive gateway controls.
 
 **Tech Stack:** Python, MCP, Azure API Management, Container Apps, Content Safety, API Center, Entra  
-**Primary Risks:** [MCP-03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-misuse/) (Tool Misuse), [MCP-05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-insufficient-access-controls/) (Insufficient Access Controls), [MCP-06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-rate-limiting/) (Inadequate Rate Limiting), [MCP-07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) (Insufficient Authentication & Authorization), [MCP-09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-governance/) (Shadow MCP Servers & Governance)
+**Primary Risks:** [MCP-03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/) (Tool Poisoning), [MCP-05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-command-injection/) (Command Injection & Execution), [MCP-06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/) (Prompt Injection via Contextual Payloads), [MCP-07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) (Insufficient Authentication & Authorization), [MCP-09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/) (Shadow MCP Servers)
 
 ## What You'll Learn
 
@@ -177,7 +177,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
     - **Enterprise governance** - Monitor, audit, and control MCP traffic
     - **Transparent forwarding** - Upstream server receives authentic MCP protocol messages
 
-    **OWASP Risk:** [MCP-05 (Insufficient Access Controls)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-insufficient-access-controls/)
+    **OWASP Risk:** [MCP-07 (Insufficient Authentication & Authorization)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/)
 
     Without authentication, your MCP server is completely open to the internet. For production MCP servers, you need **user-level authentication with OAuth**.
 
@@ -479,7 +479,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
     - **Incremental adoption** - Expose legacy REST APIs to AI agents without rewriting them
     - **Consistent governance** - All MCP servers (native or exported) flow through the same gateway
 
-    **OWASP Risk:** [MCP-05 (Insufficient Access Controls)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-insufficient-access-controls/)
+    **OWASP Risk:** [MCP-07 (Insufficient Authentication & Authorization)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/)
 
     Subscription keys are useful for **tracking and billing**, but they are NOT authentication. For AI agent access, you need OAuth with user identity.
 
@@ -869,7 +869,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
 
     ### The Security Challenge: Unlimited Requests
 
-    **OWASP Risk:** [MCP-06 (Inadequate Rate Limiting)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-rate-limiting/)
+    **OWASP Risk:** [MCP-02 (Privilege Escalation via Scope Creep)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/)
 
     Even with OAuth, a single user (or compromised account) can overwhelm your MCP servers by sending unlimited requests. This leads to:
     
@@ -1063,7 +1063,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
 
     ### The Security Challenge: Shadow MCP Servers & API Sprawl
 
-    **OWASP Risk:** [MCP-09 (Shadow MCP Servers & Governance)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-governance/)
+    **OWASP Risk:** [MCP-09 (Shadow MCP Servers)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/)
 
     As your organization grows, teams independently deploy MCP servers, creating dangerous blind spots:
     
@@ -1220,7 +1220,7 @@ In this section, you'll add AI-powered content filtering to prevent prompt injec
     - **Centralized protection** - One policy protects all MCP servers behind APIM
     - **Low latency** - Adds ~50ms, blocks before MCP processing
 
-    **OWASP Risk:** [MCP-03 (Tool Poisoning)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/)
+    **OWASP Risk:** [MCP-06 (Prompt Injection via Contextual Payloads)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/)
 
     ---
 
@@ -1394,7 +1394,7 @@ In this final section, you'll learn about network isolation patterns to protect 
 
     ### The Security Challenge: Direct Backend Access
 
-    **OWASP Risk:** [MCP-04 (Network Exposure)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp04-network/)
+    **OWASP Risk:** [MCP-04 (Software Supply Chain Attacks & Dependency Tampering)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp04-supply-chain/)
 
     Your MCP servers are running in Container Apps with public endpoints. While you've added OAuth, rate limiting, and content safety at the gateway, there's a fundamental problem:
 
@@ -1544,13 +1544,13 @@ Congratulations! You've deployed a production-grade API gateway for MCP servers 
 │  └─────────────────────────────────────────────────────────────────┘     │
 └──────────────┬─────────────────────────────────┬─────────────────────────┘
                │                                 │
-    ┌──────────▼─────────────┐       ┌──────────▼─────────────┐
-    │  Sherpa MCP Server     │       │  Trail MCP Server      │
-    │  (Container App)       │       │  (Container App)       │
-    │  • Weather data        │       │  • Trails              │
-    │  • Trail info          │       │  • Conditions          │
-    │  • Gear recommendations│       │                        │
-    └────────────────────────┘       └────────────────────────┘
+    ┌──────────▼─────────────┐        ┌──────────▼─────────────┐
+    │  Sherpa MCP Server     │        │  Trail MCP Server      │
+    │  (Container App)       │        │  (Container App)       │
+    │  • Weather data        │        │  • Trails              │
+    │  • Trail info          │        │  • Conditions          │
+    │  • Gear recommendations│        │                        │
+    └────────────────────────┘        └────────────────────────┘
 ```
 
 ---
@@ -1559,11 +1559,11 @@ Congratulations! You've deployed a production-grade API gateway for MCP servers 
 
 | Control | What It Does | OWASP Risk Mitigated |
 |---------|--------------|----------------------|
-| **OAuth + PRM** | User identity & automatic discovery | MCP-05 (Insufficient Access Controls) |
-| **Rate Limiting** | 10 req/min per MCP session | MCP-06 (Inadequate Rate Limiting) |
-| **Content Safety** | Block harmful content & prompt injection | MCP-03 (Tool Misuse) |
+| **OAuth + PRM** | User identity & automatic discovery | MCP-07 (Insufficient Authentication & Authorization) |
+| **Rate Limiting** | 10 req/min per MCP session | MCP-02 (Privilege Escalation via Scope Creep) |
+| **Content Safety** | Block harmful content & prompt injection | MCP-06 (Prompt Injection via Contextual Payloads) |
 | **API Center** | Prevent shadow MCP servers & centralized governance | MCP-09 (Shadow MCP Servers) |
-| **IP Restrictions** | Network isolation (production pattern) | MCP-04 (Network Exposure) |
+| **IP Restrictions** | Network isolation (production pattern) | MCP-04 (Software Supply Chain Attacks) |
 
 ---
 
