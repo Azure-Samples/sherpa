@@ -57,7 +57,7 @@ In this workshop, you'll work with both sides of this architecture to understand
 
 Before starting Base Camp, ensure you have the required tools installed.
 
-!!! info "📋 Prerequisites Guide"
+!!! info "Prerequisites Guide"
     See the **[Prerequisites page](../prerequisites.md)** for detailed installation instructions and troubleshooting.
 
 **Quick checklist for Base Camp:**

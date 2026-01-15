@@ -46,7 +46,7 @@ Your journey follows a proven camp-to-camp progression. Each stage builds on the
     ---
 
     **Understanding the Mountain** - Explore MCP fundamentals and witness authentication vulnerabilities in action  
-    *OWASP Risks: MCP07, MCP01*
+    *OWASP Risks: [MCP07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/), [MCP01](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token-mismanagement/)*
 
     [:octicons-arrow-right-24: Begin the ascent](camps/base-camp.md)
 
@@ -55,7 +55,7 @@ Your journey follows a proven camp-to-camp progression. Each stage builds on the
     ---
 
     **Establishing Your Identity** - Leverage OAuth 2.1, Azure Managed Identity, and Key Vault secrets management  
-    *OWASP Risks: MCP07, MCP01, MCP02*
+    *OWASP Risks: [MCP07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/), [MCP01](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token-mismanagement/), [MCP02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/)*
 
     [:octicons-arrow-right-24: Secure your identity](camps/camp1-identity.md)
 
@@ -64,7 +64,7 @@ Your journey follows a proven camp-to-camp progression. Each stage builds on the
     ---
 
     **Scaling the Gateway Ridge** - Deploy API Management, Private Endpoints, and API Center governance  
-    *OWASP Risks: MCP09, MCP02, MCP07*
+    *OWASP Risks: [MCP09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/), [MCP02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/), [MCP07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/)*
 
     [:octicons-arrow-right-24: Build the gateway](camps/camp2-gateway.md)
 
@@ -73,7 +73,7 @@ Your journey follows a proven camp-to-camp progression. Each stage builds on the
     ---
 
     **Navigating I/O Pass** - Protect against prompt injection, PII leakage, and malicious content  
-    *OWASP Risks: MCP06, MCP05, MCP03*
+    *OWASP Risks: [MCP06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/), [MCP05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-command-injection/), [MCP03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/)*
 
     [:octicons-arrow-right-24: Secure your data](camps/camp3-io-security.md)
 
@@ -82,7 +82,7 @@ Your journey follows a proven camp-to-camp progression. Each stage builds on the
     ---
 
     **Observation Peak** - Implement Log Analytics, dashboards, and automated threat detection  
-    *OWASP Risks: MCP08*
+    *OWASP Risks: [MCP08](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp08-telemetry/)*
 
     [:octicons-arrow-right-24: Watch the horizon](camps/camp4-monitoring.md)
 
@@ -91,7 +91,6 @@ Your journey follows a proven camp-to-camp progression. Each stage builds on the
     ---
 
     **Full Integration Test** - Red Team / Blue Team exercise validating all security layers  
-    *All OWASP Risks Validated*
 
     [:octicons-arrow-right-24: Reach the peak](#)
 

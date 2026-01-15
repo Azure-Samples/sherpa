@@ -16,7 +16,7 @@ The answer is an **MCP gateway**: a centralized security checkpoint where **all*
 This camp follows the same **"vulnerable → exploit → fix → validate"** methodology you've used before, but now at scale with multiple MCP servers and comprehensive gateway controls.
 
 **Tech Stack:** Python, MCP, Azure API Management, Container Apps, Content Safety, API Center, Entra  
-**Primary Risks:** [MCP-03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/) (Tool Poisoning), [MCP-05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-command-injection/) (Command Injection & Execution), [MCP-06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/) (Prompt Injection via Contextual Payloads), [MCP-07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) (Insufficient Authentication & Authorization), [MCP-09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/) (Shadow MCP Servers)
+**Primary Risks:** [MCP-02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/) (Privilege Escalation via Scope Creep), [MCP-06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/) (Prompt Injection via Contextual Payloads), [MCP-07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) (Insufficient Authentication & Authorization), [MCP-09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/) (Shadow MCP Servers)
 
 ## What You'll Learn
 
@@ -297,7 +297,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
             - No way to stop them without taking the service offline
             - No way to implement rate limiting per user
             
-            This is **MCP-05: Insufficient Access Controls** - the system can't identify users or enforce authorization.
+            This is **MCP-07: Insufficient Authentication & Authorization** - the system can't identify users or enforce authorization.
 
     ??? success "Step 3: Fix - Add OAuth with PRM Discovery"
 
@@ -449,7 +449,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
     :material-check: Tokens expire automatically (short-lived)  
     :material-check: VS Code authenticates automatically via PRM discovery  
 
-    **OWASP MCP-05** mitigated at the gateway!  ✅  
+    **OWASP MCP-07** mitigated at the gateway!  ✅  
 
     !!! warning "Backend Still Exposed"
         OAuth is now enforced at the APIM gateway, but the Container App running Sherpa is still publicly accessible. Anyone who discovers the direct Container App URL can bypass APIM entirely (as shown in Step 2's `sherpa-direct` test).
@@ -658,7 +658,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
             
             Who accessed the permit data? Alice, Bob, Charlie, or Miranda? You can't tell - they all share the same key.
             
-            **This is MCP-05: Insufficient Access Controls** - subscription keys ≠ authentication.
+            **This is MCP-07: Insufficient Authentication & Authorization** - subscription keys ≠ authentication.
 
     ??? success "Step 3: Fix - Add OAuth for Authentication (Keep Subscription Key for Tracking)"
 
@@ -863,7 +863,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
     | Per-user Permissions | ❌ | ✅ |
     | Emergency Revocation | ✅ (app level) | ✅ (user level) |
 
-    **OWASP MCP-05** mitigated! ✅
+    **OWASP MCP-07** mitigated! ✅
 
 ??? note "Waypoint 1.3: Rate Limiting by Subscription Key"
 
@@ -930,7 +930,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
 
     The script demonstrates how without rate limiting, a single runaway client can send unlimited requests.
 
-    **This is MCP-06: Inadequate Rate Limiting** - the system can't prevent resource exhaustion.
+    **This is MCP-02: Privilege Escalation via Scope Creep** - the system can't prevent resource exhaustion.
 
     ---
 
@@ -1057,7 +1057,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
     - Predictable costs
     - Tiered limits possible (different quotas per subscription tier)
 
-    **OWASP MCP-06 mitigation complete!** ✅
+    **OWASP MCP-02 mitigation complete!** ✅
 
 ??? note "Waypoint 1.4: API Governance with API Center"
 
@@ -1382,7 +1382,7 @@ In this section, you'll add AI-powered content filtering to prevent prompt injec
     - Jailbreak attempts stopped
     - AI model protected from manipulation
 
-    **OWASP MCP-03 mitigation complete!** ✅
+    **OWASP MCP-06 mitigation complete!** ✅
 
 ---
 
