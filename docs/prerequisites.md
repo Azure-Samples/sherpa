@@ -366,8 +366,7 @@ Requirements will be listed in each camp's documentation.
 
 ### macOS
 - Homebrew is recommended for package management
-- Ensure Xcode Command Line Tools are installed: `xcode-select --install`
-- M1/M2 Macs: All tools support Apple Silicon natively
+- If Homebrew prompts for Xcode Command Line Tools during installation, run: `xcode-select --install`
 
 ### Windows
 - PowerShell 7+ is recommended over Windows PowerShell 5.1
