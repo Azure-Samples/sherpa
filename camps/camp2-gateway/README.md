@@ -1,5 +1,9 @@
 # Camp 2: Gateway Security
 
+> **Looking for the workshop?** This README is a quick reference for the codebase. For the full step-by-step workshop guide, visit: **[Camp 2: Gateway Security Workshop](https://azure-samples.github.io/sherpa/camps/camp2-gateway/)**
+
+---
+
 > *"The Gateway Station"* - A checkpoint where all climbers must pass through proper channels before accessing mountain resources.
 
 Establish enterprise-grade API gateway security for MCP servers using Azure API Management, implementing centralized access control, rate limiting, AI content safety, and OAuth 2.0 with Protected Resource Metadata (RFC 9728) discovery.
@@ -32,10 +36,10 @@ Camp 2 follows the **vulnerable → exploit → fix → validate** pattern:
 
 | Waypoint | OWASP Risk | Vulnerability | Fix |
 |----------|-----------|---------------|-----|
-| 1.1 | MCP-05 | No user identity | OAuth + PRM |
-| 1.2 | MCP-06 | Unlimited requests | Rate limiting |
-| 1.3 | MCP-09 | No governance | API Center |
-| 2 | MCP-03 | No content filtering | Content Safety |
+| 1.1, 1.2 | MCP-07 | No user identity | OAuth + PRM |
+| 1.3 | MCP-02 | Unlimited requests | Rate limiting |
+| 1.4 | MCP-09 | No governance | API Center |
+| 2.1 | MCP-06 | No content filtering | Content Safety |
 | 3.1 | MCP-04 | Public backends | IP restrictions |
 
 ## Quick Start
@@ -155,8 +159,6 @@ camps/camp2-gateway/
 ## Documentation
 
 - [Full Workshop Guide](https://azure-samples.github.io/sherpa/camps/camp2-gateway/)
-- [Network Concepts](./docs/network-concepts.md)
-- [Read/Write Patterns](./docs/read-write-patterns.md)
 
 ## Troubleshooting
 
