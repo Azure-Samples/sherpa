@@ -1,5 +1,9 @@
 # Camp 1: Identity & Access Management
 
+> **Looking for the workshop?** This README is a quick reference for the codebase. For the full step-by-step workshop guide, visit: **[Camp 1: Identity & Access Management Workshop](https://azure-samples.github.io/sherpa/camps/camp1-identity/)**
+
+---
+
 > *"Establishing Your Identity on the Mountain"*
 
 Learn how to secure an MCP server deployed to Azure using Managed Identity, Key Vault, and OAuth 2.1 with JWT validation. This camp demonstrates why cloud deployment amplifies security risks and how Azure's identity services provide production-grade solutions.
@@ -64,6 +68,17 @@ Each waypoint includes step-by-step commands, expected outputs, and security exp
 - **Azure Entra ID:** Enterprise identity and OAuth provider
 - **FastMCP:** Modern MCP framework with authentication support
 - **OAuth 2.1:** Modern authentication with PKCE and short-lived tokens
+
+## Authentication Flows
+
+This workshop demonstrates two OAuth 2.1 flows. Choose based on your scenario:
+
+| Flow | Best For | How It Works |
+|------|----------|--------------|
+| **Device Code Flow** | CLI tools, headless servers, SSH sessions | Displays a code to enter at microsoft.com/devicelogin |
+| **Authorization Code + PKCE** | Desktop apps, browser-based tools, VS Code | Opens browser, redirects back to localhost:8090 |
+
+**Recommendation:** Start with Device Code Flow - it works in any terminal. Use Authorization Code + PKCE when building apps that can handle browser redirects.
 
 ## Next Steps
 
