@@ -18,10 +18,10 @@ param publisherName string = 'Sherpa Workshop'
 // Entra ID app registration IDs (set by preprovision hook via azd env)
 // azd automatically converts SCREAMING_SNAKE_CASE env vars to camelCase params
 @description('MCP Resource App Client ID')
-param mcpAppClientId string
+param mcpAppClientId string = ''
 
 @description('APIM Client App ID for Credential Manager')
-param apimClientAppId string
+param apimClientAppId string = ''
 
 // Adjusted regions for services with limited availability
 var apimLocation = getApimBasicV2Region(location)

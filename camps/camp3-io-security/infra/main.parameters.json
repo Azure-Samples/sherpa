@@ -12,10 +12,10 @@
       "value": "${APIM_PUBLISHER_NAME=Sherpa Workshop}"
     },
     "mcpAppClientId": {
-      "value": "${MCP_APP_CLIENT_ID}"
+      "value": "${MCP_APP_CLIENT_ID=}"
     },
     "apimClientAppId": {
-      "value": "${APIM_CLIENT_APP_ID}"
+      "value": "${APIM_CLIENT_APP_ID=}"
     }
   }
 }

@@ -5,9 +5,9 @@ param publisherEmail string
 param publisherName string
 param managedIdentityId string
 param managedIdentityClientId string
-param apimClientAppId string
+param apimClientAppId string = ''
 param tenantId string
-param mcpAppClientId string
+param mcpAppClientId string = ''
 
 resource apim 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
   name: name
@@ -41,7 +41,8 @@ resource namedValueIdentityClientId 'Microsoft.ApiManagement/service/namedValues
 }
 
 // Named value for APIM client app ID (used in Credential Manager policy)
-resource namedValueApimClientId 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
+// Only created if the value is provided (set by preprovision hook)
+resource namedValueApimClientId 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = if (!empty(apimClientAppId)) {
   parent: apim
   name: 'apim-client-app-id'
   properties: {
@@ -74,7 +75,8 @@ resource namedValueTenantId 'Microsoft.ApiManagement/service/namedValues@2024-06
 }
 
 // Named value for MCP app client ID (used in OAuth policies)
-resource namedValueMcpAppClientId 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
+// Only created if the value is provided (set by preprovision hook)
+resource namedValueMcpAppClientId 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = if (!empty(mcpAppClientId)) {
   parent: apim
   name: 'mcp-app-client-id'
   properties: {
