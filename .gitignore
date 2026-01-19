@@ -16,6 +16,9 @@ __pycache__/
 *.azureauth
 *.publishsettings
 
+## Azure Functions local settings (contains secrets)
+local.settings.json
+
 ## Environment files
 .env
 .env.local

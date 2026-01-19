@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: sherpa-camp3-io-security
+metadata:
+  template: sherpa-mcp-security-workshop@1.0.0
+
+services:
+  sherpa-mcp-server:
+    project: ./servers/sherpa-mcp-server
+    language: python
+    host: containerapp
+
+  trail-api:
+    project: ./servers/trail-api
+    language: python
+    host: containerapp
+
+  security-function:
+    project: ./security-function
+    language: python
+    host: function
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
+
+hooks:
+  preprovision:
+    posix:
+      shell: sh
+      run: ./scripts/hooks/preprovision.sh
+      continueOnError: false
+    windows:
+      shell: pwsh
+      run: ./scripts/hooks/preprovision.ps1
+      continueOnError: false
+
+  postprovision:
+    posix:
+      shell: sh
+      run: ./scripts/hooks/postprovision.sh
+      continueOnError: false
+    windows:
+      shell: pwsh
+      run: ./scripts/hooks/postprovision.ps1
+      continueOnError: false

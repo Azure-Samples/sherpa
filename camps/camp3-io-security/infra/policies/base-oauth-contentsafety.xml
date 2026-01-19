@@ -1,0 +1,52 @@
+<!--
+    APIM Policy: Base OAuth + Content Safety (Layer 1 Only)
+    
+    This policy is the initial state before Camp 3 fixes are applied.
+    It includes:
+    - OAuth 2.0 validation (from Camp 1)
+    - Azure AI Content Safety (llm-content-safety) - Layer 1
+    
+    What's MISSING (vulnerable):
+    - Advanced injection pattern detection (Layer 2 input)
+    - PII redaction in responses (Layer 2 output)
+    - Credential scanning (Layer 2 output)
+-->
+<policies>
+    <inbound>
+        <base />
+        
+        <!-- OAuth 2.0 Validation using Entra ID -->
+        <validate-azure-ad-token tenant-id="{{tenant-id}}" 
+                                  failed-validation-httpcode="401" 
+                                  failed-validation-error-message="Unauthorized">
+            <audiences>
+                <audience>{{mcp-app-client-id}}</audience>
+            </audiences>
+        </validate-azure-ad-token>
+
+        <!-- Layer 1: Azure AI Content Safety -->
+        <llm-content-safety backend-id="content-safety-backend" shield-prompt="true">
+            <categories output-type="EightSeverityLevels">
+                <category name="Hate" threshold="4" />
+                <category name="Violence" threshold="4" />
+                <category name="Sexual" threshold="4" />
+                <category name="SelfHarm" threshold="4" />
+            </categories>
+        </llm-content-safety>
+        
+        <!-- NOTE: No Layer 2 input validation - advanced injections bypass Content Safety! -->
+    </inbound>
+    
+    <backend>
+        <forward-request />
+    </backend>
+    
+    <outbound>
+        <base />
+        <!-- NOTE: No output sanitization - PII and credentials leak through! -->
+    </outbound>
+    
+    <on-error>
+        <base />
+    </on-error>
+</policies>

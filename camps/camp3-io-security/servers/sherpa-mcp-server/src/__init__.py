@@ -1,0 +1,1 @@
+"""Sherpa MCP Server package."""

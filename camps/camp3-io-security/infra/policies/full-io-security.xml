@@ -1,0 +1,115 @@
+<!--
+    APIM Policy: Full I/O Security (Layer 1 + Layer 2)
+    
+    This policy includes complete defense-in-depth I/O security:
+    - OAuth 2.0 validation (from Camp 2)
+    - Rate limiting (from Camp 2)
+    - Layer 1: Azure AI Content Safety (llm-content-safety)
+    - Layer 2: Azure Function input_check (advanced injection patterns)
+    - Layer 2: Azure Function sanitize_output (PII redaction + credential scanning)
+-->
+<policies>
+    <inbound>
+        <base />
+        
+        <!-- OAuth 2.0 Validation -->
+        <validate-jwt header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized">
+            <openid-config url="https://login.microsoftonline.com/{{tenant-id}}/v2.0/.well-known/openid-configuration" />
+            <audiences>
+                <audience>{{mcp-app-client-id}}</audience>
+            </audiences>
+            <issuers>
+                <issuer>https://login.microsoftonline.com/{{tenant-id}}/v2.0</issuer>
+            </issuers>
+        </validate-jwt>
+
+        <!-- Rate Limiting -->
+        <rate-limit-by-key calls="100" renewal-period="60" counter-key="@(context.Request.Headers.GetValueOrDefault("Authorization","").AsJwt()?.Subject ?? "anonymous")" />
+
+        <!-- Layer 1: Azure AI Content Safety (fast, broad filtering) -->
+        <llm-content-safety backend-id="content-safety-backend">
+            <llm-content-safety-config shield-prompt="true">
+                <categories output-type="EightSeverityLevels">
+                    <category name="Hate" threshold="4" />
+                    <category name="Violence" threshold="4" />
+                    <category name="Sexual" threshold="4" />
+                    <category name="SelfHarm" threshold="4" />
+                </categories>
+            </llm-content-safety-config>
+        </llm-content-safety>
+
+        <!-- Layer 2: Advanced Input Check (Azure Function) -->
+        <send-request mode="new" response-variable-name="inputCheck" timeout="5" ignore-error="false">
+            <set-url>{{function-app-url}}/api/input-check</set-url>
+            <set-method>POST</set-method>
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-body>@(context.Request.Body.As<string>(preserveContent: true))</set-body>
+        </send-request>
+
+        <choose>
+            <when condition="@(((IResponse)context.Variables["inputCheck"]).StatusCode != 200)">
+                <return-response>
+                    <set-status code="500" reason="Security Check Unavailable" />
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/json</value>
+                    </set-header>
+                    <set-body>@{
+                        return new JObject(
+                            new JProperty("error", "Security check service unavailable"),
+                            new JProperty("code", "SECURITY_CHECK_FAILED")
+                        ).ToString();
+                    }</set-body>
+                </return-response>
+            </when>
+            <when condition="@(!((IResponse)context.Variables["inputCheck"]).Body.As<JObject>()["allowed"].Value<bool>())">
+                <return-response>
+                    <set-status code="400" reason="Security Check Failed" />
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/json</value>
+                    </set-header>
+                    <set-body>@{
+                        var result = ((IResponse)context.Variables["inputCheck"]).Body.As<JObject>();
+                        return new JObject(
+                            new JProperty("error", "Request blocked by security filter"),
+                            new JProperty("reason", result["reason"]?.ToString() ?? "Unknown"),
+                            new JProperty("category", result["category"]?.ToString() ?? "Unknown")
+                        ).ToString();
+                    }</set-body>
+                </return-response>
+            </when>
+        </choose>
+    </inbound>
+    
+    <backend>
+        <base />
+    </backend>
+    
+    <outbound>
+        <base />
+        
+        <!-- Layer 2: Output Sanitization (Azure Function) -->
+        <send-request mode="new" response-variable-name="sanitized" timeout="10" ignore-error="true">
+            <set-url>{{function-app-url}}/api/sanitize-output</set-url>
+            <set-method>POST</set-method>
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-body>@(context.Response.Body.As<string>(preserveContent: true))</set-body>
+        </send-request>
+
+        <!-- Only use sanitized response if function call succeeded -->
+        <choose>
+            <when condition="@(context.Variables.ContainsKey("sanitized") && ((IResponse)context.Variables["sanitized"]).StatusCode == 200)">
+                <set-body>@(((IResponse)context.Variables["sanitized"]).Body.As<string>())</set-body>
+            </when>
+            <!-- On sanitization failure, pass through original (fail open for availability) -->
+            <!-- In production, consider failing closed instead -->
+        </choose>
+    </outbound>
+    
+    <on-error>
+        <base />
+    </on-error>
+</policies>
