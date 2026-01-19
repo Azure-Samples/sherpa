@@ -1,4 +1,9 @@
-"""Tests for input_check function and injection patterns."""
+"""Tests for input_check function and injection patterns.
+
+NOTE: All injection payloads in this file are FAKE test fixtures.
+They are intentionally crafted to test pattern detection and do not
+represent actual attack attempts. These are standard security test cases.
+"""
 
 import pytest
 import sys
