@@ -6,11 +6,12 @@ Provides two HTTP endpoints for APIM to call:
 - /api/sanitize-output: Redacts PII and credentials from MCP responses
 """
 
+import asyncio
 import json
 import logging
 import azure.functions as func
 
-from shared.injection_patterns import check_mcp_request
+from shared.injection_patterns import check_mcp_request, check_mcp_request_async
 from shared.pii_detector import detect_and_redact_pii
 from shared.credential_scanner import scan_and_redact
 
@@ -22,15 +23,13 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 
 @app.route(route="input-check", methods=["POST"])
-def input_check(req: func.HttpRequest) -> func.HttpResponse:
+async def input_check(req: func.HttpRequest) -> func.HttpResponse:
     """
     Check incoming MCP request for injection patterns.
     
-    Analyzes the request body for:
-    - Prompt injection (MCP-06)
-    - Shell injection (MCP-05)
-    - SQL injection (MCP-05)
-    - Path traversal (MCP-05)
+    Hybrid approach:
+    1. Fast regex check for known patterns (shell, SQL, path traversal)
+    2. Azure AI Content Safety Prompt Shields for sophisticated prompt injection
     
     Returns:
         JSON: {"allowed": true/false, "reason": string, "category": string}
@@ -55,8 +54,8 @@ def input_check(req: func.HttpRequest) -> func.HttpResponse:
                 mimetype="application/json"
             )
         
-        # Check for injection patterns
-        result = check_mcp_request(body)
+        # Hybrid check: regex + Prompt Shields
+        result = await check_mcp_request_async(body)
         
         if not result.is_safe:
             logger.warning(f"Injection detected: {result.category} - {result.reason}")
