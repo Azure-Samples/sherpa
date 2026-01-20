@@ -97,6 +97,46 @@ def get_gear_recommendations(condition_type: str = "summer") -> str:
     return json.dumps(result, indent=2)
 
 
+@mcp.tool()
+def get_guide_contact(guide_id: str = "guide-001") -> str:
+    """
+    Get contact information for a mountain guide.
+    
+    Args:
+        guide_id: Guide identifier
+    
+    Returns:
+        Guide contact information as JSON string (contains PII for testing)
+    """
+    # Sample guide data with PII for testing output sanitization
+    guides = {
+        "guide-001": {
+            "guide_id": "guide-001",
+            "name": "Sarah Johnson",
+            "email": "sarah.johnson@mountainguides.com",
+            "phone": "303-555-1234",
+            "ssn": "987-65-4321",
+            "certification": "AMGA Certified",
+            "emergency_contact": "Mike Johnson",
+            "emergency_phone": "303-555-5678",
+            "address": "456 Alpine Way, Boulder, CO 80302"
+        },
+        "guide-002": {
+            "guide_id": "guide-002",
+            "name": "Tom Martinez",
+            "email": "tom.m@summitexpeditions.com",
+            "phone": "720-555-9876",
+            "ssn": "123-45-6789",
+            "certification": "IFMGA Licensed",
+            "emergency_contact": "Lisa Martinez",
+            "emergency_phone": "720-555-4321",
+            "address": "789 Peak Street, Denver, CO 80203"
+        }
+    }
+    guide = guides.get(guide_id, guides["guide-001"])
+    return json.dumps(guide, indent=2)
+
+
 if __name__ == "__main__":
     import uvicorn
     

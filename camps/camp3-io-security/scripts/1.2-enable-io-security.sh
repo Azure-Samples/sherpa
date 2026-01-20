@@ -1,6 +1,17 @@
 #!/bin/bash
 # Waypoint 1.2: Enable I/O Security in APIM
-# Updates APIM policies to call the security function for input validation and output sanitization
+# 
+# Applies Layer 2 security (Azure Functions) while preserving Layer 1
+#
+# Policy Architecture:
+#   sherpa-mcp: Full I/O security (input + output in MCP policy)
+#   trail-mcp:  Input security only (output sanitization on trail-api)
+#   trail-api:  Output sanitization (catches responses before SSE wrapping)
+#
+# This split is needed because synthesized MCP servers (trail-mcp) have
+# SSE streams controlled by APIM that block outbound Body.As<string>() calls.
+# Real MCP servers (sherpa-mcp) work fine with outbound policies.
+
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -15,11 +26,16 @@ echo ""
 APIM_NAME=$(azd env get-value APIM_NAME)
 RG_NAME=$(azd env get-value AZURE_RESOURCE_GROUP)
 FUNCTION_APP_URL=$(azd env get-value FUNCTION_APP_URL)
+SUBSCRIPTION_ID=$(az account show --query id -o tsv)
 
 echo "APIM: $APIM_NAME"
+echo "Resource Group: $RG_NAME"
 echo "Function URL: $FUNCTION_APP_URL"
 echo ""
 
+# ============================================
+# Step 1: Add Function URL as Named Value
+# ============================================
 echo "Step 1: Add Function URL as Named Value"
 echo "----------------------------------------"
 
@@ -34,123 +50,136 @@ az apim nv update \
     --resource-group "$RG_NAME" \
     --service-name "$APIM_NAME" \
     --named-value-id "function-app-url" \
-    --value "$FUNCTION_APP_URL"
+    --value "$FUNCTION_APP_URL" \
+    --output none
 
-echo "Named value 'function-app-url' configured"
+echo "✓ Named value 'function-app-url' configured"
 echo ""
 
-echo "Step 2: Update Sherpa API Policy"
-echo "---------------------------------"
-
-# Create the policy XML
-cat > /tmp/sherpa-io-policy.xml << 'POLICYEOF'
-<policies>
-    <inbound>
-        <base />
-        <!-- Layer 2: Advanced Input Check (Azure Function) -->
-        <send-request mode="new" response-variable-name="inputCheck" timeout="5" ignore-error="false">
-            <set-url>{{function-app-url}}/api/input-check</set-url>
-            <set-method>POST</set-method>
-            <set-header name="Content-Type" exists-action="override">
-                <value>application/json</value>
-            </set-header>
-            <set-body>@(context.Request.Body.As<string>(preserveContent: true))</set-body>
-        </send-request>
-        <choose>
-            <when condition="@(((IResponse)context.Variables["inputCheck"]).StatusCode != 200)">
-                <return-response>
-                    <set-status code="500" reason="Security Check Unavailable" />
-                    <set-header name="Content-Type" exists-action="override">
-                        <value>application/json</value>
-                    </set-header>
-                    <set-body>{"error": "Security check service unavailable"}</set-body>
-                </return-response>
-            </when>
-            <when condition="@(!((IResponse)context.Variables["inputCheck"]).Body.As<JObject>()["allowed"].Value<bool>())">
-                <return-response>
-                    <set-status code="400" reason="Security Check Failed" />
-                    <set-header name="Content-Type" exists-action="override">
-                        <value>application/json</value>
-                    </set-header>
-                    <set-body>@{
-                        var result = ((IResponse)context.Variables["inputCheck"]).Body.As<JObject>();
-                        return new JObject(
-                            new JProperty("error", "Request blocked by security filter"),
-                            new JProperty("reason", result["reason"]?.ToString() ?? "Unknown"),
-                            new JProperty("category", result["category"]?.ToString() ?? "Unknown")
-                        ).ToString();
-                    }</set-body>
-                </return-response>
-            </when>
-        </choose>
-    </inbound>
-    <backend>
-        <base />
-    </backend>
-    <outbound>
-        <base />
-        <!-- Layer 2: Output Sanitization (Azure Function) -->
-        <send-request mode="new" response-variable-name="sanitized" timeout="10" ignore-error="true">
-            <set-url>{{function-app-url}}/api/sanitize-output</set-url>
-            <set-method>POST</set-method>
-            <set-header name="Content-Type" exists-action="override">
-                <value>application/json</value>
-            </set-header>
-            <set-body>@(context.Response.Body.As<string>(preserveContent: true))</set-body>
-        </send-request>
-        <choose>
-            <when condition="@(context.Variables.ContainsKey("sanitized") && ((IResponse)context.Variables["sanitized"]).StatusCode == 200)">
-                <set-body>@(((IResponse)context.Variables["sanitized"]).Body.As<string>())</set-body>
-            </when>
-        </choose>
-    </outbound>
-    <on-error>
-        <base />
-    </on-error>
-</policies>
-POLICYEOF
-
-# Update Sherpa API policy
-echo "Applying policy to Sherpa MCP API..."
-az apim api operation update \
-    --resource-group "$RG_NAME" \
-    --service-name "$APIM_NAME" \
-    --api-id "sherpa-mcp" \
-    --operation-id "mcp-handler" \
-    --set policies=@/tmp/sherpa-io-policy.xml 2>/dev/null || \
-echo "Note: Could not update operation policy. The API may need to be created first via waypoint scripts."
-
-echo ""
-echo "Step 3: Update Trail API Policy"
+# ============================================
+# Step 2: Get OAuth Configuration
+# ============================================
+echo "Step 2: Get OAuth Configuration"
 echo "--------------------------------"
 
-# Update Trail API policy
-echo "Applying policy to Trail API..."
-az apim api operation update \
-    --resource-group "$RG_NAME" \
-    --service-name "$APIM_NAME" \
-    --api-id "trail-api" \
-    --operation-id "get-permit-holder" \
-    --set policies=@/tmp/sherpa-io-policy.xml 2>/dev/null || \
-echo "Note: Could not update operation policy. The API may need to be created first via waypoint scripts."
+TENANT_ID=$(azd env get-value AZURE_TENANT_ID 2>/dev/null || az account show --query tenantId -o tsv)
+MCP_APP_CLIENT_ID=$(azd env get-value MCP_APP_CLIENT_ID 2>/dev/null || echo "")
 
-rm -f /tmp/sherpa-io-policy.xml
+if [ -z "$MCP_APP_CLIENT_ID" ]; then
+    echo "Warning: MCP_APP_CLIENT_ID not set."
+    echo "OAuth validation will use placeholder. Run register-entra-app.sh to configure."
+    MCP_APP_CLIENT_ID="00000000-0000-0000-0000-000000000000"
+fi
+
+echo "Tenant ID: $TENANT_ID"
+echo "MCP App Client ID: $MCP_APP_CLIENT_ID"
+echo ""
+
+# ============================================
+# Step 3: Update Sherpa MCP Server Policy
+# ============================================
+echo "Step 3: Update Sherpa MCP Server Policy"
+echo "----------------------------------------"
+echo "Policy: Full I/O Security (OAuth + Content Safety + Input Check + Output Sanitization)"
+echo ""
+
+# Prepare Sherpa MCP policy (full I/O security - works because backend controls stream)
+SHERPA_POLICY_XML=$(cat infra/policies/sherpa-mcp-full-io-security.xml | \
+    sed "s/{{tenant-id}}/$TENANT_ID/g" | \
+    sed "s/{{mcp-app-client-id}}/$MCP_APP_CLIENT_ID/g")
+
+echo "$SHERPA_POLICY_XML" | jq -Rs '{properties: {format: "rawxml", value: .}}' > /tmp/sherpa-mcp-policy.json
+
+echo "Applying full I/O security policy to Sherpa MCP Server..."
+if az rest --method PUT \
+    --uri "https://management.azure.com/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG_NAME/providers/Microsoft.ApiManagement/service/$APIM_NAME/apis/sherpa-mcp/policies/policy?api-version=2024-06-01-preview" \
+    --body @/tmp/sherpa-mcp-policy.json \
+    --output-file /dev/null 2>/dev/null; then
+    echo "✓ Sherpa MCP policy updated!"
+else
+    echo "✗ Failed to update Sherpa MCP policy"
+    echo "  Make sure sherpa-mcp API exists (run azd provision first)"
+fi
+echo ""
+
+# ============================================
+# Step 4: Update Trail MCP Server Policy
+# ============================================
+echo "Step 4: Update Trail MCP Server Policy"
+echo "---------------------------------------"
+echo "Policy: Input Security Only (OAuth + Content Safety + Input Check)"
+echo "Note: Output sanitization applied to trail-api instead (see Step 5)"
+echo ""
+
+# Prepare Trail MCP policy (input only - outbound blocks on synthesized MCP)
+TRAIL_MCP_POLICY_XML=$(cat infra/policies/trail-mcp-input-security.xml | \
+    sed "s/{{tenant-id}}/$TENANT_ID/g" | \
+    sed "s/{{mcp-app-client-id}}/$MCP_APP_CLIENT_ID/g")
+
+echo "$TRAIL_MCP_POLICY_XML" | jq -Rs '{properties: {format: "rawxml", value: .}}' > /tmp/trail-mcp-policy.json
+
+echo "Applying input security policy to Trail MCP Server..."
+if az rest --method PUT \
+    --uri "https://management.azure.com/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG_NAME/providers/Microsoft.ApiManagement/service/$APIM_NAME/apis/trail-mcp/policies/policy?api-version=2024-06-01-preview" \
+    --body @/tmp/trail-mcp-policy.json \
+    --output-file /dev/null 2>/dev/null; then
+    echo "✓ Trail MCP policy updated!"
+else
+    echo "✗ Failed to update Trail MCP policy"
+    echo "  Make sure trail-mcp API exists (run azd provision first)"
+fi
+echo ""
+
+# ============================================
+# Step 5: Update Trail REST API Policy
+# ============================================
+echo "Step 5: Update Trail REST API Policy"
+echo "-------------------------------------"
+echo "Policy: Output Sanitization (PII redaction before SSE wrapping)"
+echo ""
+
+# Prepare Trail API policy (output sanitization - runs before APIM wraps response in SSE)
+TRAIL_API_POLICY_XML=$(cat infra/policies/trail-api-output-sanitization.xml)
+
+echo "$TRAIL_API_POLICY_XML" | jq -Rs '{properties: {format: "rawxml", value: .}}' > /tmp/trail-api-policy.json
+
+echo "Applying output sanitization policy to Trail REST API..."
+if az rest --method PUT \
+    --uri "https://management.azure.com/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG_NAME/providers/Microsoft.ApiManagement/service/$APIM_NAME/apis/trail-api/policies/policy?api-version=2024-06-01-preview" \
+    --body @/tmp/trail-api-policy.json \
+    --output-file /dev/null 2>/dev/null; then
+    echo "✓ Trail API policy updated!"
+else
+    echo "✗ Failed to update Trail API policy"
+    echo "  Make sure trail-api API exists (run azd provision first)"
+fi
+
+# Cleanup
+rm -f /tmp/sherpa-mcp-policy.json /tmp/trail-mcp-policy.json /tmp/trail-api-policy.json
 
 echo ""
 echo "=========================================="
 echo "I/O Security Enabled!"
 echo "=========================================="
 echo ""
-echo "APIM is now configured with Layer 2 security:"
+echo "Security Architecture:"
 echo ""
-echo "  INBOUND:"
-echo "    1. OAuth validation (existing)"
-echo "    2. Rate limiting (existing)"
-echo "    3. Content Safety - Layer 1 (existing)"
-echo "    4. input_check Function - Layer 2 (NEW)"
-echo ""
-echo "  OUTBOUND:"
-echo "    1. sanitize_output Function - Layer 2 (NEW)"
+echo "  ┌─────────────────┐     ┌─────────────────┐"
+echo "  │   sherpa-mcp    │     │   trail-mcp     │"
+echo "  │ (real MCP proxy)│     │ (synthesized)   │"
+echo "  │                 │     │                 │"
+echo "  │  • OAuth        │     │  • OAuth        │"
+echo "  │  • ContentSafety│     │  • ContentSafety│"
+echo "  │  • Input Check  │     │  • Input Check  │"
+echo "  │  • Output Sanit.│     │  (no outbound)  │"
+echo "  └────────┬────────┘     └────────┬────────┘"
+echo "           │                       │"
+echo "           │              ┌────────┴────────┐"
+echo "           │              │   trail-api     │"
+echo "           │              │  • Output Sanit.│"
+echo "           │              └────────┬────────┘"
+echo "           ▼                       ▼"
+echo "     Container App          Container App"
 echo ""
 echo "Next: Validate that security is working"
 echo "  ./scripts/1.3-validate-injection.sh"

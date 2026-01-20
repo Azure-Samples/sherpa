@@ -1,12 +1,14 @@
 <!--
-    APIM Policy: Full I/O Security (Layer 1 + Layer 2)
+    APIM Policy: Full I/O Security for Sherpa MCP Server
     
-    This policy includes complete defense-in-depth I/O security:
-    - OAuth 2.0 validation (from Camp 2)
-    - Rate limiting (from Camp 2)
-    - Layer 1: Azure AI Content Safety (llm-content-safety)
-    - Layer 2: Azure Function input_check (advanced injection patterns)
-    - Layer 2: Azure Function sanitize_output (PII redaction + credential scanning)
+    This policy is for REAL MCP servers (proxied through APIM).
+    The backend server controls stream lifecycle, so outbound sanitization works.
+    
+    Includes:
+    - OAuth 2.0 validation (Entra ID)
+    - Layer 1: Azure AI Content Safety
+    - Layer 2: Azure Function input_check (injection detection)
+    - Layer 2: Azure Function sanitize_output (PII redaction)
 -->
 <policies>
     <inbound>
@@ -39,7 +41,7 @@
             <set-body>@(context.Request.Body.As<string>(preserveContent: true))</set-body>
         </send-request>
 
-        <!-- First check if function call succeeded -->
+        <!-- Check if function call succeeded -->
         <choose>
             <when condition="@(((IResponse)context.Variables["inputCheck"]).StatusCode != 200)">
                 <return-response>
@@ -88,26 +90,22 @@
         <base />
         
         <!-- Layer 2: Output Sanitization (Azure Function) -->
-        <!-- Only sanitize non-streaming responses - SSE streams cannot be buffered -->
+        <!-- Works for real MCP servers because backend controls stream closure -->
+        <send-request mode="new" response-variable-name="sanitized" timeout="10" ignore-error="true">
+            <set-url>{{function-app-url}}/api/sanitize-output</set-url>
+            <set-method>POST</set-method>
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-body>@(context.Response.Body.As<string>(preserveContent: true))</set-body>
+        </send-request>
+        
+        <!-- Use sanitized response if function call succeeded -->
         <choose>
-            <when condition="@(!context.Response.Headers.GetValueOrDefault("Content-Type", "").Contains("event-stream"))">
-                <send-request mode="new" response-variable-name="sanitized" timeout="10" ignore-error="true">
-                    <set-url>{{function-app-url}}/api/sanitize-output</set-url>
-                    <set-method>POST</set-method>
-                    <set-header name="Content-Type" exists-action="override">
-                        <value>application/json</value>
-                    </set-header>
-                    <set-body>@(context.Response.Body.As<string>(preserveContent: true))</set-body>
-                </send-request>
-                <!-- Only use sanitized response if function call succeeded -->
-                <choose>
-                    <when condition="@(context.Variables.ContainsKey("sanitized") && ((IResponse)context.Variables["sanitized"]).StatusCode == 200)">
-                        <set-body>@(((IResponse)context.Variables["sanitized"]).Body.As<string>())</set-body>
-                    </when>
-                </choose>
+            <when condition="@(context.Variables.ContainsKey("sanitized") && ((IResponse)context.Variables["sanitized"]).StatusCode == 200)">
+                <set-body>@(((IResponse)context.Variables["sanitized"]).Body.As<string>())</set-body>
             </when>
-            <!-- For SSE/streaming: output passes through unsanitized -->
-            <!-- In production, consider buffering SSE or using a streaming-aware sanitizer -->
+            <!-- On sanitization failure, pass through original (fail open for availability) -->
         </choose>
     </outbound>
     
