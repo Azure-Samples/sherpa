@@ -13,6 +13,9 @@ import re
 import logging
 from typing import NamedTuple
 
+import aiohttp
+from azure.identity.aio import DefaultAzureCredential
+
 logger = logging.getLogger(__name__)
 
 
@@ -127,7 +130,9 @@ async def check_with_prompt_shields(texts: list[str]) -> DetectionResult:
     Check texts using Azure AI Content Safety Prompt Shields.
     Detects sophisticated prompt injection and jailbreak attempts.
     
-    Uses managed identity for authentication.
+    Uses managed identity for authentication via REST API.
+    The Python SDK 1.0.0 doesn't include Prompt Shields, so we call
+    the REST API directly with aiohttp.
     
     Args:
         texts: List of text strings to analyze
@@ -135,45 +140,69 @@ async def check_with_prompt_shields(texts: list[str]) -> DetectionResult:
     Returns:
         DetectionResult indicating if attack was detected
     """
-    endpoint = os.environ.get("AI_SERVICES_ENDPOINT")
+    # Prompt Shields requires the Content Safety endpoint, not the generic AI Services endpoint
+    endpoint = os.environ.get("CONTENT_SAFETY_ENDPOINT")
     if not endpoint:
-        logger.warning("AI_SERVICES_ENDPOINT not configured, skipping Prompt Shields")
+        logger.warning("CONTENT_SAFETY_ENDPOINT not configured, skipping Prompt Shields")
+        return DetectionResult(is_safe=True, category="", reason="")
+    
+    # Combine texts for analysis
+    user_prompt = " ".join(texts) if texts else ""
+        
+    if not user_prompt.strip():
         return DetectionResult(is_safe=True, category="", reason="")
     
     try:
-        from azure.ai.contentsafety.aio import ContentSafetyClient
-        from azure.ai.contentsafety.models import ShieldPromptOptions
-        from azure.identity.aio import DefaultAzureCredential
-        
+        # Get token using managed identity
         async with DefaultAzureCredential() as credential:
-            async with ContentSafetyClient(endpoint, credential) as client:
-                # Combine texts for analysis
-                user_prompt = " ".join(texts) if texts else ""
+            token = await credential.get_token("https://cognitiveservices.azure.com/.default")
+            
+            # Construct the API URL
+            # Remove trailing slash if present
+            base_url = endpoint.rstrip('/')
+            api_url = f"{base_url}/contentsafety/text:shieldPrompt?api-version=2024-09-01"
+            
+            # Prepare the request body
+            request_body = {
+                "userPrompt": user_prompt,
+                "documents": []
+            }
+            
+            headers = {
+                "Authorization": f"Bearer {token.token}",
+                "Content-Type": "application/json"
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(api_url, json=request_body, headers=headers) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        
+                        # Check for attacks in user prompt
+                        user_analysis = result.get("userPromptAnalysis", {})
+                        if user_analysis.get("attackDetected"):
+                            return DetectionResult(
+                                is_safe=False,
+                                category="prompt_injection",
+                                reason="Prompt Shield detected jailbreak attack"
+                            )
+                        
+                        # Check for attacks in documents
+                        docs_analysis = result.get("documentsAnalysis", [])
+                        for doc in docs_analysis:
+                            if doc.get("attackDetected"):
+                                return DetectionResult(
+                                    is_safe=False,
+                                    category="prompt_injection",
+                                    reason="Prompt Shield detected document attack"
+                                )
+                        
+                        return DetectionResult(is_safe=True, category="", reason="")
+                    else:
+                        error_text = await response.text()
+                        logger.warning(f"Prompt Shields API returned {response.status}: {error_text}")
+                        return DetectionResult(is_safe=True, category="", reason="")
                 
-                if not user_prompt.strip():
-                    return DetectionResult(is_safe=True, category="", reason="")
-                
-                # Call Prompt Shields API
-                response = await client.shield_prompt(
-                    ShieldPromptOptions(
-                        user_prompt=user_prompt,
-                        documents=[]  # No additional documents to check
-                    )
-                )
-                
-                # Check for attacks in user prompt
-                if response.user_prompt_analysis and response.user_prompt_analysis.attack_detected:
-                    return DetectionResult(
-                        is_safe=False,
-                        category="prompt_injection",
-                        reason=f"Prompt Shield detected attack: {response.user_prompt_analysis.attack_type or 'jailbreak attempt'}"
-                    )
-                
-                return DetectionResult(is_safe=True, category="", reason="")
-                
-    except ImportError as e:
-        logger.warning(f"Content Safety SDK not available: {e}")
-        return DetectionResult(is_safe=True, category="", reason="")
     except Exception as e:
         logger.warning(f"Prompt Shields check failed: {e}")
         # Fail open - don't block requests if service is unavailable

@@ -109,6 +109,7 @@ module contentSafety 'modules/content-safety.bicep' = {
     location: contentSafetyLocation
     tags: tags
     apimIdentityPrincipalId: managedIdentity.outputs.principalId
+    functionIdentityPrincipalId: functionIdentity.outputs.principalId
   }
 }
 
@@ -147,6 +148,7 @@ module functionApp 'modules/function-app.bicep' = {
     identityId: functionIdentity.outputs.id
     identityClientId: functionIdentity.outputs.clientId
     aiServicesEndpoint: aiServices.outputs.endpoint
+    contentSafetyEndpoint: contentSafety.outputs.endpoint
     logAnalyticsWorkspaceId: logAnalytics.outputs.id
   }
 }

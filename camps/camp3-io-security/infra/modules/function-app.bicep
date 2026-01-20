@@ -19,6 +19,9 @@ param identityClientId string
 @description('Azure AI Services endpoint for PII detection')
 param aiServicesEndpoint string
 
+@description('Content Safety endpoint for Prompt Shields')
+param contentSafetyEndpoint string
+
 @description('Log Analytics workspace ID for Application Insights')
 param logAnalyticsWorkspaceId string
 
@@ -104,6 +107,10 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         {
           name: 'AI_SERVICES_ENDPOINT'
           value: aiServicesEndpoint
+        }
+        {
+          name: 'CONTENT_SAFETY_ENDPOINT'
+          value: contentSafetyEndpoint
         }
         {
           name: 'AZURE_CLIENT_ID'
