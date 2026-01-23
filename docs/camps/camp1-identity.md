@@ -1271,6 +1271,27 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
 ---
 
+## Cleanup
+
+When you're done with Camp 1, remove all Azure resources:
+
+```bash
+# Delete all resources
+azd down --force --purge
+```
+
+**Optional:** Delete the Entra ID application:
+
+```bash
+# Get app ID
+APP_ID=$(azd env get-value AZURE_CLIENT_ID)
+
+# Delete app
+az ad app delete --id $APP_ID
+```
+
+---
+
 ## Next Steps
 
 ### Immediate Actions
