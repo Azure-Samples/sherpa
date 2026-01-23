@@ -76,6 +76,25 @@ az account show && azd version && docker --version && func --version
 
 ---
 
+## Getting Started
+
+### Clone the Workshop Repository
+
+If you haven't already cloned the repository (from a previous camp), do so now:
+
+```bash
+git clone https://github.com/Azure-Samples/sherpa.git
+cd sherpa
+```
+
+Navigate to the Camp 3 directory:
+
+```bash
+cd camps/camp3-io-security
+```
+
+---
+
 ## Architecture
 
 Camp 3 deploys a layered security architecture where APIM orchestrates multiple security checks. Importantly, **different MCP server types require different policy strategies** for output sanitization.

@@ -74,6 +74,25 @@ az account show && azd version && docker --version
 
 ---
 
+## Getting Started
+
+### Clone the Workshop Repository
+
+If you haven't already cloned the repository (from a previous camp), do so now:
+
+```bash
+git clone https://github.com/Azure-Samples/sherpa.git
+cd sherpa
+```
+
+Navigate to the Camp 2 directory:
+
+```bash
+cd camps/camp2-gateway
+```
+
+---
+
 ## The Ascent
 
 Camp 2 follows a multi-waypoint structure organized into three sections. Each waypoint follows the **vulnerable → exploit → fix → validate** pattern you know from previous camps. Click any waypoint below to expand instructions and continue your ascent.

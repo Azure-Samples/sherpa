@@ -50,6 +50,25 @@ If you haven't installed these tools yet, visit the [Prerequisites page](../prer
 
 ---
 
+## Getting Started
+
+### Clone the Workshop Repository
+
+If you haven't already cloned the repository (from Base Camp), do so now:
+
+```bash
+git clone https://github.com/Azure-Samples/sherpa.git
+cd sherpa
+```
+
+Navigate to the Camp 1 directory:
+
+```bash
+cd camps/camp1-identity
+```
+
+---
+
 ## The Ascent
 
 Camp 1 follows six waypoints, each building on the previous one. Click each waypoint below to expand instructions and continue your ascent.
