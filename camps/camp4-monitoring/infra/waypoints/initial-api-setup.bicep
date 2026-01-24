@@ -6,11 +6,12 @@
   2. Trail REST API - HTTP API with operations (backend for Trail MCP)
   3. Trail MCP Server - MCP API that wraps Trail REST API operations as tools
   4. Content Safety backend - For Layer 1 protection
+  5. Security Function - For Layer 2 protection
   
-  Security focus:
-  - OAuth validation on MCP APIs only (Sherpa MCP, Trail MCP)
-  - Content Safety on MCP APIs (Layer 1)
-  - Trail REST API has no auth (accessed via MCP layer)
+  Security (Camp 4 starts with full security from Camp 3):
+  - OAuth validation on MCP APIs (Sherpa MCP, Trail MCP)
+  - Layer 1: Content Safety on MCP APIs
+  - Layer 2: Security Function (input validation + output sanitization)
   
   This runs in postprovision hook after Container Apps are deployed.
 */
@@ -21,6 +22,7 @@ param trailApiUrl string
 param contentSafetyEndpoint string
 param tenantId string
 param mcpAppClientId string
+param functionAppUrl string
 
 resource apim 'Microsoft.ApiManagement/service@2024-06-01-preview' existing = {
   name: apimName
@@ -66,6 +68,17 @@ resource contentSafetyBackend 'Microsoft.ApiManagement/service/backends@2024-06-
   }
 }
 
+// Named Value: Function App URL (for Layer 2 policies)
+resource namedValueFunctionUrl 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
+  parent: apim
+  name: 'function-app-url'
+  properties: {
+    displayName: 'function-app-url'
+    value: functionAppUrl
+    secret: false
+  }
+}
+
 // ============================================
 // Sherpa MCP API (Native MCP Type - Passthrough)
 // ============================================
@@ -102,17 +115,19 @@ resource mcpOperation 'Microsoft.ApiManagement/service/apis/operations@2024-06-0
   }
 }
 
-// Policy for Sherpa MCP API - OAuth + Content Safety (Layer 1 only)
+// Policy for Sherpa MCP API - OAuth + Content Safety + Security Function (Layer 1 + 2)
 resource sherpaMcpPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-preview' = {
   parent: sherpaMcpApi
   name: 'policy'
   properties: {
     format: 'rawxml'
-    value: replace(replace(
-      loadTextContent('../policies/base-oauth-contentsafety.xml'),
+    value: replace(replace(replace(
+      loadTextContent('../policies/sherpa-mcp-full-io-security.xml'),
       '{{tenant-id}}', tenantId),
-      '{{mcp-app-client-id}}', mcpAppClientId)
+      '{{mcp-app-client-id}}', mcpAppClientId),
+      '{{function-app-url}}', functionAppUrl)
   }
+  dependsOn: [namedValueFunctionUrl]
 }
 
 // ============================================
@@ -226,27 +241,18 @@ resource getPermitHolderOp 'Microsoft.ApiManagement/service/apis/operations@2024
   }
 }
 
-// Trail REST API Policy - passthrough (no auth, accessed via MCP layer)
+// Trail REST API Policy - Output sanitization (Layer 2)
+// Input security is on trail-mcp, output sanitization is here (before SSE wrapping)
 resource trailApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-preview' = {
   parent: trailApi
   name: 'policy'
   properties: {
     format: 'rawxml'
-    value: '''<policies>
-    <inbound>
-        <base />
-    </inbound>
-    <backend>
-        <forward-request />
-    </backend>
-    <outbound>
-        <base />
-    </outbound>
-    <on-error>
-        <base />
-    </on-error>
-</policies>'''
+    value: replace(
+      loadTextContent('../policies/trail-api-output-sanitization.xml'),
+      '{{function-app-url}}', functionAppUrl)
   }
+  dependsOn: [namedValueFunctionUrl]
 }
 
 // ============================================
@@ -302,17 +308,20 @@ resource trailMcpApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' =
   ]
 }
 
-// Policy for Trail MCP API - OAuth + Content Safety (Layer 1 only)
+// Policy for Trail MCP API - OAuth + Content Safety + Input Check (Layer 1 + 2 input)
+// Output sanitization is on trail-api (to avoid SSE blocking)
 resource trailMcpPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-preview' = {
   parent: trailMcpApi
   name: 'policy'
   properties: {
     format: 'rawxml'
-    value: replace(replace(
-      loadTextContent('../policies/base-oauth-contentsafety.xml'),
+    value: replace(replace(replace(
+      loadTextContent('../policies/trail-mcp-input-security.xml'),
       '{{tenant-id}}', tenantId),
-      '{{mcp-app-client-id}}', mcpAppClientId)
+      '{{mcp-app-client-id}}', mcpAppClientId),
+      '{{function-app-url}}', functionAppUrl)
   }
+  dependsOn: [namedValueFunctionUrl]
 }
 
 // ============================================

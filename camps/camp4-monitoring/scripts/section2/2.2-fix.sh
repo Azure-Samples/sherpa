@@ -40,7 +40,7 @@ RG_NAME=$(azd env get-value AZURE_RESOURCE_GROUP 2>/dev/null)
 FUNCTION_APP_NAME=$(azd env get-value FUNCTION_APP_NAME 2>/dev/null)
 
 if [ -z "$FUNCTION_APP_NAME" ]; then
-    echo -e "${RED}Error: FUNCTION_APP_NAME not found. Run 'azd provision' first.${NC}"
+    echo -e "${RED}Error: FUNCTION_APP_NAME not found. Run 'azd up' first.${NC}"
     exit 1
 fi
 

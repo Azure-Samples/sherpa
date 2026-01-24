@@ -54,8 +54,8 @@ echo "  Tenant ID: $TENANT_ID"
 echo "  MCP App Client ID: $MCP_APP_CLIENT_ID"
 echo ""
 
-# Configure APIM APIs and backends
-echo "Configuring APIM APIs..."
+# Configure APIM APIs and backends with full I/O security (Layer 1 + 2)
+echo "Configuring APIM APIs with full security..."
 az deployment group create \
     --resource-group "$RG_NAME" \
     --template-file infra/waypoints/initial-api-setup.bicep \
@@ -66,9 +66,10 @@ az deployment group create \
         contentSafetyEndpoint="$CONTENT_SAFETY_ENDPOINT" \
         tenantId="$TENANT_ID" \
         mcpAppClientId="$MCP_APP_CLIENT_ID" \
+        functionAppUrl="$FUNCTION_APP_URL" \
     --output none
 
-echo "APIM APIs configured successfully"
+echo "APIM APIs configured with Layer 1 + Layer 2 security"
 
 # Update Entra ID redirect URI with actual APIM gateway URL
 if [ -n "$MCP_APP_CLIENT_ID" ] && [ -n "$APIM_GATEWAY_URL" ]; then
@@ -89,25 +90,28 @@ echo "Camp 4: Monitoring & Telemetry"
 echo "=============================="
 echo ""
 echo "What's deployed:"
-echo "  - APIM with OAuth + Content Safety (Layer 1)"
+echo "  - APIM with full I/O security (Layer 1 + Layer 2)"
 echo "  - Sherpa MCP Server (Container App)"
 echo "  - Trail API with PII endpoint (Container App)"
-echo "  - Security Function (not yet wired to APIM)"
+echo "  - Security Function (wired to APIM)"
+echo "  - Log Analytics workspace (not yet connected to APIM)"
 echo ""
-echo "The security function is deployed but NOT yet enabled."
-echo "This allows you to demonstrate the vulnerability first."
+echo "Security layers enabled:"
+echo "  - Layer 1: OAuth + Content Safety (on MCP APIs)"
+echo "  - Layer 2: Security Function (input validation + output sanitization)"
 echo ""
-echo "Next steps:"
+echo "The monitoring gap:"
+echo "  APIM diagnostic settings are NOT configured."
+echo "  Security events are happening but NOT being logged."
 echo ""
-echo "  1. Demonstrate vulnerabilities (before fix):"
-echo "     ./scripts/1.1-exploit-injection.sh"
-echo "     ./scripts/1.1-exploit-pii.sh"
+echo "Next steps (Section 1: The Blind Spot):"
 echo ""
-echo "  2. Deploy and enable security function:"
-echo "     ./scripts/1.2-deploy-function.sh"
-echo "     ./scripts/1.2-enable-io-security.sh"
+echo "  1. Demonstrate the monitoring gap:"
+echo "     ./scripts/section1/1.1-exploit.sh"
 echo ""
-echo "  3. Validate security (after fix):"
-echo "     ./scripts/1.3-validate-injection.sh"
-echo "     ./scripts/1.3-validate-pii.sh"
+echo "  2. Enable APIM diagnostics:"
+echo "     ./scripts/section1/1.2-fix.sh"
+echo ""
+echo "  3. Validate logging is working:"
+echo "     ./scripts/section1/1.3-validate.sh"
 echo ""

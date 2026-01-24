@@ -10,19 +10,18 @@ hide:
 ![Monitoring](../images/sherpa-monitoring.png)
 
 !!! info "Camp Details"
-    **Duration:** 60 minutes  
-    **Azure Services:** Log Analytics, Application Insights, Azure Monitor, Workbooks  
+    **Tech Stack:** Log Analytics, Application Insights, Azure Monitor, Workbooks, API Management, Container Apps, Functions, MCP  
     **Primary Risks:** [MCP08](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp08-telemetry/) (Lack of Audit and Telemetry)
 
 ## Welcome to Observation Peak!
 
-You've made it to Camp 4—the last skill-building camp before the Summit! Throughout your journey, you've built authentication (Camp 1), API gateways (Camp 2), and I/O security (Camp 3). Your MCP server is now protected by multiple layers of defense.
+You've made it to Camp 4, the last skill-building camp before the Summit! Throughout your journey, you've built authentication (Camp 1), MCP gateways (Camp 2), and I/O security (Camp 3). Your MCP server is now protected by multiple layers of defense.
 
 But here's a question: **How do you know it's working?**
 
 If an attacker probed your system last night, would you know? If your security function blocked 100 injection attempts yesterday, could you prove it to an auditor? If there's a sudden spike in attacks right now, would you be alerted?
 
-This is where **observability** comes in—and it's just as important as the security controls themselves.
+This is where **observability** comes in, and it's just as important as the security controls themselves.
 
 !!! quote "The Key Insight"
     Security controls without observability are like locks without security cameras. You might stop the intruder, but you'll never know they tried to get in.
@@ -135,13 +134,13 @@ That's the power of observability.
 
 ## Meet Azure Monitor
 
-Before we start configuring things, let's understand the Azure services we'll be working with. Think of Azure Monitor as your observability platform—it's actually a collection of services working together.
+Before we start configuring things, let's understand the Azure services we'll be working with. Think of Azure Monitor as your observability platform, it's actually a collection of services working together.
 
 ### The Azure Monitor Family
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         Azure Monitor                                │
+│                         Azure Monitor                               │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐  │
 │  │  Log Analytics  │  │   Application   │  │    Azure Monitor    │  │
 │  │    Workspace    │  │    Insights     │  │      Alerts         │  │
@@ -162,7 +161,7 @@ Before we start configuring things, let's understand the Azure services we'll be
 
 **Log Analytics Workspace** is your central log repository. Think of it as a powerful database optimized for time-series log data. You query it using KQL (Kusto Query Language).
 
-**Application Insights** is specifically designed for application monitoring. When you add it to your Azure Function, it automatically captures requests, exceptions, and traces—plus any custom events you log.
+**Application Insights** is specifically designed for application monitoring. When you add it to your Azure Function, it automatically captures requests, exceptions, and traces, plus any custom events you log.
 
 **Azure Workbooks** are interactive reports that combine text, KQL queries, and visualizations. They're perfect for security dashboards.
 
@@ -363,9 +362,16 @@ This workshop focuses on these Azure Monitor log tables for MCP security monitor
 # Navigate to Camp 4
 cd camps/camp4-monitoring
 
-# Deploy infrastructure (~15 minutes)
-azd provision
+# Deploy infrastructure AND services (~15 minutes)
+azd up
 ```
+
+!!! warning "Use `azd up`, not `azd provision`"
+    The `azd provision` command only creates Azure infrastructure (APIM, Function App, etc.) but doesn't deploy the actual code. Use `azd up` which does both:
+    
+    - **`azd provision`** = Create Azure resources only
+    - **`azd deploy`** = Deploy code to existing resources  
+    - **`azd up`** = Provision + Deploy (what you want!)
 
 This deploys:
 
@@ -387,26 +393,59 @@ Once deployment completes, you're ready to start the workshop. Each section foll
 
 ---
 
-## Section 1: APIM Logging
+## Section 1: API Management Logging
 
 APIM processes all your MCP traffic, but by default it doesn't send detailed logs to Log Analytics. This section enables diagnostic settings.
 
+### The Logging Gap: Before & After
+
+```
+BEFORE: No Diagnostic Settings                 AFTER: Diagnostics Enabled
+═══════════════════════════════════════        ═══════════════════════════════════════
+
+   MCP Client                                     MCP Client
+       │                                              │
+       ▼                                              ▼
+┌──────────────┐                                ┌──────────────┐
+│    APIM      │                                │    APIM      │───────────────────┐
+│   Gateway    │                                │   Gateway    │                   │
+│              │                                │              │   Diagnostic      │
+│  • Routes ✓  │                                │  • Routes ✓  │   Settings        │
+│  • Policies ✓│                                │  • Policies ✓│                   │
+│  • Logs? ❌  │                                │  • Logs ✓    │                   ▼
+└──────┬───────┘                                └──────┬───────┘        ┌─────────────────┐
+       │                                               │                │  Log Analytics  │
+       ▼                                               ▼                │                 │
+┌─────────────┐                                ┌─────────────┐          │ • GatewayLogs   │
+│   Backend   │                                │   Backend   │          │ • MCPServerLogs │
+│   Services  │                                │   Services  │          │ • LlmLogs       │
+└─────────────┘                                └─────────────┘          └─────────────────┘
+                                                                              │
+Traffic works fine,                            Traffic works AND              ▼
+but NO VISIBILITY                              you can QUERY everything    📊 KQL Queries
+                                                                           📈 Dashboards
+                                                                           🔔 Alerts
+```
+
 ### Why APIM Logging Matters
 
-Azure API Management sits at the front door of your MCP infrastructure. Every request—legitimate or malicious—passes through it. But here's the thing: **APIM doesn't log to Log Analytics by default**.
+Azure API Management sits at the front door of your MCP infrastructure. Every request, legitimate or malicious, passes through it. But here's the thing: **APIM doesn't log to Log Analytics by default**.
 
-Without explicit configuration, APIM only:
-- Routes traffic (works fine)
-- Applies policies (works fine)  
+Without explicit configuration, APIM only:  
+
+- Routes traffic (works fine)  
+- Applies policies (works fine) 
 - Returns responses (works fine)
 
-But you have **zero visibility** into:
-- Who called your APIs (IP addresses)
-- What MCP tools were invoked
-- How long requests took
+But you have **zero visibility** into:  
+
+- Who called your APIs (IP addresses)  
+- What MCP tools were invoked  
+- How long requests took  
 - Which requests failed and why
 
-It's like having a security guard who checks IDs but never writes anything down. The guard does their job, but there's no record anyone can review later.
+!!! example "The Security Guard Analogy"
+    It's like having a security guard who checks IDs but never writes anything down. The guard does their job, but there's no record anyone can review later.
 
 ### Understanding Diagnostic Settings
 
@@ -1188,8 +1227,9 @@ Things don't always work the first time. Here are the most common issues and how
 # Remove all Azure resources
 azd down --force --purge
 
-# Clean up Entra ID app (optional)
+# Clean up Entra ID apps (optional)
 az ad app delete --id $(azd env get-value MCP_APP_CLIENT_ID)
+az ad app delete --id $(azd env get-value APIM_CLIENT_APP_ID)
 ```
 
 ---

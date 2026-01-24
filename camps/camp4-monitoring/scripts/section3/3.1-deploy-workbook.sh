@@ -40,7 +40,7 @@ WORKSPACE_ID=$(azd env get-value LOG_ANALYTICS_WORKSPACE_ID 2>/dev/null)
 LOCATION=$(azd env get-value AZURE_LOCATION 2>/dev/null)
 
 if [ -z "$RG_NAME" ] || [ -z "$WORKSPACE_ID" ]; then
-    echo -e "${RED}Error: Missing environment values. Run 'azd provision' first.${NC}"
+    echo -e "${RED}Error: Missing environment values. Run 'azd up' first.${NC}"
     exit 1
 fi
 

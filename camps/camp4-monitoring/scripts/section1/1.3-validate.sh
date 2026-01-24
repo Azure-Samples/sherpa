@@ -34,32 +34,45 @@ echo ""
 APIM_GATEWAY_URL=$(azd env get-value APIM_GATEWAY_URL 2>/dev/null)
 WORKSPACE_ID=$(azd env get-value LOG_ANALYTICS_WORKSPACE_ID 2>/dev/null)
 RG_NAME=$(azd env get-value AZURE_RESOURCE_GROUP 2>/dev/null)
+APIM_NAME=$(azd env get-value APIM_NAME 2>/dev/null)
+MCP_APP_CLIENT_ID=$(azd env get-value MCP_APP_CLIENT_ID 2>/dev/null)
 
 if [ -z "$APIM_GATEWAY_URL" ] || [ -z "$WORKSPACE_ID" ]; then
-    echo -e "${RED}Error: Missing environment values. Run 'azd provision' first.${NC}"
+    echo -e "${RED}Error: Missing environment values. Run 'azd up' first.${NC}"
     exit 1
 fi
+
+# Get OAuth token
+echo -e "${BLUE}Getting OAuth token...${NC}"
+TOKEN=$(az account get-access-token --resource "$MCP_APP_CLIENT_ID" --query accessToken -o tsv)
+if [ -z "$TOKEN" ]; then
+    echo -e "${RED}Error: Could not get access token.${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ OAuth token acquired${NC}"
+echo ""
 
 echo -e "${BLUE}Step 1: Sending test requests through APIM...${NC}"
 echo ""
 
-# Generate a unique marker for this test
-TEST_MARKER="validate-$(date +%s)"
+# Initialize MCP session
+curl -s -D /tmp/mcp-headers.txt --max-time 10 -X POST "${APIM_GATEWAY_URL}/sherpa/mcp" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json, text/event-stream" \
+    -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"camp4-test","version":"1.0"}},"id":1}' > /dev/null 2>&1 || true
+
+SESSION_ID=$(grep -i "mcp-session-id" /tmp/mcp-headers.txt 2>/dev/null | sed 's/.*: *//' | tr -d '\r\n') || true
+[ -z "$SESSION_ID" ] && SESSION_ID="session-$(date +%s)"
 
 # Send a few requests
 for i in 1 2 3; do
-    curl -s -X POST "${APIM_GATEWAY_URL}/mcp/messages" \
+    curl -s --max-time 10 -X POST "${APIM_GATEWAY_URL}/sherpa/mcp" \
+        -H "Authorization: Bearer $TOKEN" \
         -H "Content-Type: application/json" \
-        -H "X-Test-Marker: $TEST_MARKER" \
-        -d "{
-            \"jsonrpc\": \"2.0\",
-            \"id\": $i,
-            \"method\": \"tools/call\",
-            \"params\": {
-                \"name\": \"list-trails\",
-                \"arguments\": {}
-            }
-        }" > /dev/null 2>&1 || true
+        -H "Accept: application/json, text/event-stream" \
+        -H "Mcp-Session-Id: $SESSION_ID" \
+        -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"get_weather","arguments":{"location":"summit"}},"id":'$i'}' > /dev/null 2>&1 || true
     echo "  Sent request $i/3"
 done
 
