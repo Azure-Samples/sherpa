@@ -769,6 +769,46 @@ Congratulations! You've implemented defense-in-depth I/O security for MCP server
         )
     ```
 
+??? info "Understanding Fail-Open: A Security Trade-off"
+
+    When the `sanitize_output` function can't reach Azure AI Language (network issue, quota exceeded, service outage), it has two choices:
+
+    **Fail Open (current behavior):**
+    - Return the original response unchanged
+    - Users get their data, but PII might slip through
+    - Prioritizes **availability** over security
+
+    **Fail Closed (alternative):**
+    - Return an error (503 Service Unavailable)
+    - Users can't proceed until the service recovers
+    - Prioritizes **security** over availability
+
+    **Which should you choose?**
+
+    It depends on your threat model and business requirements:
+
+    | Scenario | Recommendation |
+    |----------|----------------|
+    | Public API with sensitive data | Fail closed - block unknown responses |
+    | Internal tool with low PII risk | Fail open - prioritize uptime |
+    | Healthcare/Financial data | Fail closed - compliance requires it |
+    | Demo/Workshop environment | Fail open - learning trumps security |
+
+    The Camp 3 function fails open because we're in a learning environment. In production, you'd likely want fail-closed for endpoints that handle sensitive data.
+
+    **To implement fail-closed**, change the exception handler:
+
+    ```python
+    except Exception as e:
+        logging.error(f"Sanitization failed: {e}")
+        # Fail closed: return error instead of original
+        return func.HttpResponse(
+            json.dumps({"error": "Security check unavailable", "retry": True}),
+            status_code=503,
+            mimetype="application/json"
+        )
+    ```
+
 !!! success "Pattern Maintenance"
     Injection patterns evolve. The `injection_patterns.py` file should be:
 

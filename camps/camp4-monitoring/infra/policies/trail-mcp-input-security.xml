@@ -1,0 +1,100 @@
+<!--
+    APIM Policy: Input Security for Trail MCP Server (Synthesized)
+    
+    This policy is for SYNTHESIZED MCP servers (APIM translates MCP to REST).
+    APIM controls the SSE stream lifecycle, causing outbound Body.As<string>() to block.
+    Output sanitization is applied to the underlying trail-api REST API instead.
+    
+    Includes:
+    - OAuth 2.0 validation (Entra ID)
+    - Layer 1: Azure AI Content Safety
+    - Layer 2: Azure Function input_check (injection detection)
+    
+    NOTE: Output sanitization is NOT here - it's on trail-api policy
+-->
+<policies>
+    <inbound>
+        <base />
+        
+        <!-- OAuth 2.0 Validation using Entra ID -->
+        <validate-azure-ad-token tenant-id="{{tenant-id}}" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized">
+            <audiences>
+                <audience>{{mcp-app-client-id}}</audience>
+            </audiences>
+        </validate-azure-ad-token>
+
+        <!-- Layer 1: Azure AI Content Safety (fast, broad filtering) -->
+        <llm-content-safety backend-id="content-safety-backend" shield-prompt="true">
+            <categories output-type="EightSeverityLevels">
+                <category name="Hate" threshold="4" />
+                <category name="Violence" threshold="4" />
+                <category name="Sexual" threshold="4" />
+                <category name="SelfHarm" threshold="4" />
+            </categories>
+        </llm-content-safety>
+
+        <!-- Layer 2: Advanced Input Check (Azure Function) -->
+        <send-request mode="new" response-variable-name="inputCheck" timeout="10" ignore-error="false">
+            <set-url>{{function-app-url}}/api/input-check</set-url>
+            <set-method>POST</set-method>
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-body>@(context.Request.Body.As<string>(preserveContent: true))</set-body>
+        </send-request>
+
+        <!-- Check if function call succeeded -->
+        <choose>
+            <when condition="@(((IResponse)context.Variables["inputCheck"]).StatusCode != 200)">
+                <return-response>
+                    <set-status code="500" reason="Security Check Unavailable" />
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/json</value>
+                    </set-header>
+                    <set-body>@{
+                        return new JObject(
+                            new JProperty("error", "Security check service unavailable"),
+                            new JProperty("code", "SECURITY_CHECK_FAILED")
+                        ).ToString();
+                    }</set-body>
+                </return-response>
+            </when>
+        </choose>
+
+        <!-- Parse the successful response and check if allowed -->
+        <set-variable name="inputCheckBody" value="@(((IResponse)context.Variables["inputCheck"]).Body.As<JObject>(preserveContent: true))" />
+        
+        <choose>
+            <when condition="@(!((JObject)context.Variables["inputCheckBody"])["allowed"].Value<bool>())">
+                <return-response>
+                    <set-status code="400" reason="Security Check Failed" />
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/json</value>
+                    </set-header>
+                    <set-body>@{
+                        var result = (JObject)context.Variables["inputCheckBody"];
+                        return new JObject(
+                            new JProperty("error", "Request blocked by security filter"),
+                            new JProperty("reason", result["reason"]?.ToString() ?? "Unknown"),
+                            new JProperty("category", result["category"]?.ToString() ?? "Unknown")
+                        ).ToString();
+                    }</set-body>
+                </return-response>
+            </when>
+        </choose>
+    </inbound>
+    
+    <backend>
+        <base />
+    </backend>
+    
+    <outbound>
+        <!-- No output sanitization here - it's on trail-api REST API policy -->
+        <!-- This avoids blocking on APIM's SSE stream for synthesized MCP -->
+        <base />
+    </outbound>
+    
+    <on-error>
+        <base />
+    </on-error>
+</policies>

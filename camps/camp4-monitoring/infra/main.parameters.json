@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "publisherEmail": {
+      "value": "${APIM_PUBLISHER_EMAIL=admin@example.com}"
+    },
+    "publisherName": {
+      "value": "${APIM_PUBLISHER_NAME=Sherpa Workshop}"
+    },
+    "mcpAppClientId": {
+      "value": "${MCP_APP_CLIENT_ID=}"
+    },
+    "apimClientAppId": {
+      "value": "${APIM_CLIENT_APP_ID=}"
+    }
+  }
+}

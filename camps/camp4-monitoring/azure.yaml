@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: sherpa-camp4-monitoring
+metadata:
+  template: sherpa-mcp-security-workshop@1.0.0
+
+# Camp 4: Monitoring & Observability
+# =================================
+# This workshop demonstrates the "hidden → visible → actionable" pattern.
+#
+# Initial deployment uses security-function-v1 which has BASIC logging -
+# security events are logged but invisible to monitoring and alerting.
+#
+# Workshop participants will:
+# 1. See how attacks are "hidden" (no APIM diagnostic logs, basic function logs)
+# 2. Enable APIM diagnostics and upgrade to v2 structured logging (visible)
+# 3. Create dashboards and alerts (actionable)
+
+services:
+  sherpa-mcp-server:
+    project: ./servers/sherpa-mcp-server
+    language: python
+    host: containerapp
+
+  trail-api:
+    project: ./servers/trail-api
+    language: python
+    host: containerapp
+
+  # Security Function v1: Basic Logging (the "hidden" state)
+  # --------------------------------------------------------
+  # Uses logging.warning() - works but can't be queried, correlated, or alerted on.
+  # Workshop upgrades this to v2 in Section 2.
+  security-function:
+    project: ./security-function-v1
+    language: python
+    host: function
+
+  # Security Function v2: Structured Logging (deployed in Section 2.2)
+  # ------------------------------------------------------------------
+  # Uses security_logger.py with Azure Monitor OpenTelemetry.
+  # Enables KQL queries, correlation IDs, and alerting.
+  # NOTE: This service is commented out initially - uncomment via 2.2-fix.sh
+  # security-function-v2:
+  #   project: ./security-function
+  #   language: python
+  #   host: function
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
+
+hooks:
+  preprovision:
+    posix:
+      shell: sh
+      run: ./scripts/hooks/preprovision.sh
+      continueOnError: false
+    windows:
+      shell: pwsh
+      run: ./scripts/hooks/preprovision.ps1
+      continueOnError: false
+
+  postprovision:
+    posix:
+      shell: sh
+      run: ./scripts/hooks/postprovision.sh
+      continueOnError: false
+    windows:
+      shell: pwsh
+      run: ./scripts/hooks/postprovision.ps1
+      continueOnError: false
