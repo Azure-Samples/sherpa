@@ -31,8 +31,7 @@ This is where **observability** comes in, and it's just as important as the secu
 At Observation Peak, you'll learn to see *everything* happening across your MCP infrastructure:
 
 !!! tip "Learning Objectives"
-    - **Enable** APIM diagnostic settings for gateway, MCP, and AI gateway logs
-    - **Configure** `ApiManagementGatewayMCPLog` for MCP tool invocation tracking
+    - **Enable** APIM diagnostic settings for gateway and AI gateway logs
     - **Implement** structured security logging in Azure Functions with correlation IDs
     - **Query** logs using KQL for security investigations with full log correlation
     - **Build** security monitoring dashboards using Azure Workbooks
@@ -178,8 +177,8 @@ Your MCP Request
 ┌──────────────┐     Diagnostic Settings     ┌────────────────────┐
 │     APIM     │ ─────────────────────────── │   Log Analytics    │
 │   Gateway    │     GatewayLogs             │     Workspace      │
-│              │     MCPServerLogs           │                    │
-│              │     GenerativeAIGatewayLogs │  ApiManagement...  │
+│              │     GatewayLlmLogs          │                    │
+│              │     WebSocketConnectionLogs │  ApiManagement...  │
 └──────┬───────┘                             │  tables            │
        │                                     └────────────────────┘
        │ Routes to
@@ -280,7 +279,7 @@ Before starting Camp 4, ensure you have:
 
 ## A Quick KQL Primer
 
-Throughout this workshop, you'll write queries in **KQL (Kusto Query Language)**. If you've never used it, don't worry—it's quite intuitive once you see a few examples.
+Throughout this workshop, you'll write queries in **KQL (Kusto Query Language)**. If you've never used it, don't worry, it's quite intuitive once you see a few examples.
 
 ### KQL Basics
 
@@ -340,21 +339,16 @@ This workshop focuses on these Azure Monitor log tables for MCP security monitor
 
 | Log Table | APIM Category | Key Fields |
 |-----------|---------------|------------|
-| **ApiManagementGatewayLogs** | GatewayLogs | `CallerIpAddress`, `ResponseCode`, `RequestBody`, `ResponseBody`, `DurationMs`, `CorrelationId` |
-| **ApiManagementGatewayMCPLog** | MCPServerLogs | `ToolName`, `ClientName`, `ClientVersion`, `AuthenticationMethod`, `SessionId`, `ServerName`, `Error`, `CorrelationId` |
-| **ApiManagementGatewayLlmLog** | GenerativeAIGatewayLogs | `PromptTokens`, `CompletionTokens`, `ModelName`, `CorrelationId` |
+| **ApiManagementGatewayLogs** | GatewayLogs | `CallerIpAddress`, `ResponseCode`, `CorrelationId`, `Url`, `Method`, `ApiId` |
+| **ApiManagementGatewayLlmLog** | GatewayLlmLogs | `PromptTokens`, `CompletionTokens`, `ModelName`, `CorrelationId` |
+| **ApiManagementWebSocketConnectionLogs** | WebSocketConnectionLogs | `EventName`, `Source`, `Destination`, `CorrelationId` |
 | **AppTraces** | (App Insights) | `Message`, `SeverityLevel`, custom dimensions (`event_type`, `correlation_id`, `injection_type`) |
 
-!!! tip "MCP-Specific Logging"
-    **ApiManagementGatewayMCPLog** is particularly valuable for MCP security. It captures MCP protocol-level details that HTTP logs miss:
-    
-    - **ToolName** - Which MCP tool was called (e.g., `get-weather`, `search-trails`)
-    - **ClientName/ClientVersion** - MCP client identification
-    - **SessionId** - Track activity across an MCP session
-    - **AuthenticationMethod** - How the client authenticated
+!!! note "MCP Protocol-Level Logging"
+    Azure is developing MCP-specific logging capabilities (`ApiManagementGatewayMCPLog`) that will capture tool names, session IDs, and client information. Until generally available, `GatewayLogs` captures all HTTP-level MCP traffic. This workshop focuses on what's available today.
 
 !!! info "Correlation IDs"
-    The **CorrelationId** field appears across all log tables and is essential for incident response. It allows you to trace a single request from APIM through the security function and back, correlating HTTP logs, MCP logs, and application traces.
+    The **CorrelationId** field appears across all log tables and is essential for incident response. It allows you to trace a single request from APIM through the security function and back, correlating HTTP logs and application traces.
 
 ## Getting Started
 
@@ -417,8 +411,8 @@ BEFORE: No Diagnostic Settings                 AFTER: Diagnostics Enabled
        │                                               │                │  Log Analytics  │
        ▼                                               ▼                │                 │
 ┌─────────────┐                                ┌─────────────┐          │ • GatewayLogs   │
-│   Backend   │                                │   Backend   │          │ • MCPServerLogs │
-│   Services  │                                │   Services  │          │ • LlmLogs       │
+│   Backend   │                                │   Backend   │          │ • GatewayLlmLogs│
+│   Services  │                                │   Services  │          │ • WebSocket     │
 └─────────────┘                                └─────────────┘          └─────────────────┘
                                                                               │
 Traffic works fine,                            Traffic works AND              ▼
@@ -451,7 +445,7 @@ But you have **zero visibility** into:
 
 **Diagnostic Settings** are Azure's way of routing telemetry from a resource to a destination. For APIM, you configure:
 
-- **Source**: Which log categories to capture (GatewayLogs, MCPServerLogs, etc.)
+- **Source**: Which log categories to capture (GatewayLogs, GatewayLlmLogs, WebSocketConnectionLogs)
 - **Destination**: Where to send them (Log Analytics workspace)
 
 Once enabled, APIM automatically streams logs to your workspace. No code changes needed—it's pure configuration.
@@ -501,7 +495,7 @@ Once enabled, APIM automatically streams logs to your workspace. No code changes
 
     **What this does:**
 
-    Creates diagnostic settings that send `GatewayLogs`, `MCPServerLogs`, and `GenerativeAIGatewayLogs` to your Log Analytics workspace.
+    Creates diagnostic settings that send `GatewayLogs`, `GatewayLlmLogs`, `WebSocketConnectionLogs`, and `DeveloperPortalAuditLogs` to your Log Analytics workspace.
 
     **ApiManagementGatewayLogs (HTTP level):**
 
@@ -509,21 +503,9 @@ Once enabled, APIM automatically streams logs to your workspace. No code changes
     |-------|-------------|
     | `CallerIpAddress` | Client IP (for investigations) |
     | `ResponseCode` | HTTP response code |
-    | `RequestBody` / `ResponseBody` | Full request/response content |
-    | `DurationMs` | End-to-end latency |
     | `CorrelationId` | For cross-service tracing |
-
-    **ApiManagementGatewayMCPLog (MCP protocol level):**
-
-    | Field | Description |
-    |-------|-------------|
-    | `ToolName` | Which MCP tool was called |
-    | `ClientName` | MCP client identifier |
-    | `ClientVersion` | Client version |
-    | `AuthenticationMethod` | How the client authenticated |
-    | `SessionId` | MCP session identifier |
-    | `ServerName` | Target MCP server |
-    | `Error` | Error details if any |
+    | `Url`, `Method` | Request path and HTTP method |
+    | `ApiId` | API identifier for filtering |
 
     **ApiManagementGatewayLlmLog (AI/LLM gateway):**
 
@@ -533,6 +515,8 @@ Once enabled, APIM automatically streams logs to your workspace. No code changes
     | `CompletionTokens` | Output token count |
     | `ModelName` | LLM model used |
     | `CorrelationId` | For cross-service tracing |
+
+
 
 ### 1.3 Validate Logs Appear
 
@@ -552,21 +536,16 @@ Once enabled, APIM automatically streams logs to your workspace. No code changes
     ```kusto
     ApiManagementGatewayLogs
     | where TimeGenerated > ago(1h)
-    | where Url contains "/mcp/"
-    | project TimeGenerated, CallerIpAddress, Method, Url, ResponseCode, DurationMs
+    | where ApiId contains "mcp" or ApiId contains "sherpa"
+    | project TimeGenerated, CallerIpAddress, Method, Url, ResponseCode, ApiId
     | order by TimeGenerated desc
     | limit 20
     ```
 
-    **MCP tool usage query (ApiManagementGatewayMCPLog):**
+    !!! tip "Filtering by ApiId vs Url"
+        Using `ApiId contains "mcp"` is more reliable than `Url contains "/mcp/"` because ApiId is a structured field set during API import/configuration, while Url parsing can be fragile.
 
-    ```kusto
-    ApiManagementGatewayMCPLog
-    | where TimeGenerated > ago(1h)
-    | summarize CallCount=count() by ToolName, ClientName
-    | order by CallCount desc
-    | limit 10
-    ```
+
 
 ---
 
@@ -900,24 +879,24 @@ ApiManagementGatewayLogs | where CorrelationId == id
     The script outputs a correlation ID. Use it to trace the attack across ALL services:
 
     ```kusto
-    // Correlate attack across APIM, MCP logs, and Function logs
-    let attackerId = "attacker-TIMESTAMP";
+    // Correlate attack across APIM and Function logs
+    let timeRange = ago(1h);
     AppTraces
+    | where TimeGenerated > timeRange
+    | where Properties has "event_type"
     | extend CorrelationId = tostring(Properties.correlation_id)
-    | where CorrelationId startswith attackerId
     | join kind=leftouter (
         ApiManagementGatewayLogs
-        | project CorrelationId, CallerIpAddress, ResponseCode, DurationMs
-    ) on CorrelationId
-    | join kind=leftouter (
-        ApiManagementGatewayMCPLog
-        | project CorrelationId, ToolName, ClientName, SessionId
+        | where TimeGenerated > timeRange
+        | where ApiId contains "mcp" or ApiId contains "sherpa"
+        | project CorrelationId, CallerIpAddress, ResponseCode
     ) on CorrelationId
     | project TimeGenerated, CorrelationId, 
         EventType=tostring(Properties.event_type),
         InjectionType=tostring(Properties.injection_type),
-        CallerIpAddress, ResponseCode, ToolName
-    | order by TimeGenerated asc
+        CallerIpAddress, ResponseCode
+    | order by TimeGenerated desc
+    | take 50
     ```
 
 ---
@@ -999,19 +978,16 @@ Use CorrelationId to trace a request across ALL log tables:
 ```kusto
 // Cross-service investigation using CorrelationId
 let correlationId = "YOUR-CORRELATION-ID";
+let timeRange = ago(24h);
 // APIM HTTP logs
 ApiManagementGatewayLogs
+| where TimeGenerated > timeRange
 | where CorrelationId == correlationId
-| project TimeGenerated, Source="APIM-HTTP", CallerIpAddress, ResponseCode, DurationMs
-| union (
-    // APIM MCP logs  
-    ApiManagementGatewayMCPLog
-    | where CorrelationId == correlationId
-    | project TimeGenerated, Source="APIM-MCP", ToolName, ClientName, SessionId
-)
+| project TimeGenerated, Source="APIM-HTTP", CallerIpAddress, ResponseCode
 | union (
     // Security function logs
     AppTraces
+    | where TimeGenerated > timeRange
     | extend CorrelationId = tostring(Properties.correlation_id)
     | where CorrelationId == correlationId
     | extend EventType = tostring(Properties.event_type)
@@ -1022,36 +998,33 @@ ApiManagementGatewayLogs
 
 ### Suspicious Client Analysis
 
+This query identifies IPs with high attack rates:
+
 ```kusto
-// Find clients with high attack rates
-ApiManagementGatewayMCPLog
+// Find clients with high attack rates using APIM gateway logs
+ApiManagementGatewayLogs
 | where TimeGenerated > ago(24h)
-| join kind=inner (
-    AppTraces
-    | extend EventType = tostring(Properties.event_type)
-    | where EventType == "INJECTION_BLOCKED"
-    | extend CorrelationId = tostring(Properties.correlation_id)
-) on CorrelationId
-| summarize AttackCount=count() by ClientName, SessionId
-| where AttackCount > 5
-| order by AttackCount desc
+| where ApiId contains "mcp" or ApiId contains "sherpa"
+| where ResponseCode >= 400
+| summarize ErrorCount=count() by CallerIpAddress
+| where ErrorCount > 10
+| order by ErrorCount desc
 ```
 
 ### MCP Tool Risk Assessment
 
+Identify which tools are most frequently targeted by attackers:
+
 ```kusto
-// Which tools are most frequently targeted?
-ApiManagementGatewayMCPLog
+// Which tools are most frequently targeted? (using AppTraces)
+AppTraces
 | where TimeGenerated > ago(7d)
-| join kind=leftouter (
-    AppTraces
-    | extend EventType = tostring(Properties.event_type)
-    | where EventType == "INJECTION_BLOCKED"
-    | extend CorrelationId = tostring(Properties.correlation_id)
-) on CorrelationId
-| summarize TotalCalls=count(), AttackAttempts=countif(isnotempty(EventType)) by ToolName
-| extend AttackRate = round(100.0 * AttackAttempts / TotalCalls, 2)
-| order by AttackRate desc
+| where Properties has "event_type"
+| extend EventType = tostring(Properties.event_type),
+         ToolName = tostring(Properties.tool_name)
+| where EventType == "INJECTION_BLOCKED" and isnotempty(ToolName)
+| summarize AttackAttempts=count() by ToolName
+| order by AttackAttempts desc
 ```
 
 ---
@@ -1077,8 +1050,8 @@ Let's look at how all the pieces fit together. Understanding this architecture h
 │                                                                 │
 │   Diagnostic Settings → Log Analytics                           │
 │   └── GatewayLogs (HTTP details)                               │
-│   └── MCPServerLogs (Tool invocations)                         │
-│   └── GenerativeAIGatewayLogs (LLM usage)                      │
+│   └── GatewayLlmLogs (LLM usage)                               │
+│   └── WebSocketConnectionLogs (WebSocket events)               │
 └───────────────────────────────┬─────────────────────────────────┘
                                 │
                                 ▼
@@ -1111,23 +1084,17 @@ The security function emits five distinct event types, each serving a specific p
 Here's how the tables connect via CorrelationId:
 
 ```
-ApiManagementGatewayLogs           ApiManagementGatewayMCPLog
-┌────────────────────────┐         ┌─────────────────────────┐
-│ CorrelationId: abc-123 │────┬────│ CorrelationId: abc-123  │
-│ CallerIpAddress: ...   │    │    │ ToolName: search-trails │
-│ ResponseCode: 200      │    │    │ ClientName: vscode-ext  │
-│ DurationMs: 150        │    │    │ SessionId: sess-456     │
-└────────────────────────┘    │    └─────────────────────────┘
-                              │
-                              │    AppTraces
-                              │    ┌─────────────────────────┐
-                              └────│ correlation_id: abc-123 │
-                                   │ event_type: INJECTION.. │
-                                   │ injection_type: sql_... │
-                                   └─────────────────────────┘
+ApiManagementGatewayLogs                       AppTraces
+┌────────────────────────┐                     ┌─────────────────────────┐
+│ CorrelationId: abc-123 │─────────────────────│ correlation_id: abc-123 │
+│ CallerIpAddress: ...   │                     │ event_type: INJECTION.. │
+│ ResponseCode: 200      │                     │ injection_type: sql_... │
+│ ApiId: sherpa-mcp      │                     │ tool_name: search-trails│
+│ Method: POST           │                     │ category: sql_injection │
+└────────────────────────┘                     └─────────────────────────┘
 ```
 
-This is why correlation IDs are so powerful: one ID links together HTTP details, MCP protocol information, and security events.
+This is why correlation IDs are so powerful: one ID links together HTTP details and security events.
 
 ---
 
@@ -1244,7 +1211,7 @@ Think back to where you started:
 
 | Before | After |
 |--------|-------|
-| APIM routed traffic silently | Every request logged with caller IP, tool name, session ID |
+| APIM routed traffic silently | Every request logged with caller IP, timing, correlation |
 | Function logged basic warnings | Structured events with custom dimensions for rich querying |
 | No way to see attack patterns | Real-time dashboard showing security posture |
 | Manual log checking | Automated alerts notify you of threats |
@@ -1253,7 +1220,7 @@ You've transformed your MCP infrastructure from a "black box" into a fully obser
 
 ### What You've Accomplished
 
-- ✅ **Enabled APIM diagnostics** with GatewayLogs, MCPServerLogs, and GenerativeAIGatewayLogs
+- ✅ **Enabled APIM diagnostics** with GatewayLogs, GatewayLlmLogs, and WebSocketConnectionLogs
 - ✅ **Implemented structured logging** with correlation IDs and custom dimensions
 - ✅ **Built a security dashboard** using Azure Workbooks
 - ✅ **Configured alert rules** for attack detection

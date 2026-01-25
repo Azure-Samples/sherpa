@@ -6,10 +6,15 @@ param location string = resourceGroup().location
 @description('Optional email address for alert notifications')
 param notificationEmail string = ''
 
+@description('Unique resource suffix - auto-generated if not provided')
+param resourceSuffix string = ''
+
+// Generate suffix: use provided value, or auto-generate from resource group
+var effectiveSuffix = !empty(resourceSuffix) ? resourceSuffix : substring(uniqueString(resourceGroup().id), 0, 5)
+
 // Get the existing Log Analytics workspace
 // The workspace was created during initial azd provision
-var suffix = substring(uniqueString(resourceGroup().id, location), 0, 5)
-var prefix = 'camp4-${suffix}'
+var prefix = 'camp4-${effectiveSuffix}'
 
 // Tags for resources
 var tags = {

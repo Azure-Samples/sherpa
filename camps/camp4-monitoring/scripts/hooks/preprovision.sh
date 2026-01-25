@@ -11,6 +11,22 @@ echo "Camp 4: Entra ID App Registration"
 echo "=========================================="
 echo ""
 
+# ============================================
+# Generate unique resource suffix
+# ============================================
+# This suffix is generated once per environment and stored.
+# - Re-running azd up uses the same suffix (idempotent)
+# - Deleting .azure/ folder and starting fresh generates a new suffix
+#   (avoids soft-delete conflicts with Cognitive Services and APIM)
+if [ -z "$RESOURCE_SUFFIX" ]; then
+    # Generate a 5-character alphanumeric suffix
+    RESOURCE_SUFFIX=$(LC_ALL=C tr -dc 'a-z0-9' < /dev/urandom | head -c 5)
+    echo "Generated new resource suffix: $RESOURCE_SUFFIX"
+    azd env set RESOURCE_SUFFIX "$RESOURCE_SUFFIX"
+else
+    echo "Using existing resource suffix: $RESOURCE_SUFFIX"
+fi
+
 # Sync AZURE_LOCATION with resource group location if RG already exists
 # This ensures Bicep uses the same location as the resource group
 if [ -n "$AZURE_RESOURCE_GROUP" ]; then
@@ -35,9 +51,9 @@ VS_CODE_APP_ID="aebc6443-996d-45c2-90f0-388ff96faa56"
 
 # Create MCP Resource App
 echo ""
-echo "Creating MCP Resource App: MCP Server - $APP_SUFFIX"
+echo "Creating MCP Resource App: sherpa-mcp-api-$APP_SUFFIX"
 MCP_APP_CLIENT_ID=$(az ad app create \
-    --display-name "MCP Server - $APP_SUFFIX" \
+    --display-name "sherpa-mcp-api-$APP_SUFFIX" \
     --sign-in-audience "AzureADMyOrg" \
     --query appId -o tsv)
 
@@ -139,9 +155,9 @@ az ad sp create --id "$MCP_APP_CLIENT_ID" 2>/dev/null || echo "Service principal
 
 # Create APIM Client App for Credential Manager
 echo ""
-echo "Creating APIM Client App: APIM Credential Manager - $APP_SUFFIX"
+echo "Creating APIM Client App: sherpa-apim-client-$APP_SUFFIX"
 APIM_CLIENT_APP_ID=$(az ad app create \
-    --display-name "APIM Credential Manager - $APP_SUFFIX" \
+    --display-name "sherpa-apim-client-$APP_SUFFIX" \
     --sign-in-audience "AzureADMyOrg" \
     --query appId -o tsv)
 

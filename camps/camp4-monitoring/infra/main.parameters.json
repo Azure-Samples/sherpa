@@ -16,6 +16,9 @@
     },
     "apimClientAppId": {
       "value": "${APIM_CLIENT_APP_ID=}"
+    },
+    "resourceSuffix": {
+      "value": "${RESOURCE_SUFFIX=}"
     }
   }
 }

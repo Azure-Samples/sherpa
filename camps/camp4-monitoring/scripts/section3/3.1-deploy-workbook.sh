@@ -60,6 +60,7 @@ WORKBOOK_DISPLAY="MCP Security Dashboard"
 echo -e "${BLUE}Creating workbook...${NC}"
 
 # Create the workbook template
+# Note: Using ApiId column (dedicated table format) instead of Url filtering
 WORKBOOK_JSON=$(cat << 'EOF'
 {
   "version": "Notebook/1.0",
@@ -75,7 +76,7 @@ WORKBOOK_JSON=$(cat << 'EOF'
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "ApiManagementGatewayLogs\n| where TimeGenerated > ago(24h)\n| where Url contains \"/mcp/\"\n| summarize Requests=count() by bin(TimeGenerated, 1h)\n| order by TimeGenerated asc",
+        "query": "ApiManagementGatewayLogs\n| where TimeGenerated > ago(24h)\n| where ApiId contains \"mcp\" or ApiId contains \"sherpa\"\n| summarize Requests=count() by bin(TimeGenerated, 1h)\n| order by TimeGenerated asc",
         "size": 0,
         "title": "MCP Request Volume (24h)",
         "timeContext": { "durationMs": 86400000 },
@@ -114,7 +115,7 @@ WORKBOOK_JSON=$(cat << 'EOF'
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "ApiManagementGatewayLogs\n| where TimeGenerated > ago(24h)\n| where Url contains \"/mcp/\"\n| where ResponseCode >= 400\n| summarize Errors=count() by CallerIpAddress\n| order by Errors desc\n| limit 10",
+        "query": "ApiManagementGatewayLogs\n| where TimeGenerated > ago(24h)\n| where ApiId contains \"mcp\" or ApiId contains \"sherpa\"\n| where ResponseCode >= 400\n| summarize Errors=count() by CallerIpAddress\n| order by Errors desc\n| limit 10",
         "size": 0,
         "title": "Top Error Sources (by IP)",
         "timeContext": { "durationMs": 86400000 },

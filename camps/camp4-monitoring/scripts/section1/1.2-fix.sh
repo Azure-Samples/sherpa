@@ -7,7 +7,6 @@
 #
 # This script enables Azure Monitor diagnostic settings on APIM to capture:
 # - ApiManagementGatewayLogs: All HTTP requests with caller IP, response codes
-# - ApiManagementGatewayMCPLog: MCP-specific fields (ToolName, SessionId, etc.)
 #
 # After running this, all MCP traffic will be logged to Log Analytics.
 # =============================================================================
@@ -68,61 +67,59 @@ echo -e "${BLUE}Creating/updating diagnostic settings...${NC}"
 
 # Create diagnostic settings with all MCP-relevant log categories
 # 
-# Key Log Tables enabled:
-# - ApiManagementGatewayLogs: CallerIpAddress, ResponseCode, DurationMs, CorrelationId
-# - ApiManagementGatewayMCPLog: ToolName, ClientName, SessionId, ServerName, Error (MCP-specific!)
-# - ApiManagementGatewayLlmLog: PromptTokens, CompletionTokens, ModelName (AI gateway)
-#
-# Note: ApiManagementGatewayMCPLog requires the MCPServerLogs category
-# Note: ApiManagementGatewayLlmLog requires the GenerativeAIGatewayLogs category
-az monitor diagnostic-settings create \
+# Available Log Categories:
+# - GatewayLogs -> ApiManagementGatewayLogs: All HTTP requests, IPs, response codes
+# - GatewayLlmLogs -> ApiManagementGatewayLlmLog: LLM/AI token usage, model info
+# - WebSocketConnectionLogs -> ApiManagementWebSocketConnectionLogs: WebSocket events
+# - DeveloperPortalAuditLogs -> APIMDevPortalAuditDiagnosticLog: Portal activity
+
+# First, try with all available log categories including GatewayLlmLogs for AI monitoring
+# Use --export-to-resource-specific to get dedicated tables (e.g., ApiManagementGatewayLogs)
+# instead of the legacy AzureDiagnostics table
+echo -e "${BLUE}Attempting to enable all log categories with dedicated tables...${NC}"
+
+if az monitor diagnostic-settings create \
     --name "mcp-security-logs" \
     --resource "$APIM_RESOURCE_ID" \
     --workspace "$WORKSPACE_ID" \
+    --export-to-resource-specific true \
     --logs '[
-        {
-            "category": "GatewayLogs",
-            "enabled": true,
-            "retentionPolicy": {
-                "enabled": false,
-                "days": 0
-            }
-        },
-        {
-            "category": "MCPServerLogs",
-            "enabled": true,
-            "retentionPolicy": {
-                "enabled": false,
-                "days": 0
-            }
-        },
-        {
-            "category": "GenerativeAIGatewayLogs",
-            "enabled": true,
-            "retentionPolicy": {
-                "enabled": false,
-                "days": 0
-            }
-        }
+        {"category": "GatewayLogs", "enabled": true},
+        {"category": "GatewayLlmLogs", "enabled": true},
+        {"category": "WebSocketConnectionLogs", "enabled": true},
+        {"category": "DeveloperPortalAuditLogs", "enabled": true}
     ]' \
-    --metrics '[
-        {
-            "category": "AllMetrics",
-            "enabled": true,
-            "retentionPolicy": {
-                "enabled": false,
-                "days": 0
-            }
-        }
-    ]' \
-    --output none
+    --metrics '[{"category": "AllMetrics", "enabled": true}]' \
+    --output none 2>/dev/null; then
+    echo -e "${GREEN}✓ All log categories enabled with dedicated tables${NC}"
+    echo -e "${GREEN}  (GatewayLogs, GatewayLlmLogs, WebSocket, DevPortal)${NC}"
+    LLM_LOGS_ENABLED=true
+else
+    echo -e "${YELLOW}Some log categories not available in this SKU. Trying core categories...${NC}"
+    
+    # Fall back to GatewayLogs only (always available in all SKUs)
+    if az monitor diagnostic-settings create \
+        --name "mcp-security-logs" \
+        --resource "$APIM_RESOURCE_ID" \
+        --workspace "$WORKSPACE_ID" \
+        --export-to-resource-specific true \
+        --logs '[{"category": "GatewayLogs", "enabled": true}]' \
+        --metrics '[{"category": "AllMetrics", "enabled": true}]' \
+        --output none 2>/dev/null; then
+        echo -e "${GREEN}✓ GatewayLogs enabled with dedicated table${NC}"
+        LLM_LOGS_ENABLED=false
+    else
+        echo -e "${RED}Failed to create diagnostic settings${NC}"
+        exit 1
+    fi
+fi
 
 echo ""
 echo -e "${GREEN}✓ Diagnostic settings enabled!${NC}"
 echo ""
 
 echo -e "${CYAN}================================================================${NC}"
-echo -e "${CYAN}  Key Log Tables Now Enabled${NC}"
+echo -e "${CYAN}  Log Tables Now Enabled${NC}"
 echo -e "${CYAN}================================================================${NC}"
 echo ""
 echo -e "${YELLOW}1. ApiManagementGatewayLogs${NC} (HTTP request details)"
@@ -132,22 +129,25 @@ echo "   • RequestBody       - Full request content"
 echo "   • ResponseBody      - Full response content"
 echo "   • DurationMs        - Total request time"
 echo "   • CorrelationId     - For cross-service tracing"
+echo "   • Url, Method       - Request path and HTTP method"
+
+if [ "$LLM_LOGS_ENABLED" = true ]; then
 echo ""
-echo -e "${YELLOW}2. ApiManagementGatewayMCPLog${NC} (MCP-specific fields!)"
-echo "   • ToolName          - Which MCP tool was called"
-echo "   • ClientName        - MCP client identifier"
-echo "   • ClientVersion     - Client version"
-echo "   • AuthenticationMethod - How the client authenticated"
-echo "   • SessionId         - MCP session identifier"
-echo "   • ServerName        - Target MCP server"
-echo "   • Error             - Error details if any"
-echo "   • CorrelationId     - For cross-service tracing"
-echo ""
-echo -e "${YELLOW}3. ApiManagementGatewayLlmLog${NC} (AI/LLM gateway)"
+echo -e "${YELLOW}2. ApiManagementGatewayLlmLog${NC} (AI/LLM gateway - if AI APIs configured)"
 echo "   • PromptTokens      - Input token count"
 echo "   • CompletionTokens  - Output token count"
 echo "   • ModelName         - LLM model used"
-echo "   • CorrelationId     - For cross-service tracing"
+echo "   • CorrelationId     - Links to GatewayLogs"
+echo ""
+echo -e "${YELLOW}3. ApiManagementWebSocketConnectionLogs${NC} (WebSocket connections)"
+echo "   • EventName         - Connection lifecycle events"
+echo "   • Source/Destination- Connection endpoints"
+else
+echo ""
+echo -e "${YELLOW}Note:${NC} Only GatewayLogs enabled. Some categories may not be available"
+echo "      in this SKU. GatewayLogs still captures all HTTP-level MCP traffic"
+echo "      including request/response bodies and timing information."
+fi
 echo ""
 
 echo -e "${CYAN}================================================================${NC}"
@@ -158,18 +158,10 @@ echo "HTTP traffic analysis (ApiManagementGatewayLogs):"
 echo ""
 echo -e "${YELLOW}  ApiManagementGatewayLogs"
 echo "  | where TimeGenerated > ago(1h)"
-echo "  | where Url contains '/mcp/'"
-echo "  | project TimeGenerated, CallerIpAddress, Method, ResponseCode, DurationMs"
+echo "  | where ApiId contains 'mcp' or ApiId contains 'sherpa'"
+echo "  | project TimeGenerated, CallerIpAddress, Method, ResponseCode, ApiId"
 echo "  | order by TimeGenerated desc"
 echo -e "  | limit 20${NC}"
-echo ""
-echo "MCP tool usage analysis (ApiManagementGatewayMCPLog):"
-echo ""
-echo -e "${YELLOW}  ApiManagementGatewayMCPLog"
-echo "  | where TimeGenerated > ago(1h)"
-echo "  | summarize CallCount=count() by ToolName, ClientName"
-echo "  | order by CallCount desc"
-echo -e "  | limit 10${NC}"
 echo ""
 
 echo -e "${CYAN}================================================================${NC}"

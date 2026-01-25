@@ -23,14 +23,19 @@ param mcpAppClientId string = ''
 @description('APIM Client App ID for Credential Manager')
 param apimClientAppId string = ''
 
+@description('Unique resource suffix - auto-generated if not provided')
+param resourceSuffix string = ''
+
+// Generate suffix: use provided value, or auto-generate from resource group + timestamp seed
+var effectiveSuffix = !empty(resourceSuffix) ? resourceSuffix : substring(uniqueString(resourceGroup().id, deployment().name), 0, 5)
+
 // Adjusted regions for services with limited availability
 var apimLocation = getApimBasicV2Region(location)
 var contentSafetyLocation = getContentSafetyRegion(location)
 
-// Naming convention: camp4-{unique suffix}
-// Uses a short unique suffix derived from resource group ID
-var suffix = substring(uniqueString(resourceGroup().id, location), 0, 5)
-var prefix = 'camp4-${suffix}'
+// Naming convention: camp4-{suffix}
+// Suffix comes from preprovision hook (RESOURCE_SUFFIX) or auto-generates
+var prefix = 'camp4-${effectiveSuffix}'
 
 // Tags for all resources
 var tags = {
