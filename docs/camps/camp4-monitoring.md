@@ -916,6 +916,61 @@ Alerts run on a schedule (every 5 minutes by default) and fire when the query re
 
 ### 3.2 Create Alert Rules
 
+Dashboards are great when you're looking at them. But security incidents don't wait for business hours. Alert rules watch your logs continuously and notify you when something needs attention.
+
+#### Understanding Action Groups
+
+Before creating alerts, you need to understand **Action Groups**, which are Azure's way of defining *who* gets notified and *how*.
+
+Think of an Action Group as your incident response contact list:
+
+```
+Action Group: "mcp-security-alerts"
+├── Email: security-team@company.com
+├── SMS: +1-867-5309 (on-call engineer)
+├── Webhook: https://notify.company.com/alerts
+└── Azure Function: auto-remediation-function
+```
+
+When an alert fires, it triggers everyone in the Action Group simultaneously. This separation is intentional—you define your notification channels once, then reuse them across multiple alerts.
+
+!!! tip "Start Simple"
+    For this workshop, we'll create an Action Group with just email notifications (or none at all). In production, you'd add SMS for critical alerts, webhooks for Slack/Teams, or even Azure Functions for automated remediation.
+
+#### Anatomy of an Alert Rule
+
+An alert rule has three parts:
+
+| Component | What It Does | Example |
+|-----------|--------------|---------|
+| **Condition** | KQL query that returns results when something's wrong | "More than 10 injection attacks in 5 minutes" |
+| **Action Group** | Who to notify when condition is met | Email the security team |
+| **Severity** | How urgent is this? (0-4) | 2 = Warning |
+
+The alert service runs your KQL query on a schedule (every 5 minutes by default). If the query returns results, the alert "fires" and notifies your Action Group.
+
+#### Severity Levels Explained
+
+Azure uses severity levels 0-4. Here's how to think about them:
+
+| Severity | Name | When to Use | Example |
+|----------|------|-------------|---------|
+| 0 | Critical | Production down, data breach | Credential exposure detected |
+| 1 | Error | Service degraded, security incident | Sustained attack volume |
+| 2 | Warning | Needs attention soon | Spike in blocked attacks |
+| 3 | Informational | For awareness | New attack pattern seen |
+| 4 | Verbose | Debugging only | Rarely used for alerts |
+
+!!! warning "Alert Fatigue is Real"
+    The biggest mistake teams make is setting thresholds too low. If you get 50 alerts a day, you'll start ignoring them, and miss the real incidents. Start with conservative thresholds (fewer alerts) and tune down as you learn your baseline.
+
+#### The Alerts We're Creating
+
+| Alert | Why This Matters |
+|-------|------------------|
+| **High Attack Volume** | A sudden spike in blocked attacks often indicates an active attack campaign. One or two blocked injections? Normal probing. Dozens in minutes? Someone's serious. |
+| **Credential Exposure** | Any credential detection is critical, even if redacted, it means sensitive data reached your system. This should wake someone up at 3 AM. |
+
 ??? success "Set Up Automated Notifications"
 
     Create alert rules:
@@ -924,15 +979,32 @@ Alerts run on a schedule (every 5 minutes by default) and fire when the query re
     ./scripts/section3/3.2-create-alerts.sh
     ```
 
-    **Alerts configured:**
+    The script will prompt for an optional email address. You can skip this and view fired alerts in the Azure Portal instead.
 
-    | Alert | Threshold | Severity |
-    |-------|-----------|----------|
-    | High Attack Volume | >10 attacks in 5 min | Warning |
-    | Credential Exposure | Any detected | Error |
+    **What the script creates:**
 
-    !!! tip "Email Notifications"
-        The script will prompt for an email address. You can skip this and view alerts in the Azure Portal instead.
+    1. **Action Group** (`mcp-security-alerts`)
+        - Short name: `MCPSecAlrt` (used in SMS notifications)
+        - Email receiver (if you provided one)
+
+    2. **Alert: High Attack Volume** (Severity 2 - Warning)
+        - Triggers when >10 attacks detected in 5 minutes
+        - Evaluation frequency: Every 5 minutes
+        - Use case: Detect active attack campaigns
+
+    3. **Alert: Credential Exposure** (Severity 1 - Error)
+        - Triggers on ANY credential detection
+        - Evaluation frequency: Every 5 minutes
+        - Use case: Critical security event requiring immediate attention
+
+    **Verify in Azure Portal:**
+
+    1. Navigate to **Monitor** → **Alerts**
+    2. Click **Alert rules** to see your configured rules
+    3. After an attack simulation, check **Alerts** for fired alerts
+
+    !!! tip "Testing Alerts"
+        Alerts evaluate every 5 minutes, so there's a delay between generating events and seeing alerts fire. After running the attack simulation in Section 4, wait 5-10 minutes before checking for fired alerts.
 
 ---
 
@@ -947,6 +1019,7 @@ Building a monitoring system is one thing. Actually using it under pressure is a
 Security teams practice incident response for the same reason firefighters practice drills: when the real thing happens, you don't want to be figuring things out for the first time.
 
 In this section, you'll:
+
 1. **Simulate a realistic attack** - Multiple attack vectors, realistic payloads
 2. **Watch your dashboard light up** - See the "actionable" part in action
 3. **Investigate using correlation IDs** - Trace the attack across services
@@ -962,6 +1035,7 @@ Client Request → APIM → Security Function → MCP Server → Database
 ```
 
 Each service logs independently. Without correlation, you'd have:
+
 - APIM log: "Request from 203.0.113.42"
 - Function log: "Injection blocked: sql_injection"  
 - MCP Server log: "Request failed"
@@ -986,7 +1060,7 @@ ApiManagementGatewayLogs | where CorrelationId == id
 
 ### 4.1 Simulate Multi-Vector Attack
 
-??? warning "⚠️ Attack Simulation"
+??? warning "Attack Simulation"
 
     Run the attack simulation:
 

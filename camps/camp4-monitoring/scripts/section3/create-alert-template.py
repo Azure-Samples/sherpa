@@ -16,21 +16,22 @@ def create_template(workspace_id: str, action_group_id: str, location: str) -> d
     """Create ARM template for alert rules."""
     
     # KQL for high attack volume
-    # Detects multiple attack events within a 5-minute window
+    # Returns individual attack events - the alert's Count aggregation counts the rows
+    # Note: Properties is a JSON string, custom_dimensions contains Python dict string
     high_attack_query = """AppTraces
-| where Properties.CategoryName == 'mcp_security'
-| extend CustomDims = parse_json(replace_string(replace_string(tostring(Properties.custom_dimensions), "'", '"'), "None", "null"))
+| where Properties has 'custom_dimensions'
+| extend CustomDims = parse_json(replace_string(replace_string(tostring(parse_json(Properties).custom_dimensions), "'", '"'), "None", "null"))
 | extend EventType = tostring(CustomDims.event_type)
-| where EventType in ('prompt_injection_blocked', 'unauthorized_access_blocked', 'rate_limit_exceeded')
-| summarize AttackCount = count() by bin(TimeGenerated, 5m)"""
+| where EventType == 'INJECTION_BLOCKED'
+| project TimeGenerated, EventType"""
 
     # KQL for credential exposure
     # Triggers on ANY credential exposure - this is always critical
     credential_query = """AppTraces
-| where Properties.CategoryName == 'mcp_security'
-| extend CustomDims = parse_json(replace_string(replace_string(tostring(Properties.custom_dimensions), "'", '"'), "None", "null"))
+| where Properties has 'custom_dimensions'
+| extend CustomDims = parse_json(replace_string(replace_string(tostring(parse_json(Properties).custom_dimensions), "'", '"'), "None", "null"))
 | extend EventType = tostring(CustomDims.event_type)
-| where EventType == 'credential_exposure_detected'
+| where EventType == 'CREDENTIAL_DETECTED'
 | project TimeGenerated, EventType"""
 
     return {

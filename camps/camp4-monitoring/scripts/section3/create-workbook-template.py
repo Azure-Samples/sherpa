@@ -19,8 +19,8 @@ def main():
     
     # KQL query helper - custom dimensions parsing
     # Azure Monitor OpenTelemetry for Python stores custom dimensions as a Python dict string
-    # (with single quotes and None). We use replace_string() to convert to valid JSON.
-    custom_dims_parse = '''parse_json(replace_string(replace_string(tostring(Properties.custom_dimensions), "'", "\\""), "None", "null"))'''
+    # (with single quotes and None). Properties itself is also a JSON string that must be parsed first.
+    custom_dims_parse = '''parse_json(replace_string(replace_string(tostring(parse_json(Properties).custom_dimensions), "'", "\\""), "None", "null"))'''
     
     # Workbook content with KQL queries
     workbook_content = {
