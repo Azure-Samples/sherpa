@@ -81,6 +81,7 @@ nav:
     - Camp 2 - Gateway: camps/camp2-gateway.md
     - Camp 3 - I/O Security: camps/camp3-io-security.md
     - Camp 4 - Monitoring: camps/camp4-monitoring.md
+    - The Summit: camps/summit.md
   - Resources:
     - Contributing: resources/contributing.md
     - Infrastructure: resources/infrastructure.md
