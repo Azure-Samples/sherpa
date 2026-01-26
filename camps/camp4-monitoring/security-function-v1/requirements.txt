@@ -1,0 +1,17 @@
+# Azure Functions
+azure-functions>=1.17.0
+
+# Azure AI Language for PII detection
+azure-ai-textanalytics>=5.3.0
+
+# Azure AI Content Safety for Prompt Shields
+azure-ai-contentsafety>=1.0.0
+
+# Azure Identity for managed identity auth
+azure-identity>=1.15.0
+
+# Async HTTP for Content Safety client
+aiohttp>=3.9.0
+
+# NOTE: No Azure Monitor OpenTelemetry in v1 - that's the problem!
+# Basic Python logging goes to stdout but isn't queryable in Log Analytics.

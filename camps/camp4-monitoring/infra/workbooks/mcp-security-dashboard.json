@@ -1,0 +1,173 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# MCP Security Monitoring Dashboard\n\nReal-time visibility into security events from the MCP Security Function. Use this dashboard to monitor blocked attacks, PII redactions, and credential exposures.\n\n**Event Types:**\n- 🛡️ `INJECTION_BLOCKED` - Input validation blocked malicious requests\n- 🔒 `PII_REDACTED` - Personally identifiable information was redacted\n- 🔑 `CREDENTIAL_DETECTED` - Credentials/secrets were detected and redacted\n- ⚠️ `SECURITY_ERROR` - Security function encountered an error"
+      },
+      "name": "title"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "timeRange",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "type": 4,
+            "isRequired": true,
+            "value": {
+              "durationMs": 3600000
+            },
+            "typeSettings": {
+              "selectableValues": [
+                { "durationMs": 300000, "displayText": "Last 5 minutes" },
+                { "durationMs": 900000, "displayText": "Last 15 minutes" },
+                { "durationMs": 1800000, "displayText": "Last 30 minutes" },
+                { "durationMs": 3600000, "displayText": "Last hour" },
+                { "durationMs": 14400000, "displayText": "Last 4 hours" },
+                { "durationMs": 43200000, "displayText": "Last 12 hours" },
+                { "durationMs": 86400000, "displayText": "Last 24 hours" },
+                { "durationMs": 604800000, "displayText": "Last 7 days" }
+              ]
+            },
+            "label": "Time Range"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend EventType = tostring(Properties.event_type)\n| where EventType in ('INJECTION_BLOCKED', 'PII_REDACTED', 'CREDENTIAL_DETECTED')\n| summarize Count=count() by bin(TimeGenerated, 5m), EventType\n| render timechart",
+        "size": 0,
+        "title": "Security Events Over Time",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "timechart",
+        "chartSettings": {
+          "seriesLabelSettings": [
+            { "seriesName": "INJECTION_BLOCKED", "color": "red" },
+            { "seriesName": "PII_REDACTED", "color": "blue" },
+            { "seriesName": "CREDENTIAL_DETECTED", "color": "orange" }
+          ]
+        }
+      },
+      "name": "securityEventsTimechart"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend EventType = tostring(Properties.event_type)\n| where EventType == 'INJECTION_BLOCKED'\n| extend Category = tostring(Properties.category)\n| summarize Count=count() by Category\n| render piechart",
+        "size": 1,
+        "title": "Blocked Attacks by Category",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "piechart"
+      },
+      "customWidth": "50",
+      "name": "attacksByCategory"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend EventType = tostring(Properties.event_type)\n| where EventType == 'PII_REDACTED'\n| extend EntityCount = toint(Properties.entity_count)\n| summarize TotalEvents = count(), TotalEntities = sum(EntityCount)\n| project strcat('📊 PII Events: ', TotalEvents), strcat('🔒 Entities Redacted: ', TotalEntities)",
+        "size": 3,
+        "title": "PII Redaction Summary",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "tiles",
+        "tileSettings": {
+          "showBorder": true
+        }
+      },
+      "customWidth": "50",
+      "name": "piiSummary"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend EventType = tostring(Properties.event_type)\n| where EventType == 'INJECTION_BLOCKED'\n| extend ToolName = tostring(Properties.tool_name)\n| where isnotempty(ToolName)\n| summarize Count=count() by ToolName\n| top 10 by Count desc\n| render barchart",
+        "size": 0,
+        "title": "Attack Trends by MCP Tool",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "barchart"
+      },
+      "name": "attacksByTool"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend EventType = tostring(Properties.event_type)\n| where EventType in ('INJECTION_BLOCKED', 'PII_REDACTED', 'CREDENTIAL_DETECTED', 'SECURITY_ERROR')\n| extend Category = tostring(Properties.category), CorrelationId = tostring(Properties.correlation_id), Severity = tostring(Properties.severity)\n| project TimeGenerated, EventType, Category, Severity, Message, CorrelationId\n| order by TimeGenerated desc\n| take 50",
+        "size": 0,
+        "title": "Recent Security Events",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "EventType",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  { "operator": "==", "thresholdValue": "INJECTION_BLOCKED", "representation": "redBright", "text": "{0}{1}" },
+                  { "operator": "==", "thresholdValue": "CREDENTIAL_DETECTED", "representation": "orange", "text": "{0}{1}" },
+                  { "operator": "==", "thresholdValue": "PII_REDACTED", "representation": "blue", "text": "{0}{1}" },
+                  { "operator": "==", "thresholdValue": "SECURITY_ERROR", "representation": "red", "text": "{0}{1}" },
+                  { "operator": "Default", "representation": "gray", "text": "{0}{1}" }
+                ]
+              }
+            },
+            {
+              "columnMatch": "Severity",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  { "operator": "==", "thresholdValue": "ERROR", "representation": "red", "text": "{0}{1}" },
+                  { "operator": "==", "thresholdValue": "WARNING", "representation": "orange", "text": "{0}{1}" },
+                  { "operator": "Default", "representation": "green", "text": "{0}{1}" }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "recentEvents"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend EventType = tostring(Properties.event_type)\n| where EventType == 'SECURITY_ERROR'\n| summarize ErrorCount=count() by bin(TimeGenerated, 5m)\n| render timechart",
+        "size": 0,
+        "title": "Security Function Error Rate",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "timechart",
+        "chartSettings": {
+          "seriesLabelSettings": [
+            { "seriesName": "ErrorCount", "color": "red" }
+          ]
+        }
+      },
+      "name": "errorRate"
+    }
+  ],
+  "isLocked": false
+}
