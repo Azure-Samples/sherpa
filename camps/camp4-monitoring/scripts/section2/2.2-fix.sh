@@ -5,13 +5,15 @@
 # Pattern: hidden → visible → actionable
 # Transition: HIDDEN → VISIBLE
 #
-# This script deploys the security-function-v2 which uses:
+# This script deploys the security-function (v2) which uses:
 # - Azure Monitor OpenTelemetry for structured logging
 # - Custom dimensions (event_type, injection_type, correlation_id)
 # - Proper severity levels for different event types
 #
 # After this, you can write KQL queries like:
 #   AppTraces | where Properties.event_type == "INJECTION_BLOCKED"
+#
+# NOTE: Uses direct zip deployment - does NOT modify azure.yaml
 # =============================================================================
 
 set -e
@@ -45,31 +47,39 @@ if [ -z "$FUNCTION_APP_NAME" ]; then
 fi
 
 echo -e "${YELLOW}What we're doing:${NC}"
-echo "1. Update azure.yaml to use security-function (v2)"
-echo "2. Deploy the updated function with 'azd deploy'"
+echo "1. Package security-function (v2) with Azure Monitor telemetry"
+echo "2. Deploy directly to Function App using zip deployment"
 echo "3. The function will now emit structured logs with custom dimensions"
 echo ""
 
-# Update azure.yaml to point to v2
-echo -e "${BLUE}Step 1: Updating azure.yaml to use v2...${NC}"
+# Deploy v2 using zip deployment (doesn't require azure.yaml changes)
+echo -e "${BLUE}Step 1: Packaging security-function v2...${NC}"
 
-# Check current azure.yaml
-CURRENT_PROJECT=$(grep -A1 "security-function:" azure.yaml | grep "project:" | awk '{print $2}')
+# Create a temporary directory for the zip
+TEMP_DIR=$(mktemp -d)
+ZIP_FILE="$TEMP_DIR/function-v2.zip"
 
-if [ "$CURRENT_PROJECT" = "./security-function" ]; then
-    echo -e "${GREEN}✓ azure.yaml already points to security-function (v2)${NC}"
-else
-    # Update to use v2
-    sed -i.bak 's|project: ./security-function-v1|project: ./security-function|' azure.yaml
-    echo -e "${GREEN}✓ Updated azure.yaml to use security-function (v2)${NC}"
-fi
+# Copy v2 function to temp and create zip
+cp -r security-function/* "$TEMP_DIR/"
+cd "$TEMP_DIR"
+zip -r "$ZIP_FILE" . -x "*.pyc" -x "__pycache__/*" -x ".venv/*" -x "*.git*" > /dev/null
+cd - > /dev/null
 
-echo ""
-echo -e "${BLUE}Step 2: Deploying v2 with structured logging...${NC}"
+echo -e "${GREEN}✓ Package created${NC}"
 echo ""
 
-# Deploy only the security function
-azd deploy security-function --no-prompt
+echo -e "${BLUE}Step 2: Deploying v2 to $FUNCTION_APP_NAME...${NC}"
+echo ""
+
+# Deploy using az functionapp deployment
+az functionapp deployment source config-zip \
+    --resource-group "$RG_NAME" \
+    --name "$FUNCTION_APP_NAME" \
+    --src "$ZIP_FILE" \
+    --output none
+
+# Clean up
+rm -rf "$TEMP_DIR"
 
 echo ""
 echo -e "${GREEN}✓ Security function v2 deployed!${NC}"

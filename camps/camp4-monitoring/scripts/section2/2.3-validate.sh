@@ -32,8 +32,11 @@ echo ""
 
 # Load environment
 APIM_GATEWAY_URL=$(azd env get-value APIM_GATEWAY_URL 2>/dev/null)
-WORKSPACE_ID=$(azd env get-value LOG_ANALYTICS_WORKSPACE_ID 2>/dev/null)
+RG_NAME=$(azd env get-value AZURE_RESOURCE_GROUP 2>/dev/null)
 MCP_APP_CLIENT_ID=$(azd env get-value MCP_APP_CLIENT_ID 2>/dev/null)
+
+# Get workspace GUID (az monitor log-analytics query needs GUID, not resource ID)
+WORKSPACE_ID=$(az monitor log-analytics workspace list -g "$RG_NAME" --query "[0].customerId" -o tsv 2>/dev/null)
 
 if [ -z "$APIM_GATEWAY_URL" ] || [ -z "$WORKSPACE_ID" ]; then
     echo -e "${RED}Error: Missing environment values. Run 'azd up' first.${NC}"
@@ -109,13 +112,16 @@ echo -e "${BLUE}Step 2: Querying structured logs...${NC}"
 echo ""
 
 # Query for structured security events
+# Note: custom_dimensions is stored as a Python dict string (single quotes)
+# We need to convert to JSON format before parsing
 QUERY='AppTraces
 | where TimeGenerated > ago(30m)
 | where Properties has "event_type"
-| extend EventType = tostring(Properties.event_type),
-         InjectionType = tostring(Properties.injection_type),
-         CorrelationId = tostring(Properties.correlation_id),
-         ToolName = tostring(Properties.tool_name)
+| extend CustomDims = parse_json(replace_string(replace_string(tostring(Properties.custom_dimensions), "'"'"'", "\""), "None", "null"))
+| extend EventType = tostring(CustomDims.event_type),
+         InjectionType = tostring(CustomDims.injection_type),
+         CorrelationId = tostring(CustomDims.correlation_id),
+         ToolName = tostring(CustomDims.tool_name)
 | where EventType == "INJECTION_BLOCKED"
 | project TimeGenerated, EventType, InjectionType, ToolName, CorrelationId
 | order by TimeGenerated desc
@@ -147,8 +153,9 @@ if [ "$COUNT" -gt 0 ] && [ "$COUNT" != "0" ]; then
     SUMMARY_QUERY='AppTraces
     | where TimeGenerated > ago(1h)
     | where Properties has "event_type"
-    | extend EventType = tostring(Properties.event_type),
-             InjectionType = tostring(Properties.injection_type)
+    | extend CustomDims = parse_json(replace_string(replace_string(tostring(Properties.custom_dimensions), "'"'"'", "\""), "None", "null"))
+    | extend EventType = tostring(CustomDims.event_type),
+             InjectionType = tostring(CustomDims.injection_type)
     | where EventType == "INJECTION_BLOCKED"
     | summarize Count=count() by InjectionType
     | order by Count desc'

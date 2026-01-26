@@ -121,7 +121,10 @@ With structured telemetry, your answer is: *"Give me 30 seconds."*
 
 ```kusto
 AppTraces
-| where Properties.event_type == "INJECTION_BLOCKED"
+| where Properties has "event_type"
+| extend CustomDims = parse_json(replace_string(replace_string(
+    tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+| where tostring(CustomDims.event_type) == "INJECTION_BLOCKED"
 | where TimeGenerated > ago(30d)
 | summarize AttacksBlocked = count() by bin(TimeGenerated, 1d)
 | render barchart
@@ -306,18 +309,32 @@ TableName
 | `limit` / `take` | Return N rows | `limit 20` |
 | `render` | Visualize | `render timechart` |
 
-### Working with JSON Properties
+### Working with Custom Dimensions
 
-Logs often contain JSON in a `Properties` column. Extract values like this:
+The security function logs custom dimensions using Azure Monitor OpenTelemetry. These are stored in `Properties.custom_dimensions` as a Python dict string (with single quotes). To query them, you need to convert to JSON and parse:
 
 ```kusto
 AppTraces
-| extend EventType = tostring(Properties.event_type)
+| where Properties has "event_type"
+| extend CustomDims = parse_json(
+    replace_string(
+        replace_string(tostring(Properties.custom_dimensions), "'", "\""),
+        "None", "null"
+    ))
+| extend EventType = tostring(CustomDims.event_type)
 | where EventType == "INJECTION_BLOCKED"
 ```
 
-!!! tip "The tostring() Function"
-    Always wrap JSON property access in `tostring()` when comparing to strings. This is a common gotcha that causes "no results" when the data is actually there.
+!!! warning "Why the Complex Parsing?"
+    Azure Monitor OpenTelemetry for Python stores custom dimensions as a Python dict string, not JSON. This means:
+    
+    - Single quotes (`'`) instead of double quotes (`"`)
+    - Python `None` instead of JSON `null`
+    
+    The `replace_string()` calls convert to valid JSON before `parse_json()` can work.
+
+!!! tip "Pre-filter for Performance"
+    Always use `| where Properties has "event_type"` before the parsing step. This filters at the storage level and dramatically improves query performance.
 
 ### Time Filters
 
@@ -406,7 +423,7 @@ BEFORE: No Diagnostic Settings                 AFTER: Diagnostics Enabled
 │              │                                │              │   Diagnostic      │
 │  • Routes ✓  │                                │  • Routes ✓  │   Settings        │
 │  • Policies ✓│                                │  • Policies ✓│                   │
-│  • Logs? ❌  │                                │  • Logs ✓    │                   ▼
+│  • Logs?     │                                │  • Logs ✓    │                   ▼
 └──────┬───────┘                                └──────┬───────┘        ┌─────────────────┐
        │                                               │                │  Log Analytics  │
        ▼                                               ▼                │                 │
@@ -416,9 +433,9 @@ BEFORE: No Diagnostic Settings                 AFTER: Diagnostics Enabled
 └─────────────┘                                └─────────────┘          └─────────────────┘
                                                                               │
 Traffic works fine,                            Traffic works AND              ▼
-but NO VISIBILITY                              you can QUERY everything    📊 KQL Queries
-                                                                           📈 Dashboards
-                                                                           🔔 Alerts
+but NO VISIBILITY                              you can QUERY everything    KQL Queries
+                                                                           Dashboards
+                                                                           Alerts
 ```
 
 ### Why APIM Logging Matters
@@ -471,9 +488,9 @@ Once enabled, APIM automatically streams logs to your workspace. No code changes
 
     | What Works | What's Missing |
     |------------|----------------|
-    | ✅ Requests routed through APIM | ❌ No record of who made requests |
-    | ✅ Security function blocks attacks | ❌ No caller IP addresses |
-    | ✅ Responses returned correctly | ❌ No query-able logs in Log Analytics |
+    | :material-check: Requests routed through APIM | :material-close: No record of who made requests |
+    | :material-check: Security function blocks attacks | :material-close: No caller IP addresses |
+    | :material-check: Responses returned correctly | :material-close: No query-able logs in Log Analytics |
 
     !!! warning "The Hidden Problem"
         Your gateway is routing traffic, but you have zero visibility into:
@@ -516,7 +533,15 @@ Once enabled, APIM automatically streams logs to your workspace. No code changes
     | `ModelName` | LLM model used |
     | `CorrelationId` | For cross-service tracing |
 
+    !!! warning "Avoid Portal Edits During Script Execution"
+        Don't edit diagnostic settings in the Azure Portal while this script is running. Concurrent edits can corrupt the settings, causing logs to not flow properly. If you suspect issues, run the script again—it will delete and recreate the settings cleanly.
 
+    !!! tip "Verify in Azure Portal"
+        You can confirm the diagnostic settings were created by navigating to your APIM resource in the Azure Portal:
+        
+        **APIM** → **Monitoring** → **Diagnostic settings** → **mcp-security-logs**
+        
+        You should see `GatewayLogs`, `WebSocketConnectionLogs`, and other categories enabled, all pointing to your Log Analytics workspace.
 
 ### 1.3 Validate Logs Appear
 
@@ -574,6 +599,29 @@ Simple, readable, and utterly useless for security analysis at scale. Why?
 
 **You can't aggregate it.** How many attacks per hour? Per tool? Per source IP? Each question requires custom text parsing.
 
+!!! info "How Correlation IDs Flow Through the System"
+    When a request arrives at APIM, it's assigned a unique `RequestId` (accessible via `context.RequestId` in policies). This ID appears as `CorrelationId` in APIM's gateway logs.
+
+    For end-to-end tracing, APIM must **explicitly pass** this ID to backend services. In our security function calls, the policy includes:
+
+    ```xml
+    <set-header name="x-correlation-id" exists-action="override">
+        <value>@(context.RequestId.ToString())</value>
+    </set-header>
+    ```
+
+    The security function extracts this header (or generates its own if missing) and includes it in every log event. This enables queries that join APIM gateway logs with function logs:
+
+    ```kusto
+    let id = "YOUR-CORRELATION-ID";
+    union
+        (ApiManagementGatewayLogs | where CorrelationId == id),
+        (AppTraces | where Properties.correlation_id == id)
+    | order by TimeGenerated
+    ```
+
+    Without this explicit header passing, you'd have two disconnected log streams with no way to link them!
+
 ### Structured Logging: The Solution
 
 Structured logging means emitting events as **key-value pairs** (dimensions) rather than formatted strings:
@@ -590,14 +638,20 @@ log_security_event(
 This produces a log entry where each piece of information is a separate, queryable field. Now you can:
 
 ```kusto
-// Count attacks by type (trivial!)
+// Count attacks by type
 AppTraces
-| where Properties.event_type == "INJECTION_BLOCKED"
-| summarize count() by tostring(Properties.injection_type)
+| where Properties has "event_type"
+| extend CustomDims = parse_json(replace_string(replace_string(
+    tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+| where tostring(CustomDims.event_type) == "INJECTION_BLOCKED"
+| summarize count() by tostring(CustomDims.injection_type)
 
 // Find all events for a specific request
 AppTraces
-| where Properties.correlation_id == "abc-123-xyz"
+| where Properties has "correlation_id"
+| extend CustomDims = parse_json(replace_string(replace_string(
+    tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+| where tostring(CustomDims.correlation_id) == "abc-123-xyz"
 ```
 
 ### What Are Custom Dimensions?
@@ -626,19 +680,16 @@ Think of custom dimensions as adding columns to your log database that you can f
     ./scripts/section2/2.1-exploit.sh
     ```
 
-    **What you'll see in logs:**
+    **What you'll discover:**
 
-    ```text
-    WARNING: Injection blocked: sql_injection
-    WARNING: PII detected and redacted: 3 entities
-    ```
+    The script attempts to query `AppTraces` in Log Analytics, but with v1's basic `logging.warning()` calls, the table doesn't even exist! Basic Python logging writes to stdout/console—it doesn't automatically flow to Application Insights as structured, queryable data.
 
-    **What you can't easily do:**
+    This is the core problem: **security events are happening, but they're invisible to your monitoring tools.**
 
-    - ❌ Query "how many SQL injections vs shell injections?"
-    - ❌ Correlate with APIM logs (no correlation_id)
-    - ❌ Build dashboards by attack category
-    - ❌ Alert on specific injection types
+    :material-close: No `AppTraces` table to query  
+    :material-close: No correlation IDs linking to APIM logs  
+    :material-close: No way to build dashboards or alerts  
+    :material-close: Logs exist only in function console output (if you know where to look)
 
 ### 2.2 Deploy Structured Logging
 
@@ -684,25 +735,96 @@ Think of custom dimensions as adding columns to your log database that you can f
     ./scripts/section2/2.3-validate.sh
     ```
 
-    **Now you can query like this:**
+    **Count attacks by injection type:**
 
     ```kusto
     AppTraces
     | where Properties has "event_type"
-    | extend EventType = tostring(Properties.event_type),
-             InjectionType = tostring(Properties.injection_type)
+    | extend CustomDims = parse_json(replace_string(replace_string(
+        tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+    | extend EventType = tostring(CustomDims.event_type),
+             InjectionType = tostring(CustomDims.injection_type)
     | where EventType == "INJECTION_BLOCKED"
     | summarize Count=count() by InjectionType
     | order by Count desc
     ```
 
-    **Correlate APIM + Function logs:**
+    **Recent security events with details:**
+
+    ```kusto
+    AppTraces
+    | where Properties has "event_type"
+    | extend CustomDims = parse_json(replace_string(replace_string(
+        tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+    | extend EventType = tostring(CustomDims.event_type),
+             InjectionType = tostring(CustomDims.injection_type),
+             ToolName = tostring(CustomDims.tool_name),
+             CorrelationId = tostring(CustomDims.correlation_id)
+    | where EventType == "INJECTION_BLOCKED"
+    | project TimeGenerated, EventType, InjectionType, ToolName, CorrelationId
+    | order by TimeGenerated desc
+    | limit 20
+    ```
+
+    **Most targeted tools:**
+
+    ```kusto
+    AppTraces
+    | where Properties has "event_type"
+    | extend CustomDims = parse_json(replace_string(replace_string(
+        tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+    | where tostring(CustomDims.event_type) == "INJECTION_BLOCKED"
+    | extend ToolName = tostring(CustomDims.tool_name)
+    | where isnotempty(ToolName)
+    | summarize AttackCount=count() by ToolName
+    | order by AttackCount desc
+    ```
+
+    **End-to-end correlation (auto-finds latest correlation ID):**
+
+    This query finds the most recent blocked attack and traces it across both APIM and Function logs:
+
+    ```kusto
+    // Get the most recent correlation ID from a blocked attack
+    let recentAttack = AppTraces
+    | where TimeGenerated > ago(1h)
+    | where Properties has "event_type"
+    | extend CustomDims = parse_json(replace_string(replace_string(
+        tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+    | where tostring(CustomDims.event_type) == "INJECTION_BLOCKED"
+    | extend CorrelationId = tostring(CustomDims.correlation_id)
+    | top 1 by TimeGenerated desc
+    | project CorrelationId;
+    // Now trace that request across APIM and Function
+    let correlationId = toscalar(recentAttack);
+    union
+        (ApiManagementGatewayLogs 
+         | where TimeGenerated > ago(1h)
+         | where CorrelationId == correlationId
+         | project TimeGenerated, Source="APIM", CorrelationId,
+                   Details=strcat("HTTP ", ResponseCode, " from ", CallerIpAddress)),
+        (AppTraces 
+         | where TimeGenerated > ago(1h)
+         | where Properties has "correlation_id"
+         | extend CustomDims = parse_json(replace_string(replace_string(
+             tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+         | where tostring(CustomDims.correlation_id) == correlationId
+         | project TimeGenerated, Source="Function", CorrelationId=tostring(CustomDims.correlation_id),
+                   Details=strcat(tostring(CustomDims.event_type), ": ", tostring(CustomDims.injection_type)))
+    | order by TimeGenerated asc
+    ```
+
+    **Manual correlation (paste your own ID):**
 
     ```kusto
     let correlationId = "YOUR-CORRELATION-ID";
     union
         (ApiManagementGatewayLogs | where CorrelationId == correlationId),
-        (AppTraces | where Properties.correlation_id == correlationId)
+        (AppTraces 
+         | where Properties has "correlation_id"
+         | extend CustomDims = parse_json(replace_string(replace_string(
+             tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+         | where tostring(CustomDims.correlation_id) == correlationId)
     | order by TimeGenerated
     ```
 
@@ -715,9 +837,10 @@ Visibility is great, but you can't watch logs 24/7. This section makes security 
 ### From Visible to Actionable
 
 At this point, you've achieved visibility:
-- ✅ APIM logs flow to Log Analytics
-- ✅ Security function emits structured events
-- ✅ You can query anything with KQL
+
+:material-check: APIM logs flow to Log Analytics  
+:material-check: Security function emits structured events  
+:material-check: You can query anything with KQL
 
 But there's a problem: **nobody has time to run KQL queries all day**.
 
@@ -754,6 +877,7 @@ Alerts watch your logs and take action when conditions are met. They have three 
 3. **Severity**: How urgent is this? (0-4, where 0 is critical)
 
 For example, our "High Attack Volume" alert:
+
 - **Condition**: More than 10 `INJECTION_BLOCKED` events in 5 minutes
 - **Action**: Email the security team
 - **Severity**: 2 (Warning)
@@ -769,6 +893,16 @@ Alerts run on a schedule (every 5 minutes by default) and fire when the query re
     ```bash
     ./scripts/section3/3.1-deploy-workbook.sh
     ```
+
+    **Access the dashboard:**
+
+    1. Open the [Azure Portal](https://portal.azure.com)
+    2. Navigate to your **Log Analytics workspace** (`log-camp4-xxxxx`)
+    3. Click **Workbooks** in the left menu
+    4. Select **MCP Security Dashboard** from the list
+
+    !!! tip "If the dashboard appears empty"
+        Do a hard refresh (`Cmd+Shift+R` or `Ctrl+Shift+R`) to reload the portal UI. The visualization components sometimes fail to load on first access.
 
     **Dashboard panels:**
 
@@ -884,7 +1018,9 @@ ApiManagementGatewayLogs | where CorrelationId == id
     AppTraces
     | where TimeGenerated > timeRange
     | where Properties has "event_type"
-    | extend CorrelationId = tostring(Properties.correlation_id)
+    | extend CustomDims = parse_json(replace_string(replace_string(
+        tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+    | extend CorrelationId = tostring(CustomDims.correlation_id)
     | join kind=leftouter (
         ApiManagementGatewayLogs
         | where TimeGenerated > timeRange
@@ -892,8 +1028,8 @@ ApiManagementGatewayLogs | where CorrelationId == id
         | project CorrelationId, CallerIpAddress, ResponseCode
     ) on CorrelationId
     | project TimeGenerated, CorrelationId, 
-        EventType=tostring(Properties.event_type),
-        InjectionType=tostring(Properties.injection_type),
+        EventType=tostring(CustomDims.event_type),
+        InjectionType=tostring(CustomDims.injection_type),
         CallerIpAddress, ResponseCode
     | order by TimeGenerated desc
     | take 50
@@ -920,7 +1056,10 @@ Each query is designed to answer a specific question. Copy them into Log Analyti
 
 ```kusto
 AppTraces
-| extend EventType = tostring(Properties.event_type)
+| where Properties has "event_type"
+| extend CustomDims = parse_json(replace_string(replace_string(
+    tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = tostring(CustomDims.event_type)
 | where EventType in ('INJECTION_BLOCKED', 'PII_REDACTED', 'CREDENTIAL_DETECTED')
 | summarize Count=count() by EventType
 | render piechart
@@ -930,9 +1069,12 @@ AppTraces
 
 ```kusto
 AppTraces
-| extend EventType = tostring(Properties.event_type)
+| where Properties has "event_type"
+| extend CustomDims = parse_json(replace_string(replace_string(
+    tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = tostring(CustomDims.event_type)
 | where EventType == 'INJECTION_BLOCKED'
-| extend Category = tostring(Properties.category)
+| extend Category = tostring(CustomDims.injection_type)
 | summarize Count=count() by Category
 | order by Count desc
 ```
@@ -941,7 +1083,10 @@ AppTraces
 
 ```kusto
 AppTraces
-| extend EventType = tostring(Properties.event_type)
+| where Properties has "event_type"
+| extend CustomDims = parse_json(replace_string(replace_string(
+    tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = tostring(CustomDims.event_type)
 | where EventType == 'INJECTION_BLOCKED'
 | summarize Count=count() by bin(TimeGenerated, 5m)
 | render timechart
@@ -951,9 +1096,12 @@ AppTraces
 
 ```kusto
 AppTraces
-| extend EventType = tostring(Properties.event_type)
+| where Properties has "event_type"
+| extend CustomDims = parse_json(replace_string(replace_string(
+    tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = tostring(CustomDims.event_type)
 | where EventType == 'INJECTION_BLOCKED'
-| extend ToolName = tostring(Properties.tool_name)
+| extend ToolName = tostring(CustomDims.tool_name)
 | where isnotempty(ToolName)
 | summarize Count=count() by ToolName
 | top 10 by Count desc
@@ -965,9 +1113,12 @@ AppTraces
 // Replace with an actual correlation ID from your logs
 let correlation_id = "YOUR-CORRELATION-ID";
 AppTraces
-| extend CorrelationId = tostring(Properties.correlation_id)
+| where Properties has "correlation_id"
+| extend CustomDims = parse_json(replace_string(replace_string(
+    tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+| extend CorrelationId = tostring(CustomDims.correlation_id)
 | where CorrelationId == correlation_id
-| project TimeGenerated, Message, Properties
+| project TimeGenerated, Message, CustomDims
 | order by TimeGenerated asc
 ```
 
@@ -988,9 +1139,11 @@ ApiManagementGatewayLogs
     // Security function logs
     AppTraces
     | where TimeGenerated > timeRange
-    | extend CorrelationId = tostring(Properties.correlation_id)
-    | where CorrelationId == correlationId
-    | extend EventType = tostring(Properties.event_type)
+    | where Properties has "correlation_id"
+    | extend CustomDims = parse_json(replace_string(replace_string(
+        tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+    | where tostring(CustomDims.correlation_id) == correlationId
+    | extend EventType = tostring(CustomDims.event_type)
     | project TimeGenerated, Source="Function", EventType, Message
 )
 | order by TimeGenerated asc
@@ -1020,8 +1173,10 @@ Identify which tools are most frequently targeted by attackers:
 AppTraces
 | where TimeGenerated > ago(7d)
 | where Properties has "event_type"
-| extend EventType = tostring(Properties.event_type),
-         ToolName = tostring(Properties.tool_name)
+| extend CustomDims = parse_json(replace_string(replace_string(
+    tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = tostring(CustomDims.event_type),
+         ToolName = tostring(CustomDims.tool_name)
 | where EventType == "INJECTION_BLOCKED" and isnotempty(ToolName)
 | summarize AttackAttempts=count() by ToolName
 | order by AttackAttempts desc
@@ -1158,24 +1313,38 @@ Things don't always work the first time. Here are the most common issues and how
 
 ??? question "Properties.event_type returns nothing but I see the data"
 
-    **JSON property access is tricky in KQL:**
+    **Custom dimensions in OpenTelemetry are stored differently than expected.**
+    
+    The Azure Monitor OpenTelemetry SDK for Python stores custom dimensions in `Properties.custom_dimensions` as a Python dict string (with single quotes), not as direct JSON properties.
+    
+    **Wrong approach** (won't work):
+    ```kusto
+    | extend EventType = tostring(Properties.event_type)  // ✗ Returns empty
+    | where Properties.event_type == "INJECTION_BLOCKED"  // ✗ No matches
+    ```
+    
+    **Correct approach** (parse the custom_dimensions):
+    ```kusto
+    | extend CustomDims = parse_json(replace_string(replace_string(
+        tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+    | extend EventType = tostring(CustomDims.event_type)  // ✅ Works
+    | where EventType == "INJECTION_BLOCKED"  // ✅ Matches
+    ```
 
-    - Always use `tostring()`:
-      ```kusto
-      | extend EventType = tostring(Properties.event_type)  // ✅ Works
-      | where Properties.event_type == "INJECTION_BLOCKED"  // ❌ Often fails
-      ```
+    Check what's actually in Properties:
+    ```kusto
+    AppTraces 
+    | where Properties has "event_type"
+    | take 1 
+    | project Properties
+    ```
 
-    - Property names are case-sensitive:
-      ```kusto
-      Properties.event_type  // ✅
-      Properties.Event_Type  // ❌
-      ```
+    You'll see something like:
+    ```json
+    {"custom_dimensions": "{'event_type': 'INJECTION_BLOCKED', ...}"}
+    ```
 
-    - Check what's actually in Properties:
-      ```kusto
-      AppTraces | take 1 | project Properties
-      ```
+    Note the single quotes inside `custom_dimensions` - that's a Python dict string, not JSON!
 
 ??? question "I'm seeing 'Request rate is large' errors"
 

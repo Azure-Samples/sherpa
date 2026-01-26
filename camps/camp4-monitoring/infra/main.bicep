@@ -23,10 +23,11 @@ param mcpAppClientId string = ''
 @description('APIM Client App ID for Credential Manager')
 param apimClientAppId string = ''
 
-@description('Unique resource suffix - auto-generated if not provided')
+@description('Unique resource suffix - set by preprovision hook via RESOURCE_SUFFIX env var')
 param resourceSuffix string = ''
 
-// Generate suffix: use provided value, or auto-generate from resource group + timestamp seed
+// Suffix MUST be provided by preprovision hook to avoid soft-delete conflicts.
+// The fallback using deployment().name is only for manual deployments and may cause issues.
 var effectiveSuffix = !empty(resourceSuffix) ? resourceSuffix : substring(uniqueString(resourceGroup().id, deployment().name), 0, 5)
 
 // Adjusted regions for services with limited availability

@@ -54,16 +54,26 @@ APIM_RESOURCE_ID=$(az apim show \
     --resource-group "$RG_NAME" \
     --query id -o tsv)
 
-# Check if diagnostic settings already exist
+# Always delete existing diagnostic settings first (cleaner than updating)
+# This ensures a fresh configuration and avoids potential corruption from:
+# - Concurrent portal edits
+# - Partial updates
+# - Mode switching (legacy vs resource-specific tables)
 EXISTING=$(az monitor diagnostic-settings list \
     --resource "$APIM_RESOURCE_ID" \
     --query "[?name=='mcp-security-logs'].name" -o tsv 2>/dev/null) || true
 
 if [ -n "$EXISTING" ]; then
-    echo -e "${YELLOW}Diagnostic settings 'mcp-security-logs' already exist. Updating...${NC}"
+    echo -e "${YELLOW}Removing existing diagnostic settings for clean recreation...${NC}"
+    az monitor diagnostic-settings delete \
+        --name "mcp-security-logs" \
+        --resource "$APIM_RESOURCE_ID" \
+        --output none 2>/dev/null || true
+    # Give Azure a moment to fully remove the settings
+    sleep 3
 fi
 
-echo -e "${BLUE}Creating/updating diagnostic settings...${NC}"
+echo -e "${BLUE}Creating diagnostic settings...${NC}"
 
 # Create diagnostic settings with all MCP-relevant log categories
 # 
@@ -165,11 +175,100 @@ echo -e "  | limit 20${NC}"
 echo ""
 
 echo -e "${CYAN}================================================================${NC}"
+echo -e "${CYAN}  Sending Test Requests (for 1.3-validate.sh)${NC}"
+echo -e "${CYAN}================================================================${NC}"
+echo ""
+echo "Now that diagnostics are enabled, we'll send a few test requests"
+echo "so 1.3-validate.sh has logs to query."
+echo ""
+
+# Get OAuth token for authenticated requests
+APIM_GATEWAY_URL=$(azd env get-value APIM_GATEWAY_URL 2>/dev/null)
+MCP_APP_CLIENT_ID=$(azd env get-value MCP_APP_CLIENT_ID 2>/dev/null)
+
+if [ -z "$APIM_GATEWAY_URL" ] || [ -z "$MCP_APP_CLIENT_ID" ]; then
+    echo -e "${YELLOW}Warning: Could not get APIM_GATEWAY_URL or MCP_APP_CLIENT_ID.${NC}"
+    echo "Skipping test requests. You can run 1.1-exploit.sh again to generate traffic."
+else
+    echo -e "${BLUE}Getting OAuth token...${NC}"
+    TOKEN=$(az account get-access-token --resource "$MCP_APP_CLIENT_ID" --query accessToken -o tsv 2>/dev/null) || true
+    
+    if [ -z "$TOKEN" ]; then
+        echo -e "${YELLOW}Warning: Could not get access token. Skipping test requests.${NC}"
+    else
+        echo -e "${GREEN}✓ Token acquired${NC}"
+        echo ""
+        
+        # Initialize MCP session
+        curl -s -D /tmp/mcp-headers.txt --max-time 10 -X POST "${APIM_GATEWAY_URL}/sherpa/mcp" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"camp4-fix-test","version":"1.0"}},"id":1}' > /dev/null 2>&1 || true
+
+        SESSION_ID=$(grep -i "mcp-session-id" /tmp/mcp-headers.txt 2>/dev/null | sed 's/.*: *//' | tr -d '\r\n') || true
+        [ -z "$SESSION_ID" ] && SESSION_ID="session-$(date +%s)"
+
+        # Test 1: Legitimate request (should return 200)
+        echo -e "${BLUE}Test 1: Legitimate MCP request (get_weather)...${NC}"
+        HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null --max-time 15 -X POST "${APIM_GATEWAY_URL}/sherpa/mcp" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            -H "Mcp-Session-Id: $SESSION_ID" \
+            -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"get_weather","arguments":{"location":"base-camp"}},"id":10}')
+        echo -e "  Status: ${GREEN}$HTTP_CODE${NC} (expected: 200)"
+        
+        # Test 2: Another legitimate request (should return 200)
+        echo -e "${BLUE}Test 2: Legitimate MCP request (list_trails)...${NC}"
+        HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null --max-time 15 -X POST "${APIM_GATEWAY_URL}/sherpa/mcp" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            -H "Mcp-Session-Id: $SESSION_ID" \
+            -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"list_trails","arguments":{}},"id":11}')
+        echo -e "  Status: ${GREEN}$HTTP_CODE${NC} (expected: 200)"
+
+        # Test 3: SQL injection attack (should return 400)
+        echo -e "${BLUE}Test 3: SQL injection attack (blocked → 400)...${NC}"
+        HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null --max-time 15 -X POST "${APIM_GATEWAY_URL}/sherpa/mcp" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            -H "Mcp-Session-Id: $SESSION_ID" \
+            -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"get_weather","arguments":{"location":"summit'"'"'; DROP TABLE users; --"}},"id":12}')
+        if [ "$HTTP_CODE" = "400" ]; then
+            echo -e "  Status: ${GREEN}$HTTP_CODE${NC} (attack blocked as expected)"
+        else
+            echo -e "  Status: ${YELLOW}$HTTP_CODE${NC} (expected: 400)"
+        fi
+
+        # Test 4: Path traversal attack (should return 400)
+        echo -e "${BLUE}Test 4: Path traversal attack (blocked → 400)...${NC}"
+        HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null --max-time 15 -X POST "${APIM_GATEWAY_URL}/sherpa/mcp" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            -H "Mcp-Session-Id: $SESSION_ID" \
+            -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"check_trail_conditions","arguments":{"trail_id":"../../../etc/passwd"}},"id":13}')
+        if [ "$HTTP_CODE" = "400" ]; then
+            echo -e "  Status: ${GREEN}$HTTP_CODE${NC} (attack blocked as expected)"
+        else
+            echo -e "  Status: ${YELLOW}$HTTP_CODE${NC} (expected: 400)"
+        fi
+        
+        echo ""
+        echo -e "${GREEN}✓ Test requests sent! These will appear in ApiManagementGatewayLogs.${NC}"
+    fi
+fi
+
+echo ""
+echo -e "${CYAN}================================================================${NC}"
 echo -e "${CYAN}  Note: Log Ingestion Delay${NC}"
 echo -e "${CYAN}================================================================${NC}"
 echo ""
 echo "Azure Monitor logs have a 2-5 minute ingestion delay."
 echo "Run 1.3-validate.sh after a few minutes to verify logs appear."
 echo ""
-echo -e "${GREEN}Next: Wait 2-5 minutes, then run ./scripts/1.3-validate.sh${NC}"
+echo -e "${GREEN}Next: Wait 2-5 minutes, then run ./scripts/section1/1.3-validate.sh${NC}"
 echo ""
