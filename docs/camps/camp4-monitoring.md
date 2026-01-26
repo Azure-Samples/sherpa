@@ -1078,9 +1078,9 @@ ApiManagementGatewayLogs | where CorrelationId == id
 
     **What to observe:**
 
-    - 📊 Dashboard shows spike in attack volume
-    - 🚨 "High Attack Volume" alert triggers
-    - 📧 Email notification (if configured)
+    - Dashboard shows spike in attack volume
+    - "High Attack Volume" alert triggers
+    - Email notification (if configured)
 
     **Full log correlation query:**
 
@@ -1266,33 +1266,33 @@ Let's look at how all the pieces fit together. Understanding this architecture h
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         MCP Client                               │
+│                         MCP Client                              │
 └───────────────────────────────┬─────────────────────────────────┘
                                 │ HTTPS Request
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                     API Management (APIM)                        │
+│                     API Management (APIM)                       │
 │   • Receives all MCP traffic                                    │
 │   • Applies policies (auth, rate limiting)                      │
 │   • Generates CorrelationId for tracing                         │
 │   • Routes to security function                                 │
 │                                                                 │
 │   Diagnostic Settings → Log Analytics                           │
-│   └── GatewayLogs (HTTP details)                               │
-│   └── GatewayLlmLogs (LLM usage)                               │
-│   └── WebSocketConnectionLogs (WebSocket events)               │
+│   └── GatewayLogs (HTTP details)                                │
+│   └── GatewayLlmLogs (LLM usage)                                │
+│   └── WebSocketConnectionLogs (WebSocket events)                │
 └───────────────────────────────┬─────────────────────────────────┘
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Security Function                             │
+│                    Security Function                            │
 │   • Receives forwarded request + CorrelationId                  │
 │   • Checks for injection patterns                               │
 │   • Scans for PII/credentials in responses                      │
 │   • Logs structured events with custom dimensions               │
 │                                                                 │
 │   Application Insights SDK → AppTraces table                    │
-│   └── event_type, injection_type, correlation_id               │
+│   └── event_type, injection_type, correlation_id                │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -1337,7 +1337,7 @@ Things don't always work the first time. Here are the most common issues and how
 
     1. **Wait 2-5 minutes.** Logs don't appear instantly. If you just enabled diagnostics or deployed the function, grab a coffee and try again.
 
-    2. **Check your time range.** The default in Log Analytics might be "Last 24 hours"—if you just deployed, try "Last 1 hour" or "Last 30 minutes".
+    2. **Check your time range.** The default in Log Analytics might be "Last 24 hours", if you just deployed, try "Last 1 hour" or "Last 30 minutes".
 
     3. **Verify diagnostic settings exist:**
        ```bash
@@ -1401,8 +1401,8 @@ Things don't always work the first time. Here are the most common issues and how
     ```kusto
     | extend CustomDims = parse_json(replace_string(replace_string(
         tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-    | extend EventType = tostring(CustomDims.event_type)  // ✅ Works
-    | where EventType == "INJECTION_BLOCKED"  // ✅ Matches
+    | extend EventType = tostring(CustomDims.event_type)  // :material-check: Works
+    | where EventType == "INJECTION_BLOCKED"  // :material-check: Matches
     ```
 
     Check what's actually in Properties:
@@ -1444,9 +1444,9 @@ az ad app delete --id $(azd env get-value APIM_CLIENT_APP_ID)
 
 ---
 
-## Congratulations! 🎉
+## Congratulations!
 
-You've completed Camp 4: Monitoring & Telemetry and reached **Observation Peak**! One more climb to go—the Summit awaits.
+You've completed Camp 4: Monitoring & Telemetry and reached **Observation Peak**! One more climb to go. The Summit awaits!
 
 ### Your Journey: Hidden → Visible → Actionable
 
@@ -1463,12 +1463,12 @@ You've transformed your MCP infrastructure from a "black box" into a fully obser
 
 ### What You've Accomplished
 
-- ✅ **Enabled APIM diagnostics** with GatewayLogs, GatewayLlmLogs, and WebSocketConnectionLogs
-- ✅ **Implemented structured logging** with correlation IDs and custom dimensions
-- ✅ **Built a security dashboard** using Azure Workbooks
-- ✅ **Configured alert rules** for attack detection
-- ✅ **Learned KQL** for security investigations
-- ✅ **Practiced incident response** with cross-service log correlation
+:material-check: **Enabled APIM diagnostics** with GatewayLogs, GatewayLlmLogs, and WebSocketConnectionLogs  
+:material-check: **Implemented structured logging** with correlation IDs and custom dimensions  
+:material-check: **Built a security dashboard** using Azure Workbooks  
+:material-check: **Configured alert rules** for attack detection  
+:material-check: **Learned KQL** for security investigations  
+:material-check: **Practiced incident response** with cross-service log correlation
 
 ### The Hidden → Visible → Actionable Pattern
 
