@@ -15,8 +15,8 @@ Camp 3 adds **Layer 2 security**: Azure Functions that perform advanced input va
 
 This camp follows the same **"vulnerable → exploit → fix → validate"** methodology, but focuses on the data flowing through your MCP servers rather than access control.
 
-**Tech Stack:** Python, MCP, Azure Functions, Azure AI Services (Language), Azure API Management
-**Primary Risks:** [MCP-05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-command-injection/) (Command Injection), [MCP-06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/) (Prompt Injection), [MCP-03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/) (Tool Poisoning)
+**Tech Stack:** Python, MCP, Azure Functions, Azure AI Services (Language), Azure API Management  
+**Primary Risks:** [MCP-05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-command-injection/) (Command Injection), [MCP-06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/) (Prompt Injection), [MCP-03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/) (Tool Poisoning), [MCP-10](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp10-context-oversharing/) (Context Over-Sharing)
 
 ## What You'll Learn
 
@@ -727,7 +727,7 @@ Congratulations! You've implemented defense-in-depth I/O security for MCP server
 |---------|--------------|------------|----------------------|
 | **Content Safety (L1)** | Harmful content detection | All APIs | MCP-06 (partial) |
 | **input_check (L2)** | Prompt/shell/SQL/path injection | All APIs | MCP-05, MCP-06 |
-| **sanitize_output (L2)** | PII redaction, credential scanning | sherpa-mcp, trail-api | MCP-03 |
+| **sanitize_output (L2)** | PII redaction, credential scanning | sherpa-mcp, trail-api | MCP-03, MCP-10 |
 | **Server validation (L3)** | Pydantic schemas, regex patterns | MCP servers | Defense in depth |
 
 ---

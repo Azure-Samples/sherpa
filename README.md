@@ -14,13 +14,13 @@ MCP is an open protocol that lets AI applications connect to external tools and 
 
 **Aligned with:** MCP Specification 2025-11-25 | OWASP MCP Top 10
 
-## 🗺️ The Journey
+## The Journey
 
 Our expedition follows a proven path where each camp builds on the last, creating defense-in-depth security.
 
 ![Expedition Route](docs/images/sherpa-mcp-workshop-map.png)
 
-| Stop | Theme | Focus |
+| Camp | Theme | Focus |
 |:----:|:-----:|:-----:|
 | **Base Camp** | Understanding the Mountain | MCP fundamentals, basic authentication |
 | **Camp 1** | Establishing Your Identity | OAuth, Managed Identity, Key Vault |
@@ -29,9 +29,7 @@ Our expedition follows a proven path where each camp builds on the last, creatin
 | **Camp 4** | Observation Peak | Logging, Monitoring, Threat Detection |
 | **Summit** | Full Integration | Red Team / Blue Team, Defense Validation |
 
-
-
-## 📚 Reference Guide
+## Reference Guide
 
 Comprehensive security guidance is available at:  
 **[microsoft.github.io/mcp-azure-security-guide](https://microsoft.github.io/mcp-azure-security-guide/)**
@@ -77,16 +75,16 @@ Each camp follows our proven pattern:
 
 | Risk | Name | Camp |
 |:----:|------|:----:|
-| **MCP01** | Token Mismanagement & Secret Exposure | Base Camp (primary), Camp 1 (primary) |
-| **MCP02** | Privilege Escalation via Scope Creep | Base Camp (secondary), Camp 1 (secondary), Camp 2 (primary) |
-| **MCP03** | Tool Poisoning | Camp 3 (secondary) |
-| **MCP04** | Supply Chain Attacks | Awareness |
-| **MCP05** | Command Injection & Execution | Camp 3 (primary) |
-| **MCP06** | Prompt Injection via Contextual Payloads | Camp 3 (primary) |
-| **MCP07** | Insufficient Authentication & Authorization | Base Camp (primary), Camp 1 (primary), Camp 2 (secondary) |
-| **MCP08** | Lack of Audit and Telemetry | Camp 4 (primary) |
-| **MCP09** | Shadow MCP Servers | Camp 2 (primary) |
-| **MCP10** | Context Injection & Over-Sharing | Awareness |
+| **[MCP01](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token-mismanagement/)** | Token Mismanagement & Secret Exposure | Base Camp, Camp 1 |
+| **[MCP02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/)** | Privilege Escalation via Scope Creep | Camp 1, Camp 2 |
+| **[MCP03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/)** | Tool Poisoning | Camp 3 |
+| **[MCP04](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp04-supply-chain/)** | Supply Chain Attacks | Awareness |
+| **[MCP05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-command-injection/)** | Command Injection & Execution | Camp 3 |
+| **[MCP06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/)** | Prompt Injection via Contextual Payloads | Camp 2, Camp 3 |
+| **[MCP07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/)** | Insufficient Authentication & Authorization | Base Camp, Camp 1, Camp 2 |
+| **[MCP08](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp08-telemetry/)** | Lack of Audit and Telemetry | Camp 4 |
+| **[MCP09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/)** | Shadow MCP Servers | Camp 2 |
+| **[MCP10](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp10-context-oversharing/)** | Context Injection & Over-Sharing | Camp 3 |
 
 ## Contributing
 
@@ -105,7 +103,5 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 - **Azure AI Content Safety:** [learn.microsoft.com/azure/ai-services/content-safety](https://learn.microsoft.com/azure/ai-services/content-safety/)
 
 ---
-
-*"The mountain doesn't care about your excuses. Prepare well, climb smart, reach the summit."*
 
 **Let's begin the ascent! 🏔️**
