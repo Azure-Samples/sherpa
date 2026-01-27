@@ -23,7 +23,8 @@ The **Model Context Protocol (MCP)** is an open standard for connecting AI appli
 **Why does this matter for security?** Because MCP servers often expose sensitive operations, such as reading user data, executing commands, and accessing internal systems. If these servers lack proper authentication and authorization, anyone who can connect to them can access everything they expose.
 
 !!! info "Learn More"
-    For a comprehensive introduction to MCP, see the [OWASP MCP Azure Security Guide](https://microsoft.github.io/mcp-azure-security-guide/#what-is-the-model-context-protocol-mcp)
+    - [Introduction to MCP](https://modelcontextprotocol.io/docs/getting-started/intro) — Official MCP documentation
+    - [MCP Security Guidance](https://microsoft.github.io/mcp-azure-security-guide/) — OWASP MCP Azure Security Guide
 
 ### MCP Architecture
 
@@ -66,11 +67,6 @@ Before starting Base Camp, ensure you have the required tools installed.
 - uv (Python package installer)
 - VS Code with GitHub Copilot (recommended for exploitation scenarios)
 
-**Verify your setup:**
-```bash
-python --version && uv --version
-```
-
 ---
 
 ### Clone the Workshop Repository
@@ -93,16 +89,13 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 ```
 
-!!! tip "Architecture Note"
-    Each camp uses a single shared `.venv` for all components (vulnerable server, secure server, exploits). This simplifies setup for workshop participants.
-
 ---
 
 ## The Ascent
 
 Now it's time to begin your climb. Each waypoint below builds on the previous one, guiding you from vulnerability discovery to validated security fixes. You'll experience MCP security vulnerabilities firsthand, understand their impact, implement fixes, and verify your solutions work.
 
-Click any waypoint below to expand its instructions and continue your ascent.
+Start with **Waypoint 1** and work through each waypoint in order. By the end, you'll have completed the full "vulnerable → exploit → fix → validate" cycle.
 
 ??? note "Waypoint 1: Run Vulnerable Server"
 
@@ -186,14 +179,24 @@ Click any waypoint below to expand its instructions and continue your ascent.
 
         **Best for:** Visual learners who want to explore interactively
 
-        Launch the MCP Inspector web interface:
+        **Option A: Server already running (from Waypoint 1)**
+
+        If your vulnerable server is still running from Waypoint 1, just launch MCP Inspector:
+
+        ```bash
+        npx @modelcontextprotocol/inspector
+        ```
+
+        **Option B: Start both server and inspector together**
+
+        If you stopped the server or skipped Waypoint 1, this script launches both:
 
         ```bash
         cd camps/base-camp/exploits
         ./launch-inspector-http.sh
         ```
 
-        This opens a browser with an interactive MCP testing interface. Perfect for:
+        Either way, MCP Inspector opens a browser with an interactive MCP testing interface. Perfect for:
 
         - Visual exploration of resources
         - Interactive tool calling
@@ -392,9 +395,9 @@ Click any waypoint below to expand its instructions and continue your ascent.
     !!! success "Test the Security"
         Use the **Tools** menu in MCP Inspector to test authorization:
         
-        :white_check_mark: Call `get_user_info` tool with `user_id: user_001` - should work (your own data)  
-        :x: Call `get_user_info` tool with `user_id: user_002` - should fail (403 Forbidden)  
-        :x: Call `get_user_info` tool with `user_id: user_003` - should fail (403 Forbidden)  
+        :material-check: Call `get_user_info` tool with `user_id: user_001` - should work (your own data)  
+        :material-close: Call `get_user_info` tool with `user_id: user_002` - should fail (403 Forbidden)  
+        :material-close: Call `get_user_info` tool with `user_id: user_003` - should fail (403 Forbidden)  
 
 ??? check "Waypoint 5: Validate the Fix"
 
