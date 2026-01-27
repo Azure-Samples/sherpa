@@ -144,10 +144,10 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     The vulnerable server is now running in Azure with:
 
-    ❌ **Token stored in plain-text environment variables**  
-    ❌ **Token never expires**  
-    ❌ **No audience validation**  
-    ❌ **Secrets visible in Azure Portal**
+    :material-close: **Token stored in plain-text environment variables**  
+    :material-close: **Token never expires**  
+    :material-close: **No audience validation**  
+    :material-close: **Secrets visible in Azure Portal**
 
     This demonstrates **OWASP MCP01 (Token Mismanagement)** and **MCP07 (Insufficient Auth)** in a cloud environment!
 
@@ -290,17 +290,17 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
     **Expected output:**
 
     ```
-    🔐 Camp 1: Enable Managed Identity
+    Camp 1: Enable Managed Identity
     ==================================
-    📦 Loading azd environment...
-    ✅ Managed Identity Principal ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    Loading azd environment...
+    Managed Identity Principal ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
     🔍 Verifying Key Vault role assignment...
     Role                        Scope
     --------------------------  --------------------------------------------------
     Key Vault Secrets User      /subscriptions/.../providers/Microsoft.KeyVault/...
 
-    ✅ Managed Identity setup complete!
+    Managed Identity setup complete!
     The Container App can now access Key Vault secrets without passwords.
     ```
 
@@ -380,17 +380,17 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
     **Expected output:**
 
     ```
-    🔑 Camp 1: Migrate Secrets to Key Vault
+    Camp 1: Migrate Secrets to Key Vault
     =======================================
-    📦 Loading azd environment...
+    Loading azd environment...
     Creating demo secrets in Key Vault: kv-sherpa-camp1-xxxxx
 
-    📝 Creating demo-api-key...
-    📝 Creating external-service-secret...
+    Creating demo-api-key...
+    Creating external-service-secret...
 
-    ✅ Secrets created in Key Vault!
+    Secrets created in Key Vault!
 
-    📋 Current secrets:
+    Current secrets:
     Name                        Enabled
     --------------------------  ---------
     demo-api-key               True
@@ -499,39 +499,41 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
     **Expected output:**
 
     ```
-    🔐 Camp 1: Register Entra ID Application
+    Camp 1: Register Entra ID Application
     ========================================
     Creating Entra ID app registration: sherpa-mcp-camp1-1234567890
 
-    ✅ App ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    App ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
     Setting identifier URI...
+    
     Exposing API scope...
-    ✅ API scope created
+    API scope created
+    
     Pre-authorizing clients (Azure CLI + VS Code)...
-    ✅ Clients pre-authorized
-    ✅ Redirect URIs configured
-       Public client: device code flow
-       Web: VS Code OAuth, demo client (port 8090)
-    ✅ Client type configured (confidential - supports client secrets)
+    Clients pre-authorized
+    Redirect URIs configured
+    Public client: device code flow
+    Web: VS Code OAuth, demo client (port 8090)
+    Client type configured (confidential - supports client secrets)
 
-    ✅ Entra ID Application Registered!
+    Entra ID Application Registered!
     ====================================
     App Name: sherpa-mcp-camp1-1234567890
     Client ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
     Tenant ID: yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
     Identifier URI: api://xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
-    ✅ Pre-authorized clients:
+    Pre-authorized clients:
        - Azure CLI (for Device Code Flow)
        - VS Code (for PRM-based authentication)
     
-    ✅ Redirect URIs configured:
+    Redirect URIs configured:
        - urn:ietf:wg:oauth:2.0:oob (device code flow)
        - http://127.0.0.1:33418 (VS Code)
        - https://vscode.dev/redirect (VS Code)
        - http://localhost:8090/callback (demo client)
 
-    📝 Save these values - you'll need them for deployment!
+    Save these values - you'll need them for deployment!
 
     Add to your .env file:
     AZURE_TENANT_ID=yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
@@ -673,9 +675,9 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
         If you skip this step, the Container App would try to validate JWT tokens against the Managed Identity Client ID instead of your App Registration Client ID. This means:
         
-        ❌ User tokens would have the wrong `aud` (audience) claim  
-        ❌ JWT validation would fail with "Invalid audience"  
-        ❌ Users couldn't authenticate even with valid tokens
+        :material-close: User tokens would have the wrong `aud` (audience) claim  
+        :material-close: JWT validation would fail with "Invalid audience"  
+        :material-close: Users couldn't authenticate even with valid tokens
 
         **Real-world analogy:**
 
@@ -713,7 +715,7 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
     # After (secure server):
     auth = JWTVerifier(
         jwks_uri=f"https://login.microsoftonline.com/{TENANT_ID}/discovery/v2.0/keys",
-        audience=CLIENT_ID,  # ✅ Audience validation!
+        audience=CLIENT_ID,  #Audience validation!
         issuer=f"https://login.microsoftonline.com/{TENANT_ID}/v2.0"
     )
     ```
@@ -1149,15 +1151,15 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
     **Expected output:**
 
     ```
-    ✅ Camp 1: Security Validation
+    Camp 1: Security Validation
     ==============================
-    📦 Loading azd environment...
+    Loading azd environment...
 
-    🔍 Running security checks...
+    Running security checks...
 
     Check 1: Secrets in Key Vault
     ------------------------------
-    ✅ Found 2 secrets in Key Vault
+    Found 2 secrets in Key Vault
     Name                        Enabled
     --------------------------  ---------
     demo-api-key               True
@@ -1165,28 +1167,28 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     Check 2: Managed Identity RBAC
     -------------------------------
-    ✅ Managed Identity has Key Vault Secrets User role
+    Managed Identity has Key Vault Secrets User role
     Role                        Scope
     --------------------------  --------------------------------------------------
     Key Vault Secrets User      /subscriptions/.../resourceGroups/.../providers/...
 
     Check 3: Container App Identity
     --------------------------------
-    ✅ Checking if container apps have managed identity assigned...
+    Checking if container apps have managed identity assigned...
     Name                        Identity
     --------------------------  -----------
     ca-sherpa-camp1-xxxxx      UserAssigned
 
     ==============================
-    🎉 Security Validation Complete!
+    Security Validation Complete!
     ==============================
 
-    ✅ Verified:
+    Verified:
       - Secrets stored in Key Vault (not env vars)
       - Managed Identity has RBAC permissions
       - Container Apps use Managed Identity
 
-    🔒 Security posture: SECURE
+    Security posture: SECURE
        Ready for production!
     ```
 
@@ -1273,7 +1275,7 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
     | **Secrets Management** | Environment variables | Azure Key Vault |
     | **RBAC** | Not applicable | Least-privilege (Key Vault Secrets User) |
     | **Audit Logs** | None | Azure Monitor tracks all access |
-    | **Production Ready** | ❌ Security vulnerabilities | ✅ Enterprise-grade security |
+    | **Production Ready** | :material-close: Security vulnerabilities | :material-check: Enterprise-grade security |
 
 ---
 
