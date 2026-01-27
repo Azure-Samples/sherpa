@@ -1,11 +1,11 @@
 #!/bin/bash
 set -e
 
-echo "✅ Camp 1: Security Validation"
+echo "Camp 1: Security Validation"
 echo "=============================="
 
 # Load azd environment variables
-echo "📦 Loading azd environment..."
+echo "Loading azd environment..."
 eval "$(azd env get-values | sed 's/^/export /')"
 
 # Track overall validation status
@@ -23,7 +23,7 @@ SECRET_COUNT=$(az keyvault secret list \
     --query "length(@)" -o tsv)
 
 if [ "${SECRET_COUNT}" -gt 0 ]; then
-    echo "✅ Found ${SECRET_COUNT} secrets in Key Vault"
+    echo "Found ${SECRET_COUNT} secrets in Key Vault"
     az keyvault secret list \
         --vault-name "${AZURE_KEY_VAULT_NAME}" \
         --query "[].{Name:name, Enabled:attributes.enabled}" \
@@ -44,7 +44,7 @@ ROLE_COUNT=$(az role assignment list \
     --query "[?roleDefinitionName=='Key Vault Secrets User'] | length(@)" -o tsv)
 
 if [ "${ROLE_COUNT}" -gt 0 ]; then
-    echo "✅ Managed Identity has Key Vault Secrets User role"
+    echo "Managed Identity has Key Vault Secrets User role"
     az role assignment list \
         --assignee "${AZURE_MANAGED_IDENTITY_PRINCIPAL_ID}" \
         --all \
@@ -62,7 +62,7 @@ echo ""
 echo "Check 3: Container App Identity"
 echo "--------------------------------"
 # Note: This check requires the container app name, which would come from azd
-echo "✅ Checking if container apps have managed identity assigned..."
+echo "Checking if container apps have managed identity assigned..."
 CA_LIST=$(az containerapp list \
     --resource-group "${AZURE_RESOURCE_GROUP}" \
     --query "[].{Name:name, Identity:identity.type}" \
@@ -76,15 +76,15 @@ fi
 
 
 if [ ${VALIDATION_FAILED} -eq 0 ]; then
-    echo "🎉 Security Validation Complete!"
+    echo "Security Validation Complete!"
     echo "=============================="
     echo ""
-    echo "✅ Verified:"
+    echo "Verified:"
     echo "  - Secrets stored in Key Vault (not env vars)"
     echo "  - Managed Identity has RBAC permissions"
     echo "  - Container Apps use Managed Identity"
     echo ""
-    echo "🔒 Security posture: SECURE"
+    echo "Security posture: SECURE"
     echo "   Ready for production!"
 else
     echo "❌ Security Validation Failed!"
