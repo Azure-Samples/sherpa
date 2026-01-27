@@ -50,18 +50,10 @@ fi
 echo ""
 echo "✅ Token acquired successfully!"
 echo ""
-echo "📋 Add this to your MCP client configuration (mcp.json):"
+echo "Your access token:"
 echo ""
-echo "{"
-echo '  "mcpServers": {'
-echo '    "camp1-secure": {'
-echo '      "url": "https://your-container-app.azurecontainerapps.io/mcp",'
-echo '      "transport": "streamable-http",'
-echo "      \"headers\": {"
-echo "        \"Authorization\": \"Bearer ${TOKEN}\""
-echo "      }"
-echo "    }"
-echo "  }"
-echo "}"
+echo "${TOKEN}"
 echo ""
-echo "⚠️  Note: Tokens expire! You'll need to refresh periodically."
+echo "💡 Tip: Decode this token at https://jwt.ms to see the claims inside (aud, iss, exp, scp, etc.)"
+echo ""
+echo "⚠️  Note: Tokens expire after ~1 hour. Run this script again to get a fresh token."

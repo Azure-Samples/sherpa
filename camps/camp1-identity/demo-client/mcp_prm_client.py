@@ -85,6 +85,7 @@ class PRMMCPClient:
         self.server_url = server_url.rstrip("/")
         self.client = httpx.AsyncClient(timeout=30.0)
         self.access_token = None
+        self.session_id = None
         self.prm_metadata = None
         self.auth_server_metadata = None
         
@@ -245,8 +246,13 @@ class PRMMCPClient:
         
         headers = {
             "Authorization": f"Bearer {self.access_token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream"
         }
+        
+        # Add session ID if we have one (required after initialize)
+        if hasattr(self, 'session_id') and self.session_id:
+            headers["mcp-session-id"] = self.session_id
         
         payload = {
             "jsonrpc": "2.0",
@@ -270,12 +276,41 @@ class PRMMCPClient:
             print(f"  {response.text}")
             return None
         
-        result = response.json()
-        print(f"✓ Request successful!")
-        print(f"  Response: {json.dumps(result, indent=2)}")
-        print()
+        # Capture session ID from initialize response
+        if method == "initialize" and "mcp-session-id" in response.headers:
+            self.session_id = response.headers["mcp-session-id"]
+            print(f"✓ Session ID: {self.session_id}")
         
-        return result
+        # Handle both JSON and SSE responses
+        content_type = response.headers.get("content-type", "")
+        
+        if "text/event-stream" in content_type:
+            # Parse SSE format: look for data: lines containing JSON
+            result = None
+            for line in response.text.split("\n"):
+                if line.startswith("data:"):
+                    data = line[5:].strip()
+                    if data:
+                        result = json.loads(data)
+                        break
+            if result:
+                print(f"✓ Request successful! (SSE response)")
+                print(f"  Response: {json.dumps(result, indent=2)}")
+            else:
+                print(f"✓ Request accepted (no data in SSE response)")
+            print()
+            return result
+        else:
+            # Standard JSON response
+            if not response.text:
+                print(f"✓ Request accepted (empty response)")
+                print()
+                return None
+            result = response.json()
+            print(f"✓ Request successful!")
+            print(f"  Response: {json.dumps(result, indent=2)}")
+            print()
+            return result
 
 
 async def main():

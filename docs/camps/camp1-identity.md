@@ -362,6 +362,62 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     ---
 
+    ### How It All Fits Together
+
+    In Waypoint 3, you enabled Managed Identity. Now let's see how it connects to Key Vault:
+
+    ```
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │                        BEFORE (Vulnerable)                          │
+    ├─────────────────────────────────────────────────────────────────────┤
+    │                                                                     │
+    │  ┌──────────────────┐         ┌──────────────────┐                  │
+    │  │   Container App  │         │   Azure Portal   │                  │
+    │  │                  │         │                  │                  │
+    │  │  REQUIRED_TOKEN= │◄────────│     Visible to   │                  │
+    │  │  camp1_demo_...  │         │     anyone with  │                  │
+    │  │  (env var)       │         │     read access  │                  │
+    │  └──────────────────┘         └──────────────────┘                  │
+    │                                                                     │
+    └─────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │                         AFTER (Secure)                              │
+    ├─────────────────────────────────────────────────────────────────────┤
+    │                                                                     │
+    │  ┌──────────────────┐    ①    ┌──────────────────┐                 │
+    │  │   Container App  │────────►│ Managed Identity │                  │
+    │  │                  │ "I am   │                  │                  │
+    │  │  No secrets in   │  app X" │  (Azure-managed) │                  │
+    │  │  env vars!       │         └────────┬─────────┘                  │
+    │  └──────────────────┘                  │                            │
+    │           ▲                            │ ②                         │
+    │           │                            │ "App X has                 │
+    │           │ ④                         │  Secrets User role"        │
+    │           │ Return secret              ▼                            │
+    │           │                   ┌──────────────────┐                  │
+    │           └───────────────────│    Key Vault     │                  │
+    │                               │                  │                  │
+    │                               │  🔐 Secrets      │                  │
+    │                               │  (encrypted)     │                  │
+    │                               └──────────────────┘                  │
+    │                                        ③                           │
+    │                               RBAC validates access                 │
+    │                                                                     │
+    └─────────────────────────────────────────────────────────────────────┘
+    ```
+
+    **The passwordless flow:**
+
+    1. **Container App presents its Managed Identity** — "I am app X"
+    2. **Azure validates the identity** — Checks RBAC role assignments
+    3. **Key Vault confirms permission** — "App X has Key Vault Secrets User role"
+    4. **Secret returned securely** — No credentials ever stored in your code or env vars
+
+    **Key insight:** Your application code never sees a password, key, or connection string for Azure authentication. The Managed Identity handles everything automatically through `DefaultAzureCredential()`.
+
+    ---
+
     ### Create Secrets in Key Vault
 
     Let's migrate demo secrets from environment variables to Key Vault:
@@ -475,13 +531,31 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
         4. Server validates: signature, issuer, audience, expiration
         5. If valid, server processes request
 
+        **OAuth Flows (Grant Types)**
+
+        OAuth defines several "flows" (also called grant types) for different scenarios. Each flow is optimized for a specific use case:
+
+        | Flow | Best For | How It Works |
+        |------|----------|--------------|
+        | **Authorization Code + PKCE** | Web apps, SPAs, mobile apps | User logs in via browser, app receives authorization code, exchanges it for tokens |
+        | **Device Code** | CLI tools, IoT devices, TVs | User enters a code on another device, app polls for token completion |
+        | **Client Credentials** | Server-to-server (no user) | App authenticates with its own identity, no user involved |
+
+        **In this camp, you'll use two flows:**
+
+        - **Device Code Flow (Option A)** — Perfect for command-line tools. You run a script, it shows a code, you authenticate in a browser, and the script receives the token. Great for understanding what's inside a JWT.
+        
+        - **Authorization Code + PKCE (Option B)** — The production-standard flow for interactive applications. A browser opens, you log in, and the app securely receives tokens. PKCE (Proof Key for Code Exchange) prevents attackers from intercepting the authorization code.
+
+        **Why PKCE matters:** Without PKCE, an attacker who intercepts the authorization code could exchange it for tokens. PKCE adds a cryptographic challenge that only the original client can complete—even if someone steals the code, they can't use it.
+
     ---
 
     ### Step 5a: Register Entra ID Application
 
     This script creates and configures an Entra ID app registration with:
 
-    - **OAuth 2.1 scope** (`access_as_user`) for delegated permissions
+    - **OAuth 2.1 scope** (`access_as_user`) for delegated permissions. This is Microsoft's standard naming convention for scopes that allow an app to act on behalf of the signed-in user. The app gets *your* permissions, not its own elevated access.
     - **Device Code Flow** support for CLI authentication  
     - **Authorization Code + PKCE** support for browser-based flows
     - **Protected Resource Metadata (PRM)** endpoints for OAuth discovery
@@ -588,6 +662,7 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
            Web: localhost:8090/callback (demo client), VS Code endpoints
         ```
         These define where OAuth responses get sent after authentication:
+
         - **Device code flow**: Special "out of band" URI for CLI tools
         - **Demo client**: Local server on port 8090 for authorization code flow
         - **VS Code**: Standard VS Code OAuth redirect URIs (for future use)
@@ -934,9 +1009,10 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
             ```
             
             3. Client automatically knows:
-            - Which OAuth server to use
-            - What scope to request
-            - How to send the access token
+
+                - Which OAuth server to use
+                - What scope to request
+                - How to send the access token
             
             **Real-world analogy:**
             
