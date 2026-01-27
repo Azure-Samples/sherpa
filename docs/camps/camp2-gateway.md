@@ -303,10 +303,10 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
         ??? danger "Security Impact: Complete Exposure"
             **The vulnerability:** VS Code connected with zero authentication!
             
-            ❌ No login required  
-            ❌ No credentials needed  
-            ❌ Anyone with the URL can connect  
-            ❌ No audit trail of who accessed what
+            :material-close: No login required  
+            :material-close: No credentials needed  
+            :material-close: Anyone with the URL can connect  
+            :material-close: No audit trail of who accessed what
             
             **Real-world scenario:** Your MCP server exposes tools for querying customer data:
             
@@ -876,13 +876,13 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
     
     | Purpose | Subscription Key | OAuth Token |
     |---------|-----------------|-------------|
-    | Tracking/Billing | ✅ | ❌ |
-    | Authentication | ❌ | ✅ |
-    | User Identity | ❌ | ✅ |
-    | Per-user Permissions | ❌ | ✅ |
-    | Emergency Revocation | ✅ (app level) | ✅ (user level) |
+    | Tracking/Billing | :material-check: | :material-close: |
+    | Authentication | :material-close: | :material-check: |
+    | User Identity | :material-close: | :material-check: |
+    | Per-user Permissions | :material-close: | :material-check: |
+    | Emergency Revocation | :material-check: (app level) | :material-check: (user level) |
 
-    **OWASP MCP-07** mitigated! ✅
+    **OWASP MCP-07** mitigated! :material-check:
 
 ??? note "Waypoint 1.3: Rate Limiting by Subscription Key"
 
@@ -1076,7 +1076,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
     - Predictable costs
     - Tiered limits possible (different quotas per subscription tier)
 
-    **OWASP MCP-02 mitigation complete!** ✅
+    **OWASP MCP-02 mitigation complete!** :material-check:
 
 ??? note "Waypoint 1.4: API Governance with API Center"
 
@@ -1163,7 +1163,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
     - Track compliance requirements per server
     - Security review before deployment
 
-    **OWASP MCP-09 (Shadow MCP Servers)** mitigation complete! ✅
+    **OWASP MCP-09 (Shadow MCP Servers)** mitigation complete! :material-check:
 
     ---
 
@@ -1401,7 +1401,7 @@ In this section, you'll add AI-powered content filtering to prevent prompt injec
     - Jailbreak attempts stopped
     - AI model protected from manipulation
 
-    **OWASP MCP-06 mitigation complete!** ✅
+    **OWASP MCP-06 mitigation complete!** :material-check:
 
 ---
 
@@ -1521,8 +1521,8 @@ In this final section, you'll learn about network isolation patterns to protect 
     | Approach | Complexity | Cost | APIM Tier Required |
     |----------|------------|------|-------------------|
     | IP Restrictions | Low | None | Standard v2+ (static IPs) |
-    | VNet Integration | Medium | VNet costs | Any |
-    | Private Endpoints | Medium | Private Link costs | Any |
+    | VNet Integration | Medium | VNet costs | Standard v2, Premium v2 |
+    | Private Endpoints | Medium | Private Link costs | Developer, Basic, Standard, Standard v2, Premium, Premium v2 |
     | Header Validation | Low | None | Any |
 
     ---
@@ -1537,7 +1537,7 @@ In this final section, you'll learn about network isolation patterns to protect 
 
     4. **Monitor for direct access attempts** — Even with restrictions, log and alert on unexpected traffic patterns.
 
-    **OWASP MCP-04 awareness complete!** ✅
+    **OWASP MCP-04 awareness complete!** :material-check:
 
 ---
 

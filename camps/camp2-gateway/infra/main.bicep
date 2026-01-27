@@ -3,6 +3,9 @@ targetScope = 'resourceGroup'
 // Import region selector functions
 import { getApiCenterRegion, getApimBasicV2Region, getContentSafetyRegion } from './modules/region-selector.bicep'
 
+@description('Name of the azd environment')
+param environmentName string
+
 @description('Primary location for all resources')
 param location string = resourceGroup().location
 
@@ -21,9 +24,6 @@ param mcpAppClientId string
 
 @description('APIM Client App ID for Credential Manager')
 param apimClientAppId string
-
-// Get environment name from resource group
-var environmentName = resourceGroup().name
 
 // Tags for all resources
 var tags = {
