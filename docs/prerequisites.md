@@ -189,6 +189,42 @@ docker ps
 
 ---
 
+### Azure Functions Core Tools
+
+Azure Functions Core Tools is required for deploying and testing Azure Functions locally.
+
+=== "macOS"
+    ```bash
+    brew tap azure/functions
+    brew install azure-functions-core-tools@4
+    ```
+
+=== "Windows"
+    ```powershell
+    winget install Microsoft.Azure.FunctionsCoreTools
+    ```
+    Or download the [MSI installer](https://learn.microsoft.com/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools)
+
+=== "Linux"
+    ```bash
+    # Ubuntu/Debian
+    curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+    sudo mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg
+    sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-ubuntu-$(lsb_release -cs)-prod $(lsb_release -cs) main" > /etc/apt/sources.list.d/dotnetdev.list'
+    sudo apt update
+    sudo apt install azure-functions-core-tools-4
+    ```
+
+**Verify installation:**
+```bash
+func --version
+# Expected: 4.x.x or higher
+```
+
+📚 [Full installation guide](https://learn.microsoft.com/azure/azure-functions/functions-run-local#install-the-azure-functions-core-tools)
+
+---
+
 ## Recommended Tools
 
 ### VS Code with Extensions
@@ -314,8 +350,31 @@ Run these commands to verify your setup:
 :material-check: uv  
 :material-check: Docker (running)  
 
-### Camp 2-4
-Requirements will be listed in each camp's documentation.
+### Camp 2: Gateway Security
+:material-check: Azure subscription  
+:material-check: Azure CLI (authenticated)  
+:material-check: Azure Developer CLI (authenticated)  
+:material-check: Python 3.10+  
+:material-check: uv  
+:material-check: Docker (running)  
+
+### Camp 3: I/O Security
+:material-check: Azure subscription  
+:material-check: Azure CLI (authenticated)  
+:material-check: Azure Developer CLI (authenticated)  
+:material-check: Python 3.10+  
+:material-check: uv  
+:material-check: Docker (running)  
+:material-check: Azure Functions Core Tools  
+
+### Camp 4: Monitoring
+:material-check: Azure subscription  
+:material-check: Azure CLI (authenticated)  
+:material-check: Azure Developer CLI (authenticated)  
+:material-check: Python 3.10+  
+:material-check: uv  
+:material-check: Docker (running)  
+:material-check: Azure Functions Core Tools
 
 ---
 
