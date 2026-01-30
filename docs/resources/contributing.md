@@ -1,106 +1,73 @@
-# Contributing to MCP Security Summit Workshop
+# Contributing
 
-Thank you for your interest in improving this workshop! This guide explains the repository structure and how to contribute effectively.
+Thank you for your interest in improving this workshop!
+
+## Quick Links
+
+- **📚 Workshop:** [azure-samples.github.io/sherpa](https://azure-samples.github.io/sherpa/)
+- **🔒 Security Guide:** [microsoft.github.io/mcp-azure-security-guide](https://microsoft.github.io/mcp-azure-security-guide/)
 
 ## Repository Structure
 
 ```
-/
-├── camps/                  # Workshop modules (Base Camp → Summit)
-│   ├── base-camp/         # Fundamentals + basic authentication
-│   ├── camp1-identity/    # OAuth, Managed Identity, Key Vault
-│   ├── camp2-gateway/     # API/MCP Gateway, Network Security
-│   ├── camp3-io-security/ # Content Safety, Input Validation
-│   └── camp4-monitoring/  # Logging, Monitoring, Alerts
-├── infra/                 # Shared Bicep templates
-│   ├── shared/           # Common Azure resources
-│   └── README.md
-├── scripts/              # Deployment automation helpers
-│   └── README.md
-├── docs/                 # GitHub Pages documentation
-│   └── index.md
-└── README.md             # Workshop overview
+sherpa/
+├── camps/                    # Workshop modules
+│   ├── base-camp/            # Local-only, MCP fundamentals
+│   ├── camp1-identity/       # Azure: OAuth, Managed Identity
+│   ├── camp2-gateway/        # Azure: APIM, Content Safety
+│   ├── camp3-io-security/    # Azure: Input validation, PII
+│   └── camp4-monitoring/     # Azure: Logging, alerts
+├── docs/                     # MkDocs documentation
+│   └── camps/                # Workshop guides
+└── mkdocs.yml
 ```
 
-## How to Add a New Camp
+## Workshop Pattern
 
-Each camp follows the **vulnerable → secure** pattern established in Base Camp. Use this template:
+All camps follow **exploit → fix → validate**:
 
-### Camp Directory Structure
+1. Start with a vulnerable or incomplete configuration
+2. Demonstrate the security risk
+3. Apply the fix
+4. Validate the fix works
 
-```
-camps/your-camp/
-├── README.md              # Participant guide (5-phase format)
-├── pyproject.toml         # Dependencies (managed by uv)
-├── vulnerable-server/     # Insecure implementation
-│   ├── src/
-│   │   ├── server.py     # MCP server with vulnerabilities
-│   │   └── ...
-│   ├── pyproject.toml    # Package metadata
-│   ├── Dockerfile
-│   └── .env.example
-├── secure-server/         # Fixed implementation
-│   ├── src/
-│   │   ├── server.py     # MCP server with security controls
-│   │   └── ...
-│   ├── pyproject.toml    # Package metadata
-│   ├── Dockerfile
-│   └── .env.example
-├── exploits/              # Demonstration scripts
-│   └── test_exploit.py
-├── infra/                 # Camp-specific Bicep
-│   └── main.bicep
-└── vscode-config/         # Example MCP client configs
-    └── mcp-settings.json
+## Camp Types
+
+| Type | Example | Deployment | Key Files |
+|------|---------|------------|-----------|
+| **Local** | Base Camp | `uv run python -m src.server` | `vulnerable-server/`, `secure-server/` |
+| **Azure** | Camps 1-4 | `azd up` | `azure.yaml`, `infra/`, `scripts/` |
+
+## Running Docs Locally
+
+```bash
+pip install -r requirements-docs.txt
+mkdocs serve
 ```
 
-**Note:** Camps use `uv` for fast, reliable dependency management. Run `uv sync` in the camp root to set up the environment.
+## Code Guidelines
 
-## Code Style Guidelines
+- **Python:** 3.11+, type hints, `uv` for dependencies
+- **Bicep:** Consistent naming, security comments
+- **Scripts:** Bash, `set -e`, clear progress output
 
-### Python MCP Servers
+## Testing Changes
 
-- Use the official `mcp` Python package (not FastMCP)
-- Python 3.10+ with type hints
-- Clear comments explaining vulnerabilities and fixes
-- Follow PEP 8 style guidelines
-
-**Example vulnerability comment:**
-```python
-# VULNERABILITY: No authentication check!
-# This allows ANY client to access ANY user's data.
-# Maps to OWASP MCP07: Insufficient Authentication
-```
-
-## Documentation
-
-### GitHub Pages
-
-Documentation lives in the `docs/` directory:
-- Keep docs separate from code README files
-- Use clear headings and navigation
-- Include code examples and screenshots
-- Link to relevant Azure documentation
-
-### README Files
-
-README files in each camp serve as:
-- Quick reference for workshop participants
-- Navigation within GitHub repository
-- Detailed step-by-step instructions
+1. Run through the workshop guide yourself
+2. Verify exploit scripts demonstrate the vulnerability
+3. Verify fix scripts resolve the issue
+4. Check documentation renders correctly
 
 ## Submitting Changes
 
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/your-feature`
-3. **Make your changes** with clear commit messages
-4. **Test thoroughly** - ensure all exploits and fixes work
-5. **Submit a pull request** with description of changes
+1. Fork and create a branch
+2. Make changes and test thoroughly
+3. Submit a Pull Request with a clear description
 
 ## Questions?
 
-Open an issue on GitHub if you have questions or suggestions!
+Open an [issue](https://github.com/Azure-Samples/sherpa/issues).
 
 ---
 
-**Thank you for helping make this workshop better! 🏔️**
+*Thank you for helping others reach the summit safely! 🏔️*
