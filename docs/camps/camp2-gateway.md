@@ -1533,7 +1533,7 @@ In this final section, you'll learn about network isolation patterns to protect 
 
     2. **Defense in depth matters** — Layer network controls on top of application-level security.
 
-    3. **Choose the right approach for your tier** — IP restrictions need static IPs; VNet integration works with any tier.
+    3. **Choose the right approach for your tier** — IP restrictions need static IPs; VNet integration when possible.
 
     4. **Monitor for direct access attempts** — Even with restrictions, log and alert on unexpected traffic patterns.
 
