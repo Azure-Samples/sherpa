@@ -829,8 +829,9 @@ Think of custom dimensions as adding columns to your log database that you can f
 
     ```kusto
     // Get the most recent correlation ID from a blocked attack
+    let timeRange = ago(24h);  // Adjust as needed
     let recentAttack = AppTraces
-    | where TimeGenerated > ago(1h)
+    | where TimeGenerated > timeRange
     | where Properties has "event_type"
     | extend CustomDims = parse_json(replace_string(replace_string(
         tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
@@ -842,12 +843,12 @@ Think of custom dimensions as adding columns to your log database that you can f
     let correlationId = toscalar(recentAttack);
     union
         (ApiManagementGatewayLogs 
-         | where TimeGenerated > ago(1h)
+         | where TimeGenerated > timeRange
          | where CorrelationId == correlationId
          | project TimeGenerated, Source="APIM", CorrelationId,
                    Details=strcat("HTTP ", ResponseCode, " from ", CallerIpAddress)),
         (AppTraces 
-         | where TimeGenerated > ago(1h)
+         | where TimeGenerated > timeRange
          | where Properties has "correlation_id"
          | extend CustomDims = parse_json(replace_string(replace_string(
              tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
@@ -1323,7 +1324,7 @@ These queries leverage the shared Application Insights instance where all servic
     
     - **APIM, funcv1, funcv2**: Auto-instrumented, appear in `AppRequests`
     - **trail-api**: FastAPI instrumentation, appears in `AppRequests` when receiving HTTP traffic
-    - **sherpa-mcp-server**: OpenTelemetry configured, appears in `AppTraces` (MCP uses WebSocket streaming, not discrete HTTP requests)
+    - **sherpa-mcp-server**: OpenTelemetry configured, appears in `AppTraces` (MCP uses Streamable HTTP transport, which supports both single JSON responses and SSE streaming. APIM proxies these requests to the backend MCP server.)
     
     The queries below union data from both `AppRequests` and `AppTraces` to give a complete picture across all services.
 
