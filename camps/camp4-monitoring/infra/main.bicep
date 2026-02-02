@@ -54,6 +54,17 @@ module logAnalytics 'modules/log-analytics.bicep' = {
   }
 }
 
+// Shared Application Insights for all services (enables unified telemetry)
+module appInsights 'modules/app-insights.bicep' = {
+  name: 'app-insights'
+  params: {
+    name: 'ai-${prefix}'
+    location: location
+    tags: tags
+    logAnalyticsWorkspaceId: logAnalytics.outputs.id
+  }
+}
+
 // Container Registry
 // Container registries: lowercase alphanumeric only, 5-50 chars
 module containerRegistry 'modules/container-registry.bicep' = {
@@ -130,32 +141,64 @@ module aiServices 'modules/ai-services.bicep' = {
   }
 }
 
-// Storage Account for Function App
+// Storage Account for Function App v1 (Basic Logging)
 // Storage accounts: lowercase alphanumeric only, 3-24 chars
-var functionAppName = 'func-${prefix}'
-module storageAccount 'modules/storage-account.bicep' = {
-  name: 'storage-account'
+var functionAppV1Name = 'funcv1-${prefix}'
+module storageAccountV1 'modules/storage-account.bicep' = {
+  name: 'storage-account-v1'
   params: {
-    name: 'st${replace(prefix, '-', '')}'
+    name: 'stv1${replace(prefix, '-', '')}'
     location: location
     tags: tags
     principalId: functionIdentity.outputs.principalId
   }
 }
 
-// Function App (Layer 2 - Security Functions)
-module functionApp 'modules/function-app.bicep' = {
-  name: 'function-app'
+// Storage Account for Function App v2 (Structured Logging)
+var functionAppV2Name = 'funcv2-${prefix}'
+module storageAccountV2 'modules/storage-account.bicep' = {
+  name: 'storage-account-v2'
   params: {
-    name: functionAppName
+    name: 'stv2${replace(prefix, '-', '')}'
     location: location
     tags: tags
-    storageAccountName: storageAccount.outputs.name
+    principalId: functionIdentity.outputs.principalId
+  }
+}
+
+// Function App v1 (Layer 2 - Security Functions - Basic Logging)
+// This is the "hidden" state - logs security events but can't be queried/alerted
+module functionAppV1 'modules/function-app.bicep' = {
+  name: 'function-app-v1'
+  params: {
+    name: functionAppV1Name
+    location: location
+    tags: tags
+    storageAccountName: storageAccountV1.outputs.name
     identityId: functionIdentity.outputs.id
     identityClientId: functionIdentity.outputs.clientId
     aiServicesEndpoint: aiServices.outputs.endpoint
     contentSafetyEndpoint: contentSafety.outputs.endpoint
-    logAnalyticsWorkspaceId: logAnalytics.outputs.id
+    appInsightsConnectionString: appInsights.outputs.connectionString
+    azdServiceName: 'security-function-v1'
+  }
+}
+
+// Function App v2 (Layer 2 - Security Functions - Structured Logging)
+// This is the "visible" state - uses security_logger.py with Azure Monitor
+module functionAppV2 'modules/function-app.bicep' = {
+  name: 'function-app-v2'
+  params: {
+    name: functionAppV2Name
+    location: location
+    tags: tags
+    storageAccountName: storageAccountV2.outputs.name
+    identityId: functionIdentity.outputs.id
+    identityClientId: functionIdentity.outputs.clientId
+    aiServicesEndpoint: aiServices.outputs.endpoint
+    contentSafetyEndpoint: contentSafety.outputs.endpoint
+    appInsightsConnectionString: appInsights.outputs.connectionString
+    azdServiceName: 'security-function-v2'
   }
 }
 
@@ -173,6 +216,8 @@ module apim 'modules/apim.bicep' = {
     apimClientAppId: apimClientAppId
     tenantId: tenantId
     mcpAppClientId: mcpAppClientId
+    appInsightsId: appInsights.outputs.id
+    appInsightsInstrumentationKey: appInsights.outputs.instrumentationKey
   }
 }
 
@@ -185,29 +230,13 @@ module containerApps 'modules/container-apps.bicep' = {
     tags: tags
     containerRegistryServer: containerRegistry.outputs.loginServer
     identityId: containerAppsIdentity.outputs.id
+    appInsightsConnectionString: appInsights.outputs.connectionString
   }
 }
 
-// Azure Monitor Workbook (Security Dashboard)
-module workbook 'modules/workbook.bicep' = {
-  name: 'workbook'
-  params: {
-    name: 'wb-${prefix}'
-    location: location
-    tags: tags
-    logAnalyticsWorkspaceId: logAnalytics.outputs.id
-    displayName: 'MCP Security Dashboard'
-  }
-}
-
-// Action Group for alert notifications (optional email configured via parameter)
-module actionGroup 'modules/action-group.bicep' = {
-  name: 'action-group'
-  params: {
-    name: 'ag-${prefix}'
-    tags: tags
-  }
-}
+// NOTE: Azure Monitor Workbook and Action Group are NOT deployed here - they are created by
+// workshop scripts (3.1-deploy-workbook.sh, 3.2-create-alerts.sh) as part of the 
+// "hidden → visible → actionable" learning progression. This keeps Section 3 meaningful.
 
 // Outputs for azd and waypoint scripts
 output AZURE_RESOURCE_GROUP string = resourceGroup().name
@@ -225,10 +254,16 @@ output MANAGED_IDENTITY_PRINCIPAL_ID string = managedIdentity.outputs.principalI
 output MANAGED_IDENTITY_CLIENT_ID string = managedIdentity.outputs.clientId
 output SHERPA_SERVER_URL string = containerApps.outputs.sherpaServerUrl
 output TRAIL_API_URL string = containerApps.outputs.trailApiUrl
-output FUNCTION_APP_NAME string = functionApp.outputs.name
-output FUNCTION_APP_URL string = functionApp.outputs.url
+output FUNCTION_APP_V1_NAME string = functionAppV1.outputs.name
+output FUNCTION_APP_V1_URL string = functionAppV1.outputs.url
+output FUNCTION_APP_V2_NAME string = functionAppV2.outputs.name
+output FUNCTION_APP_V2_URL string = functionAppV2.outputs.url
+// Legacy outputs for backward compatibility - point to v1 by default
+output FUNCTION_APP_NAME string = functionAppV1.outputs.name
+output FUNCTION_APP_URL string = functionAppV1.outputs.url
 output AI_SERVICES_ENDPOINT string = aiServices.outputs.endpoint
 output LOG_ANALYTICS_WORKSPACE_ID string = logAnalytics.outputs.id
 output LOG_ANALYTICS_WORKSPACE_NAME string = logAnalytics.outputs.name
-output WORKBOOK_ID string = workbook.outputs.id
-output ACTION_GROUP_ID string = actionGroup.outputs.id
+// NOTE: WORKBOOK_ID and ACTION_GROUP_ID removed - created by workshop scripts, not Bicep
+output APPLICATIONINSIGHTS_CONNECTION_STRING string = appInsights.outputs.connectionString
+output APPLICATIONINSIGHTS_NAME string = appInsights.outputs.name

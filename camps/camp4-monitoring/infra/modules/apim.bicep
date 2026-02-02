@@ -9,6 +9,12 @@ param apimClientAppId string = ''
 param tenantId string
 param mcpAppClientId string = ''
 
+@description('Application Insights resource ID for APIM logger')
+param appInsightsId string
+
+@description('Application Insights instrumentation key for APIM logger')
+param appInsightsInstrumentationKey string
+
 resource apim 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
   name: name
   location: location
@@ -83,6 +89,109 @@ resource namedValueMcpAppClientId 'Microsoft.ApiManagement/service/namedValues@2
     displayName: 'mcp-app-client-id'
     value: mcpAppClientId
     secret: false
+  }
+}
+
+// APIM Logger for Application Insights (enables unified telemetry & distributed tracing)
+resource apimLogger 'Microsoft.ApiManagement/service/loggers@2024-06-01-preview' = {
+  parent: apim
+  name: 'appinsights-logger'
+  properties: {
+    loggerType: 'applicationInsights'
+    credentials: {
+      instrumentationKey: appInsightsInstrumentationKey
+    }
+    isBuffered: true
+    resourceId: appInsightsId
+  }
+}
+
+// APIM Diagnostics - API-level logging with 100% sampling for workshop visibility
+// Note: In production, consider lowering sampling percentage for cost optimization
+resource apimDiagnostics 'Microsoft.ApiManagement/service/diagnostics@2024-06-01-preview' = {
+  parent: apim
+  name: 'applicationinsights'
+  properties: {
+    alwaysLog: 'allErrors'
+    loggerId: apimLogger.id
+    sampling: {
+      samplingType: 'fixed'
+      percentage: 100  // 100% for workshop - adjust for production
+    }
+    frontend: {
+      request: {
+        headers: ['traceparent', 'tracestate', 'x-correlation-id']
+        body: { bytes: 8192 }
+      }
+      response: {
+        headers: ['traceparent', 'tracestate']
+        body: { bytes: 8192 }
+      }
+    }
+    backend: {
+      request: {
+        headers: ['traceparent', 'tracestate', 'x-correlation-id']
+        body: { bytes: 8192 }
+      }
+      response: {
+        headers: ['traceparent', 'tracestate']
+        body: { bytes: 8192 }
+      }
+    }
+    // Enable correlation for distributed tracing
+    httpCorrelationProtocol: 'W3C'
+    verbosity: 'information'
+    logClientIp: true
+    operationNameFormat: 'Url'
+  }
+}
+
+// Azure Monitor Logger - enables logging to Log Analytics via diagnostic settings
+// This logger is automatically created by Azure when you enable diagnostic settings,
+// but we configure it explicitly to ensure proper logging configuration
+resource azureMonitorLogger 'Microsoft.ApiManagement/service/loggers@2024-06-01-preview' = {
+  parent: apim
+  name: 'azuremonitor'
+  properties: {
+    loggerType: 'azureMonitor'
+    isBuffered: true
+  }
+}
+
+// Azure Monitor Diagnostics - enables GatewayLogs to flow to Log Analytics
+// CRITICAL: Without this, diagnostic settings route logs but APIM doesn't emit them
+// This is what actually populates ApiManagementGatewayLogs table
+resource azureMonitorDiagnostics 'Microsoft.ApiManagement/service/diagnostics@2024-06-01-preview' = {
+  parent: apim
+  name: 'azuremonitor'
+  properties: {
+    alwaysLog: 'allErrors'
+    loggerId: azureMonitorLogger.id
+    sampling: {
+      samplingType: 'fixed'
+      percentage: 100  // 100% for workshop - adjust for production
+    }
+    frontend: {
+      request: {
+        headers: ['x-correlation-id', 'traceparent']
+        body: { bytes: 8192 }
+      }
+      response: {
+        headers: ['traceparent']
+        body: { bytes: 8192 }
+      }
+    }
+    backend: {
+      request: {
+        headers: ['x-correlation-id', 'traceparent']
+        body: { bytes: 8192 }
+      }
+      response: {
+        headers: ['traceparent']
+        body: { bytes: 8192 }
+      }
+    }
+    logClientIp: true
   }
 }
 

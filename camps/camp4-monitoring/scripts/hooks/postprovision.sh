@@ -25,6 +25,8 @@ CONTENT_SAFETY_ENDPOINT=$(azd env get-value CONTENT_SAFETY_ENDPOINT)
 CONTENT_SAFETY_LOCATION=$(azd env get-value CONTENT_SAFETY_LOCATION)
 FUNCTION_APP_NAME=$(azd env get-value FUNCTION_APP_NAME)
 FUNCTION_APP_URL=$(azd env get-value FUNCTION_APP_URL)
+FUNCTION_APP_V1_URL=$(azd env get-value FUNCTION_APP_V1_URL)
+FUNCTION_APP_V2_URL=$(azd env get-value FUNCTION_APP_V2_URL)
 SHERPA_SERVER_URL=$(azd env get-value SHERPA_SERVER_URL)
 TRAIL_API_URL=$(azd env get-value TRAIL_API_URL)
 
@@ -46,7 +48,8 @@ echo "  Resource Group: $RG_NAME"
 echo "  ACR: $ACR_NAME"
 echo "  APIM: $APIM_NAME"
 echo "  Gateway URL: $APIM_GATEWAY_URL"
-echo "  Function App: $FUNCTION_APP_NAME"
+echo "  Function v1: $FUNCTION_APP_V1_URL (basic logging - ACTIVE)"
+echo "  Function v2: $FUNCTION_APP_V2_URL (structured logging)"
 echo "  Function URL: $FUNCTION_APP_URL"
 echo "  Sherpa Server: $SHERPA_SERVER_URL"
 echo "  Trail API: $TRAIL_API_URL"
@@ -66,7 +69,9 @@ az deployment group create \
         contentSafetyEndpoint="$CONTENT_SAFETY_ENDPOINT" \
         tenantId="$TENANT_ID" \
         mcpAppClientId="$MCP_APP_CLIENT_ID" \
-        functionAppUrl="$FUNCTION_APP_URL" \
+        functionAppUrl="$FUNCTION_APP_V1_URL" \
+        functionAppV1Url="$FUNCTION_APP_V1_URL" \
+        functionAppV2Url="$FUNCTION_APP_V2_URL" \
     --output none
 
 echo "APIM APIs configured with Layer 1 + Layer 2 security"
@@ -93,18 +98,26 @@ echo "What's deployed:"
 echo "  - APIM with full I/O security (Layer 1 + Layer 2)"
 echo "  - Sherpa MCP Server (Container App)"
 echo "  - Trail API with PII endpoint (Container App)"
-echo "  - Security Function (wired to APIM)"
+echo "  - Security Function v1 (basic logging - ACTIVE)"
+echo "  - Security Function v2 (structured logging - deployed, not active)"
 echo "  - Log Analytics workspace (not yet connected to APIM)"
 echo ""
 echo "Security layers enabled:"
 echo "  - Layer 1: OAuth + Content Safety (on MCP APIs)"
-echo "  - Layer 2: Security Function (input validation + output sanitization)"
+echo "  - Layer 2: Security Function v1 (input validation + output sanitization)"
 echo ""
 echo "The monitoring gap:"
-echo "  APIM diagnostic settings are NOT configured."
-echo "  Security events are happening but NOT being logged."
+echo "  - APIM diagnostic settings are NOT configured"
+echo "  - Security Function v1 uses basic logging (can't be queried)"
+echo "  - Security events are happening but NOT visible"
 echo ""
-echo "Next steps (Section 1: APIM Logging):"
+echo "Workshop flow:"
+echo "  Section 1: Enable APIM diagnostics (gateway logs)"
+echo "  Section 2: Switch to Function v2 (structured application logs)"
+echo "  Section 3: Create dashboard (visualize)"
+echo "  Section 4: Set up alerts (actionable)"
+echo ""
+echo "Next steps:"
 echo ""
 echo "  1. Demonstrate the monitoring gap:"
 echo "     ./scripts/section1/1.1-exploit.sh"

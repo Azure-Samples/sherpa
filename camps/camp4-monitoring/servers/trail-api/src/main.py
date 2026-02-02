@@ -14,15 +14,43 @@ Endpoints:
 """
 
 import os
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.routes import trails, permits
+
+# Configure OpenTelemetry for Azure Monitor (Application Insights)
+# This enables request tracing, auto-instrumentation, and unified telemetry
+if os.environ.get("APPLICATIONINSIGHTS_CONNECTION_STRING"):
+    from azure.monitor.opentelemetry import configure_azure_monitor
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+    
+    configure_azure_monitor(
+        connection_string=os.environ["APPLICATIONINSIGHTS_CONNECTION_STRING"],
+        logger_name="trail-api",
+    )
+    
+    # Auto-instrument httpx for outbound HTTP calls
+    HTTPXClientInstrumentor().instrument()
+
+# Configure structured logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("trail-api")
 
 app = FastAPI(
     title="Trail API",
     description="REST API for mountain trail information and permit management. Includes PII demonstration endpoint for Camp 4.",
     version="1.0.0"
 )
+
+# Instrument FastAPI for OpenTelemetry (after app creation)
+if os.environ.get("APPLICATIONINSIGHTS_CONNECTION_STRING"):
+    FastAPIInstrumentor.instrument_app(app)
+    logger.info("OpenTelemetry instrumentation enabled for Trail API")
 
 # CORS middleware
 app.add_middleware(
