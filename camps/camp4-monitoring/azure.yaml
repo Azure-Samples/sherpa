@@ -30,21 +30,21 @@ services:
   # Security Function v1: Basic Logging (the "hidden" state)
   # --------------------------------------------------------
   # Uses logging.warning() - works but can't be queried, correlated, or alerted on.
-  # Workshop upgrades this to v2 in Section 2.
-  security-function:
+  # Workshop starts with APIM pointing to v1, then switches to v2 in Section 2.2.
+  security-function-v1:
     project: ./security-function-v1
     language: python
     host: function
 
-  # Security Function v2: Structured Logging (deployed in Section 2.2)
-  # ------------------------------------------------------------------
+  # Security Function v2: Structured Logging (the "visible" state)
+  # --------------------------------------------------------------
   # Uses security_logger.py with Azure Monitor OpenTelemetry.
   # Enables KQL queries, correlation IDs, and alerting.
-  # NOTE: This service is commented out initially - uncomment via 2.2-fix.sh
-  # security-function-v2:
-  #   project: ./security-function
-  #   language: python
-  #   host: function
+  # Both functions are deployed; workshop switches via APIM named value update.
+  security-function-v2:
+    project: ./security-function-v2
+    language: python
+    host: function
 
 infra:
   provider: bicep

@@ -13,6 +13,9 @@ param containerRegistryServer string
 @description('Managed Identity ID for ACR access')
 param identityId string
 
+@description('Application Insights connection string for distributed tracing')
+param appInsightsConnectionString string
+
 // Sherpa MCP Server - Pre-provisioned with placeholder
 resource sherpaMcpServer 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'sherpa-mcp-server'
@@ -57,6 +60,14 @@ resource sherpaMcpServer 'Microsoft.App/containerApps@2024-03-01' = {
             {
               name: 'PORT'
               value: '8000'
+            }
+            {
+              name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+              value: appInsightsConnectionString
+            }
+            {
+              name: 'OTEL_SERVICE_NAME'
+              value: 'sherpa-mcp-server'
             }
           ]
         }
@@ -113,6 +124,14 @@ resource trailApi 'Microsoft.App/containerApps@2024-03-01' = {
             {
               name: 'PORT'
               value: '8001'
+            }
+            {
+              name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+              value: appInsightsConnectionString
+            }
+            {
+              name: 'OTEL_SERVICE_NAME'
+              value: 'trail-api'
             }
           ]
         }

@@ -5,8 +5,8 @@
 # Pattern: hidden → visible → actionable
 # Current state: VISIBLE (verifying logs are flowing)
 #
-# This script sends requests and then queries Log Analytics to verify
-# that APIM diagnostic logs are being captured correctly.
+# This script queries Log Analytics to verify that APIM diagnostic logs
+# from 1.2-fix.sh are being captured correctly.
 # =============================================================================
 
 set -e
@@ -53,45 +53,11 @@ if [ -z "$WORKSPACE_ID" ]; then
     exit 1
 fi
 
-# Get OAuth token
-echo -e "${BLUE}Getting OAuth token...${NC}"
-TOKEN=$(az account get-access-token --resource "$MCP_APP_CLIENT_ID" --query accessToken -o tsv)
-if [ -z "$TOKEN" ]; then
-    echo -e "${RED}Error: Could not get access token.${NC}"
-    exit 1
-fi
-echo -e "${GREEN}✓ OAuth token acquired${NC}"
+echo -e "${YELLOW}Note: Log Analytics has a 2-5 minute ingestion delay.${NC}"
+echo -e "${YELLOW}This script queries for logs sent by 1.2-fix.sh.${NC}"
 echo ""
 
-echo -e "${BLUE}Step 1: Sending test requests through APIM...${NC}"
-echo ""
-
-# Initialize MCP session
-curl -s -D /tmp/mcp-headers.txt --max-time 10 -X POST "${APIM_GATEWAY_URL}/sherpa/mcp" \
-    -H "Authorization: Bearer $TOKEN" \
-    -H "Content-Type: application/json" \
-    -H "Accept: application/json, text/event-stream" \
-    -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"camp4-test","version":"1.0"}},"id":1}' > /dev/null 2>&1 || true
-
-SESSION_ID=$(grep -i "mcp-session-id" /tmp/mcp-headers.txt 2>/dev/null | sed 's/.*: *//' | tr -d '\r\n') || true
-[ -z "$SESSION_ID" ] && SESSION_ID="session-$(date +%s)"
-
-# Send a few requests
-for i in 1 2 3; do
-    curl -s --max-time 10 -X POST "${APIM_GATEWAY_URL}/sherpa/mcp" \
-        -H "Authorization: Bearer $TOKEN" \
-        -H "Content-Type: application/json" \
-        -H "Accept: application/json, text/event-stream" \
-        -H "Mcp-Session-Id: $SESSION_ID" \
-        -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"get_weather","arguments":{"location":"summit"}},"id":'$i'}' > /dev/null 2>&1 || true
-    echo "  Sent request $i/3"
-done
-
-echo ""
-echo -e "${YELLOW}Note: Log Analytics has 2-5 minute ingestion delay${NC}"
-echo ""
-
-echo -e "${BLUE}Step 2: Verifying diagnostic settings...${NC}"
+echo -e "${BLUE}Step 1: Verifying diagnostic settings...${NC}"
 
 # Check diagnostic settings
 DIAG_SETTINGS=$(az monitor diagnostic-settings list \
@@ -102,12 +68,12 @@ if [ "$DIAG_SETTINGS" != "[]" ]; then
     echo -e "${GREEN}✓ Diagnostic settings configured${NC}"
 else
     echo -e "${RED}✗ No diagnostic settings found${NC}"
-    echo "  Run ./scripts/1.2-fix.sh first"
+    echo "  Run ./scripts/section1/1.2-fix.sh first"
     exit 1
 fi
 
 echo ""
-echo -e "${BLUE}Step 3: Querying Log Analytics...${NC}"
+echo -e "${BLUE}Step 2: Querying Log Analytics...${NC}"
 
 # Query for recent MCP traffic (HTTP level) - using dedicated table column names
 QUERY_HTTP='ApiManagementGatewayLogs

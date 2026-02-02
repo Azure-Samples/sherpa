@@ -22,26 +22,15 @@ param aiServicesEndpoint string
 @description('Content Safety endpoint for Prompt Shields')
 param contentSafetyEndpoint string
 
-@description('Log Analytics workspace ID for Application Insights')
-param logAnalyticsWorkspaceId string
+@description('Application Insights connection string (shared across all services)')
+param appInsightsConnectionString string
+
+@description('The azd service name for deployment linking (e.g., security-function-v1 or security-function-v2)')
+param azdServiceName string
 
 // Get reference to storage account
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
   name: storageAccountName
-}
-
-// Application Insights for Function App
-resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: '${name}-insights'
-  location: location
-  tags: tags
-  kind: 'web'
-  properties: {
-    Application_Type: 'web'
-    WorkspaceResourceId: logAnalyticsWorkspaceId
-    publicNetworkAccessForIngestion: 'Enabled'
-    publicNetworkAccessForQuery: 'Enabled'
-  }
 }
 
 // Flex Consumption Plan
@@ -63,7 +52,7 @@ resource flexPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
 resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   name: name
   location: location
-  tags: union(tags, { 'azd-service-name': 'security-function' })
+  tags: union(tags, { 'azd-service-name': azdServiceName })
   kind: 'functionapp,linux'
   identity: {
     type: 'UserAssigned'
@@ -102,7 +91,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         }
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: appInsights.properties.ConnectionString
+          value: appInsightsConnectionString
         }
         {
           name: 'AI_SERVICES_ENDPOINT'

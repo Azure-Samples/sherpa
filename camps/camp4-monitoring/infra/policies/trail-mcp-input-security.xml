@@ -16,6 +16,18 @@
     <inbound>
         <base />
         
+        <!-- W3C Trace Context Propagation for Distributed Tracing -->
+        <set-header name="traceparent" exists-action="skip">
+            <value>@{
+                var traceId = context.RequestId.ToString("N");
+                var spanId = Guid.NewGuid().ToString("N").Substring(0, 16);
+                return $"00-{traceId}-{spanId}-01";
+            }</value>
+        </set-header>
+        <set-header name="tracestate" exists-action="skip">
+            <value>@($"apim={context.Deployment.ServiceName}")</value>
+        </set-header>
+        
         <!-- OAuth 2.0 Validation using Entra ID -->
         <validate-azure-ad-token tenant-id="{{tenant-id}}" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized">
             <audiences>
@@ -40,7 +52,7 @@
             <set-header name="Content-Type" exists-action="override">
                 <value>application/json</value>
             </set-header>
-            <!-- Pass APIM's correlation ID for cross-service tracing -->
+            <!-- Pass APIM's correlation ID for cross-service log tracing -->
             <set-header name="x-correlation-id" exists-action="override">
                 <value>@(context.RequestId.ToString())</value>
             </set-header>

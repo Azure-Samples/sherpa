@@ -23,6 +23,8 @@ param contentSafetyEndpoint string
 param tenantId string
 param mcpAppClientId string
 param functionAppUrl string
+param functionAppV1Url string
+param functionAppV2Url string
 
 resource apim 'Microsoft.ApiManagement/service@2024-06-01-preview' existing = {
   name: apimName
@@ -69,12 +71,35 @@ resource contentSafetyBackend 'Microsoft.ApiManagement/service/backends@2024-06-
 }
 
 // Named Value: Function App URL (for Layer 2 policies)
+// This is the URL that policies use - starts pointing to v1, workshop swaps to v2
 resource namedValueFunctionUrl 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
   parent: apim
   name: 'function-app-url'
   properties: {
     displayName: 'function-app-url'
-    value: functionAppUrl
+    value: functionAppUrl  // Initially points to v1
+    secret: false
+  }
+}
+
+// Named Value: Function App v1 URL (for reference/switching)
+resource namedValueFunctionV1Url 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
+  parent: apim
+  name: 'function-app-v1-url'
+  properties: {
+    displayName: 'function-app-v1-url'
+    value: functionAppV1Url
+    secret: false
+  }
+}
+
+// Named Value: Function App v2 URL (for reference/switching)
+resource namedValueFunctionV2Url 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
+  parent: apim
+  name: 'function-app-v2-url'
+  properties: {
+    displayName: 'function-app-v2-url'
+    value: functionAppV2Url
     secret: false
   }
 }
@@ -116,16 +141,17 @@ resource mcpOperation 'Microsoft.ApiManagement/service/apis/operations@2024-06-0
 }
 
 // Policy for Sherpa MCP API - OAuth + Content Safety + Security Function (Layer 1 + 2)
+// Note: {{function-app-url}} is NOT replaced here - APIM resolves it at runtime from named value
+// This allows switching between v1/v2 by just updating the named value
 resource sherpaMcpPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-preview' = {
   parent: sherpaMcpApi
   name: 'policy'
   properties: {
     format: 'rawxml'
-    value: replace(replace(replace(
+    value: replace(replace(
       loadTextContent('../policies/sherpa-mcp-full-io-security.xml'),
       '{{tenant-id}}', tenantId),
-      '{{mcp-app-client-id}}', mcpAppClientId),
-      '{{function-app-url}}', functionAppUrl)
+      '{{mcp-app-client-id}}', mcpAppClientId)
   }
   dependsOn: [namedValueFunctionUrl]
 }
@@ -243,14 +269,13 @@ resource getPermitHolderOp 'Microsoft.ApiManagement/service/apis/operations@2024
 
 // Trail REST API Policy - Output sanitization (Layer 2)
 // Input security is on trail-mcp, output sanitization is here (before SSE wrapping)
+// Note: {{function-app-url}} is NOT replaced here - APIM resolves it at runtime from named value
 resource trailApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-preview' = {
   parent: trailApi
   name: 'policy'
   properties: {
     format: 'rawxml'
-    value: replace(
-      loadTextContent('../policies/trail-api-output-sanitization.xml'),
-      '{{function-app-url}}', functionAppUrl)
+    value: loadTextContent('../policies/trail-api-output-sanitization.xml')
   }
   dependsOn: [namedValueFunctionUrl]
 }
@@ -310,16 +335,16 @@ resource trailMcpApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' =
 
 // Policy for Trail MCP API - OAuth + Content Safety + Input Check (Layer 1 + 2 input)
 // Output sanitization is on trail-api (to avoid SSE blocking)
+// Note: {{function-app-url}} is NOT replaced here - APIM resolves it at runtime from named value
 resource trailMcpPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-01-preview' = {
   parent: trailMcpApi
   name: 'policy'
   properties: {
     format: 'rawxml'
-    value: replace(replace(replace(
+    value: replace(replace(
       loadTextContent('../policies/trail-mcp-input-security.xml'),
       '{{tenant-id}}', tenantId),
-      '{{mcp-app-client-id}}', mcpAppClientId),
-      '{{function-app-url}}', functionAppUrl)
+      '{{mcp-app-client-id}}', mcpAppClientId)
   }
   dependsOn: [namedValueFunctionUrl]
 }

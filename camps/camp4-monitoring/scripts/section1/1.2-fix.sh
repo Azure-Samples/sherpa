@@ -126,6 +126,67 @@ fi
 
 echo ""
 echo -e "${GREEN}✓ Diagnostic settings enabled!${NC}"
+
+# ============================================================================
+# CRITICAL: Configure APIM's internal azuremonitor diagnostic
+# ============================================================================
+# Azure Monitor diagnostic settings (above) route logs TO Log Analytics,
+# but APIM's internal "azuremonitor" diagnostic controls WHAT gets logged.
+# Without this, the ApiManagementGatewayLogs table stays empty!
+# ============================================================================
+echo ""
+echo -e "${BLUE}Configuring APIM azuremonitor diagnostic...${NC}"
+
+# Create the azuremonitor logger if it doesn't exist
+az rest --method PUT \
+    --uri "${APIM_RESOURCE_ID}/loggers/azuremonitor?api-version=2022-08-01" \
+    --body '{"properties":{"loggerType":"azureMonitor","isBuffered":true}}' \
+    --output none 2>/dev/null || true
+
+# Configure the azuremonitor diagnostic with proper logging settings
+cat > /tmp/apim-azuremonitor-diag.json << 'EOFDIAG'
+{
+  "properties": {
+    "loggerId": "/loggers/azuremonitor",
+    "alwaysLog": "allErrors",
+    "logClientIp": true,
+    "sampling": {
+      "samplingType": "fixed",
+      "percentage": 100
+    },
+    "frontend": {
+      "request": {
+        "headers": ["x-correlation-id", "traceparent"],
+        "body": { "bytes": 8192 }
+      },
+      "response": {
+        "headers": ["traceparent"],
+        "body": { "bytes": 8192 }
+      }
+    },
+    "backend": {
+      "request": {
+        "headers": ["x-correlation-id", "traceparent"],
+        "body": { "bytes": 8192 }
+      },
+      "response": {
+        "headers": ["traceparent"],
+        "body": { "bytes": 8192 }
+      }
+    }
+  }
+}
+EOFDIAG
+
+if az rest --method PUT \
+    --uri "${APIM_RESOURCE_ID}/diagnostics/azuremonitor?api-version=2022-08-01" \
+    --body @/tmp/apim-azuremonitor-diag.json \
+    --output none 2>/dev/null; then
+    echo -e "${GREEN}✓ APIM azuremonitor diagnostic configured${NC}"
+else
+    echo -e "${YELLOW}Warning: Could not configure azuremonitor diagnostic.${NC}"
+    echo "  Logs may not appear in ApiManagementGatewayLogs table."
+fi
 echo ""
 
 echo -e "${CYAN}================================================================${NC}"

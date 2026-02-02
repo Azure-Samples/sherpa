@@ -10,6 +10,9 @@ param tags object
 @description('Log Analytics Workspace ID to link the workbook to')
 param logAnalyticsWorkspaceId string
 
+@description('Application Insights resource ID for Application Map link')
+param appInsightsId string = ''
+
 @description('Display name for the workbook')
 param displayName string = 'MCP Security Dashboard'
 
@@ -24,9 +27,17 @@ var workbookContent = {
     {
       type: 1
       content: {
-        json: '# MCP Security Monitoring Dashboard\n\nReal-time visibility into security events from the MCP Security Function. Use this dashboard to monitor blocked attacks, PII redactions, and credential exposures.'
+        json: '# MCP Security Monitoring Dashboard\n\nReal-time visibility into security events from the MCP Security Function. Use this dashboard to monitor blocked attacks, PII redactions, and credential exposures.\n\n## � Unified Telemetry\n\nAll services (APIM, MCP Server, Functions, Trail API) report to this shared Application Insights instance, enabling comprehensive security monitoring and cross-service queries.'
       }
       name: 'title'
+    }
+    // Telemetry Info Panel
+    {
+      type: 1
+      content: {
+        json: '### 🔍 Cross-Service Queries\n\nThis dashboard monitors security events from all services:\n\n1. **Security Function**: Injection blocking, PII redaction, credential detection\n2. **APIM Gateway**: Request logging, error rates, latency\n3. **MCP Server & Trail API**: Request tracing with OpenTelemetry\n\n> **Tip**: Use the `x-correlation-id` in KQL queries to trace requests across services.'
+      }
+      name: 'tracingInfo'
     }
     // Time range parameter
     {

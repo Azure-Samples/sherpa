@@ -197,6 +197,39 @@ Your MCP Request
 !!! info "The 2-5 Minute Delay"
     Logs don't appear instantly in Log Analytics. Azure buffers and batches them for efficiency, resulting in a 2-5 minute ingestion delay. This is normal! When validating your setup, give it a few minutes before panicking.
 
+### Unified Telemetry
+
+Camp 4 uses a **single shared Application Insights** instance for all services. This enables:
+
+- **Single pane of glass**: Query logs from APIM, MCP Server, Functions, and Trail API in one place
+- **KQL across services**: Write queries that join telemetry from multiple services
+- **Transaction Search**: Find specific requests by correlation ID and trace them across all services
+- **Consistent alerting**: Create alerts that span the entire system
+
+```
+┌───────────────────────────────────────────────────────────────────────────┐
+│                         Shared Application Insights                       │
+│                                                                           │
+│    ┌─────────┐     ┌─────────────────┐     ┌──────────────────┐           │
+│    │  APIM   │     │  Sherpa MCP     │     │  Trail API       │           │
+│    │ Gateway │     │  Server         │     │  (REST)          │           │
+│    └─────────┘     └─────────────────┘     └──────────────────┘           │
+│                                                                           │
+│                    ┌────────────────┐                                     │
+│                    │  Security      │                                     │
+│                    │  Function      │                                     │
+│                    └────────────────┘                                     │
+│                                                                           │
+│   All services report to the same App Insights for unified queries        │
+└───────────────────────────────────────────────────────────────────────────┘
+```
+
+!!! tip "Correlation IDs"
+    Use the `x-correlation-id` header (based on APIM's RequestId) to trace requests across services in your KQL queries.
+
+!!! note "Production Sampling Consideration"
+    This workshop uses **100% sampling** for complete visibility during learning. In production environments, consider reducing the sampling percentage to optimize costs while maintaining representative telemetry. You can configure this in the Application Insights resource or in the Bicep infrastructure.
+
 ---
 
 ## Workshop Pattern
@@ -209,13 +242,13 @@ Camp 4 follows the **hidden → visible → actionable** pattern:
 
     ---
 
-    Security works, but you can't see what's happening. APIM has no diagnostic settings. Function uses basic `logging.warning()`. Events occur without any visibility or tracking.
+    Security works, but you can't see what's happening. APIM has no diagnostic settings. APIM points to Function v1 which uses basic `logging.warning()`. Events occur without any visibility.
 
 - :material-eye:{ .lg .middle } __Visible__
 
     ---
 
-    Enable APIM diagnostics and deploy structured telemetry. Security events become queryable, searchable, and visualizable.
+    Enable APIM diagnostics and switch to Function v2 with structured telemetry. Security events become queryable, searchable, and visualizable.
 
 - :material-bell-ring:{ .lg .middle } __Actionable__
 
@@ -230,7 +263,7 @@ Camp 4 follows the **hidden → visible → actionable** pattern:
 | Section | Focus | Scripts |
 |---------|-------|---------|
 | **1. APIM Logging** | Enable diagnostic settings for gateway logs | `section1/1.1-exploit.sh` → `1.2-fix.sh` → `1.3-validate.sh` |
-| **2. Function Observability** | Upgrade from basic to structured logging | `section2/2.1-exploit.sh` → `2.2-fix.sh` → `2.3-validate.sh` |
+| **2. Function Observability** | Switch from v1 (basic) to v2 (structured logging) | `section2/2.1-exploit.sh` → `2.2-fix.sh` → `2.3-validate.sh` |
 | **3. Dashboard & Alerts** | Make security actionable | `section3/3.1-deploy-workbook.sh`, `3.2-create-alerts.sh` |
 | **4. Incident Response** | Test the complete system | `section4/4.1-simulate-attack.sh` |
 
@@ -386,19 +419,21 @@ azd up
 
 This deploys:
 
-- **Security Function v1** - Azure Function with basic logging (the "hidden" state)
+- **Security Function v1** - Basic logging (the "hidden" state) - **ACTIVE**
+- **Security Function v2** - Structured logging with Azure Monitor - deployed but not active
 - **Log Analytics Workspace** - Central log storage for querying
-- **Application Insights** - Telemetry collection
+- **Application Insights** - Telemetry collection (shared by all services)
 - **APIM Gateway** - API Management (diagnostics NOT enabled initially)
-- **Container Apps** - MCP server and Trail API backends
+- **Container Apps** - MCP server and Trail API backends with OpenTelemetry
 
 !!! note "Initial State: Hidden"
     The initial deployment intentionally creates a "hidden" state:
     
     - APIM has no diagnostic settings (no ApiManagementGatewayLogs)
-    - Security function uses basic `logging.warning()` (no custom dimensions)
+    - APIM's `function-app-url` named value points to v1 (basic logging)
+    - v1 uses `logging.warning()` which writes to console, not Application Insights
     
-    The workshop scripts will progressively enable visibility.
+    Both function versions are pre-deployed. The workshop scripts switch between them by updating APIM's named value—no redeployment needed!
 
 Once deployment completes, you're ready to start the workshop. Each section follows the "explore the problem → fix it → validate" pattern.
 
@@ -512,7 +547,7 @@ Once enabled, APIM automatically streams logs to your workspace. No code changes
 
     **What this does:**
 
-    Creates diagnostic settings that send `GatewayLogs`, `GatewayLlmLogs`, `WebSocketConnectionLogs`, and `DeveloperPortalAuditLogs` to your Log Analytics workspace.
+    Creates diagnostic settings that send `GatewayLogs`, `GatewayLlmLogs`, and `WebSocketConnectionLogs` to your Log Analytics workspace.
 
     **ApiManagementGatewayLogs (HTTP level):**
 
@@ -545,6 +580,9 @@ Once enabled, APIM automatically streams logs to your workspace. No code changes
 
 ### 1.3 Validate Logs Appear
 
+!!! warning "Wait for Log Ingestion"
+    The test requests from 1.2-fix.sh need 2-5 minutes to appear in Log Analytics. If you run this immediately after 1.2, you may see "No HTTP logs found yet." Wait a few minutes and try again.
+
 ??? success "Query APIM Logs"
 
     Verify logs are flowing:
@@ -552,9 +590,6 @@ Once enabled, APIM automatically streams logs to your workspace. No code changes
     ```bash
     ./scripts/section1/1.3-validate.sh
     ```
-
-    !!! note "Ingestion Delay"
-        Azure Monitor has a 2-5 minute ingestion delay. If no logs appear, wait a few minutes and try again.
 
     **HTTP traffic query (ApiManagementGatewayLogs):**
 
@@ -569,8 +604,6 @@ Once enabled, APIM automatically streams logs to your workspace. No code changes
 
     !!! tip "Filtering by ApiId vs Url"
         Using `ApiId contains "mcp"` is more reliable than `Url contains "/mcp/"` because ApiId is a structured field set during API import/configuration, while Url parsing can be fragile.
-
-
 
 ---
 
@@ -693,13 +726,16 @@ Think of custom dimensions as adding columns to your log database that you can f
 
 ### 2.2 Deploy Structured Logging
 
-??? success "Upgrade to v2 with Custom Dimensions"
+??? success "Switch to v2 with Custom Dimensions"
 
-    Deploy the security function with structured telemetry:
+    Switch APIM to use the pre-deployed v2 function:
 
     ```bash
     ./scripts/section2/2.2-fix.sh
     ```
+
+    !!! tip "No Redeployment Required!"
+        Both function versions were deployed during initial `azd up`. This script simply updates APIM's named value `function-app-url` to point to v2. The switch is instant!
 
     **What changes:**
 
@@ -726,6 +762,9 @@ Think of custom dimensions as adding columns to your log database that you can f
     | `tool_name` | `search-trails` | Identify targeted tools |
 
 ### 2.3 Validate Structured Logs
+
+!!! warning "Wait for Log Ingestion"
+    The test attacks from 2.2-fix.sh need 2-5 minutes to appear in Log Analytics. If you run this immediately after 2.2, you may see "No structured logs found yet." Wait a few minutes and try again.
 
 ??? success "Query Security Events"
 
@@ -1256,6 +1295,126 @@ AppTraces
 | order by AttackAttempts desc
 ```
 
+### Cross-Service Queries (Unified Telemetry)
+
+These queries leverage the shared Application Insights instance where all services report telemetry.
+
+!!! info "Log Analytics Table Names"
+    When querying from **Log Analytics workspace**, use these table names:
+    
+    - `AppRequests` (not `requests`)
+    - `AppDependencies` (not `dependencies`)
+    - `AppTraces` (not `traces`)
+    
+    Column names also differ: `TimeGenerated` (not `timestamp`), `AppRoleName` (not `cloud_RoleName`), `Success` (not `success`), `DurationMs` (not `duration`).
+
+!!! note "Service Instrumentation"
+    In this workshop, the Azure Functions (funcv1, funcv2) and APIM have automatic Application Insights instrumentation. Container Apps (trail-api, sherpa-mcp-server) may show as `unknown_service` unless OpenTelemetry is explicitly configured.
+
+#### Service Health Overview
+
+See request counts and error rates across all instrumented services:
+
+```kusto
+// Request counts and error rates by service
+AppRequests
+| where TimeGenerated > ago(1h)
+| summarize 
+    total = count(),
+    failed = countif(Success == false),
+    avg_duration_ms = avg(DurationMs)
+  by AppRoleName
+| extend error_rate = round(failed * 100.0 / total, 2)
+| project AppRoleName, total, failed, error_rate, avg_duration_ms
+| order by total desc
+```
+
+#### Security Function Performance
+
+Analyze the security function's input-check and sanitize-output endpoints:
+
+```kusto
+// Security function endpoint performance
+AppRequests
+| where AppRoleName contains "func"
+| where TimeGenerated > ago(1h)
+| summarize 
+    avg_duration = avg(DurationMs),
+    p95_duration = percentile(DurationMs, 95),
+    success_rate = round(countif(Success == true) * 100.0 / count(), 2),
+    request_count = count()
+  by Name
+| order by request_count desc
+```
+
+#### MCP Tool Performance (Custom Spans)
+
+Track individual MCP tool execution using custom span attributes:
+
+```kusto
+// MCP tool performance from custom spans
+AppDependencies
+| where TimeGenerated > ago(24h)
+| where Name startswith "mcp_tool_"
+| extend tool = tostring(parse_json(Properties)["mcp.tool"])
+| summarize 
+    avg_duration_ms = avg(DurationMs),
+    p95_duration_ms = percentile(DurationMs, 95),
+    call_count = count()
+  by Name, tool
+| order by call_count desc
+```
+
+#### MCP Tool Usage Patterns
+
+See which parameters are being passed to MCP tools:
+
+```kusto
+// MCP tool parameter analysis
+AppDependencies
+| where TimeGenerated > ago(24h)
+| where Name startswith "mcp_tool_"
+| extend tool = tostring(parse_json(Properties)["mcp.tool"]),
+         location = tostring(parse_json(Properties)["mcp.tool.location"]),
+         trail_id = tostring(parse_json(Properties)["mcp.tool.trail_id"])
+| project TimeGenerated, Name, tool, location, trail_id
+| where isnotempty(location) or isnotempty(trail_id)
+```
+
+#### Slowest Requests Across All Services
+
+Find performance bottlenecks:
+
+```kusto
+// Top 20 slowest requests across all services
+AppRequests
+| where TimeGenerated > ago(1h)
+| where Success == true
+| top 20 by DurationMs desc
+| project 
+    TimeGenerated,
+    service = AppRoleName,
+    Name,
+    duration_ms = round(DurationMs, 2),
+    ResultCode
+```
+
+#### APIM and Function Timing Analysis
+
+Compare APIM and function request timing (note: these use separate OperationIds, so we compare by time windows):
+
+```kusto
+// Compare APIM and Function request timing
+AppRequests
+| where TimeGenerated > ago(1h)
+| summarize 
+    count = count(),
+    avg_duration_ms = round(avg(DurationMs), 2),
+    p95_duration_ms = round(percentile(DurationMs, 95), 2)
+  by AppRoleName
+| order by count desc
+```
+
 ---
 
 ## Architecture Deep Dive
@@ -1437,7 +1596,7 @@ Things don't always work the first time. Here are the most common issues and how
 # Remove all Azure resources
 azd down --force --purge
 
-# Clean up Entra ID apps (optional)
+# Clean up Entra ID apps (optional - ignore errors if already deleted)
 az ad app delete --id $(azd env get-value MCP_APP_CLIENT_ID)
 az ad app delete --id $(azd env get-value APIM_CLIENT_APP_ID)
 ```
