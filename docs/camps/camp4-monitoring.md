@@ -649,7 +649,11 @@ Simple, readable, and utterly useless for security analysis at scale. Why?
     let id = "YOUR-CORRELATION-ID";
     union
         (ApiManagementGatewayLogs | where CorrelationId == id),
-        (AppTraces | where Properties.correlation_id == id)
+        (AppTraces 
+         | where Properties has "correlation_id"
+         | extend CustomDims = parse_json(replace_string(replace_string(
+             tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+         | where tostring(CustomDims.correlation_id) == id)
     | order by TimeGenerated
     ```
 
@@ -1093,7 +1097,13 @@ Now you can instantly reconstruct the full story:
 ```kusto
 let id = "abc-123";
 ApiManagementGatewayLogs | where CorrelationId == id
-| union (AppTraces | where Properties.correlation_id == id)
+| union (
+    AppTraces 
+    | where Properties has "correlation_id"
+    | extend CustomDims = parse_json(replace_string(replace_string(
+        tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+    | where tostring(CustomDims.correlation_id) == id
+)
 | order by TimeGenerated
 ```
 
@@ -1309,22 +1319,35 @@ These queries leverage the shared Application Insights instance where all servic
     Column names also differ: `TimeGenerated` (not `timestamp`), `AppRoleName` (not `cloud_RoleName`), `Success` (not `success`), `DurationMs` (not `duration`).
 
 !!! note "Service Instrumentation"
-    In this workshop, the Azure Functions (funcv1, funcv2) and APIM have automatic Application Insights instrumentation. Container Apps (trail-api, sherpa-mcp-server) may show as `unknown_service` unless OpenTelemetry is explicitly configured.
+    All services in this workshop have OpenTelemetry instrumentation configured:
+    
+    - **APIM, funcv1, funcv2**: Auto-instrumented, appear in `AppRequests`
+    - **trail-api**: FastAPI instrumentation, appears in `AppRequests` when receiving HTTP traffic
+    - **sherpa-mcp-server**: OpenTelemetry configured, appears in `AppTraces` (MCP uses WebSocket streaming, not discrete HTTP requests)
+    
+    The queries below union data from both `AppRequests` and `AppTraces` to give a complete picture across all services.
 
 #### Service Health Overview
 
 See request counts and error rates across all instrumented services:
 
 ```kusto
-// Request counts and error rates by service
-AppRequests
+// Request counts and error rates by service (including MCP servers via AppTraces)
+let httpServices = AppRequests
 | where TimeGenerated > ago(1h)
 | summarize 
     total = count(),
     failed = countif(Success == false),
     avg_duration_ms = avg(DurationMs)
   by AppRoleName
-| extend error_rate = round(failed * 100.0 / total, 2)
+| extend error_rate = round(failed * 100.0 / total, 2);
+let mcpServices = AppTraces
+| where TimeGenerated > ago(1h)
+| where AppRoleName == "sherpa-mcp-server"
+| where Message startswith "get_weather" or Message startswith "check_trail" or Message startswith "get_gear"
+| summarize total = count() by AppRoleName
+| extend failed = 0, avg_duration_ms = 0.0, error_rate = 0.0;
+union httpServices, mcpServices
 | project AppRoleName, total, failed, error_rate, avg_duration_ms
 | order by total desc
 ```
@@ -1349,19 +1372,21 @@ AppRequests
 
 #### MCP Tool Performance (Custom Spans)
 
-Track individual MCP tool execution using custom span attributes:
+Track individual MCP tool execution from sherpa-mcp-server logs:
 
 ```kusto
-// MCP tool performance from custom spans
-AppDependencies
+// MCP tool invocations from sherpa-mcp-server
+AppTraces
 | where TimeGenerated > ago(24h)
-| where Name startswith "mcp_tool_"
-| extend tool = tostring(parse_json(Properties)["mcp.tool"])
-| summarize 
-    avg_duration_ms = avg(DurationMs),
-    p95_duration_ms = percentile(DurationMs, 95),
-    call_count = count()
-  by Name, tool
+| where AppRoleName == "sherpa-mcp-server"
+| where Message startswith "get_weather" or Message startswith "check_trail" or Message startswith "get_gear"
+| extend tool = case(
+    Message startswith "get_weather", "get_weather",
+    Message startswith "check_trail", "check_trail_conditions",
+    Message startswith "get_gear", "get_gear_recommendations",
+    "unknown")
+| extend location = extract("location=([^,]+)", 1, Message)
+| summarize call_count = count() by tool
 | order by call_count desc
 ```
 
@@ -1370,15 +1395,21 @@ AppDependencies
 See which parameters are being passed to MCP tools:
 
 ```kusto
-// MCP tool parameter analysis
-AppDependencies
+// MCP tool parameter analysis from sherpa-mcp-server
+AppTraces
 | where TimeGenerated > ago(24h)
-| where Name startswith "mcp_tool_"
-| extend tool = tostring(parse_json(Properties)["mcp.tool"]),
-         location = tostring(parse_json(Properties)["mcp.tool.location"]),
-         trail_id = tostring(parse_json(Properties)["mcp.tool.trail_id"])
-| project TimeGenerated, Name, tool, location, trail_id
-| where isnotempty(location) or isnotempty(trail_id)
+| where AppRoleName == "sherpa-mcp-server"
+| where Message startswith "get_weather" or Message startswith "check_trail" or Message startswith "get_gear"
+| extend tool = case(
+    Message startswith "get_weather", "get_weather",
+    Message startswith "check_trail", "check_trail_conditions",
+    Message startswith "get_gear", "get_gear_recommendations",
+    "unknown")
+| extend location = extract("location=([^\"\\)]+)", 1, Message),
+         trail_id = extract("trail_id=([^\"\\)]+)", 1, Message),
+         conditions = extract("conditions=([^\"\\)]+)", 1, Message)
+| project TimeGenerated, tool, location, trail_id, conditions
+| where isnotempty(location) or isnotempty(trail_id) or isnotempty(conditions)
 ```
 
 #### Slowest Requests Across All Services
@@ -1399,20 +1430,26 @@ AppRequests
     ResultCode
 ```
 
-#### APIM and Function Timing Analysis
+#### All Services Activity Summary
 
-Compare APIM and function request timing (note: these use separate OperationIds, so we compare by time windows):
+Compare activity across all services (HTTP requests + MCP tool calls):
 
 ```kusto
-// Compare APIM and Function request timing
-AppRequests
+// Activity summary across all services
+let httpActivity = AppRequests
 | where TimeGenerated > ago(1h)
 | summarize 
-    count = count(),
-    avg_duration_ms = round(avg(DurationMs), 2),
-    p95_duration_ms = round(percentile(DurationMs, 95), 2)
-  by AppRoleName
-| order by count desc
+    request_count = count(),
+    avg_duration_ms = round(avg(DurationMs), 2)
+  by AppRoleName;
+let mcpActivity = AppTraces
+| where TimeGenerated > ago(1h)
+| where AppRoleName == "sherpa-mcp-server"
+| where Message startswith "get_weather" or Message startswith "check_trail" or Message startswith "get_gear"
+| summarize request_count = count() by AppRoleName
+| extend avg_duration_ms = 0.0;  // Duration not tracked in current logging
+union httpActivity, mcpActivity
+| order by request_count desc
 ```
 
 ---
