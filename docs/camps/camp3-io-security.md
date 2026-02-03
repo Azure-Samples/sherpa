@@ -9,9 +9,13 @@ hide:
 
 ![Security](../images/sherpa-security.png)
 
-Welcome to **Camp 3**, where you'll implement defense-in-depth I/O security for your MCP servers. In Camp 2, you secured the gateway with OAuth, rate limiting, and Content Safety. Content Safety with Prompt Shields catches harmful content and many jailbreak attempts—but technical injection attacks (shell commands, SQL, path traversal) and PII leakage slip through.
+Welcome to **Camp 3**, where the terrain gets treacherous. You've secured your base camp with OAuth and set up Content Safety to catch the obvious dangers, but experienced climbers know that the most dangerous hazards are the ones you don't see coming. A crevasse hidden under fresh snow. A loose handhold that looks solid. A weather pattern that shifts without warning.
 
-Camp 3 adds **Layer 2 security**: Azure Functions that perform advanced input validation and output sanitization. You'll see how technical injection patterns bypass Content Safety, how PII leaks through unprotected responses, and then deploy functions that detect and block these attacks.
+In the MCP world, these hidden dangers are **technical injection attacks**—shell commands disguised as location queries, SQL payloads masquerading as search terms, path traversal attempts that look like innocent file requests. Content Safety won't catch them because they're not "harmful content" to an AI model. They're surgical strikes targeting your backend systems.
+
+And there's another danger on this route: **data leaking out**. Your APIs might be returning SSNs, phone numbers, and addresses to any client that asks nicely. Content Safety only watches the door going *in*—it doesn't check what's walking *out*.
+
+Camp 3 adds **Layer 2 security**: Azure Functions that perform advanced input validation and output sanitization. You'll witness these attacks succeed, then deploy the defenses that stop them cold.
 
 This camp follows the same **"vulnerable → exploit → fix → validate"** methodology, but focuses on the data flowing through your MCP servers rather than access control.
 
@@ -99,7 +103,7 @@ cd camps/camp3-io-security
 
 ## Architecture
 
-Camp 3 deploys a layered security architecture where APIM orchestrates multiple security checks. Importantly, **different MCP server types require different policy strategies** for output sanitization.
+Camp 3 deploys a layered security architecture where APIM orchestrates inbound security checks, while output sanitization strategy varies by backend type.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -115,7 +119,7 @@ Camp 3 deploys a layered security architecture where APIM orchestrates multiple 
 │     │   • input_check (L2)        │       │   • input_check (L2)        │   │
 │     │                             │       │                             │   │
 │     │  OUTBOUND:                  │       │  OUTBOUND:                  │   │
-│     │   • sanitize_output (L2) ✓  │       │   • (none - see trail-api)  │   │
+│     │   • (none - server-side)    │       │   • (none - see trail-api)  │   │
 │     └──────────────┬──────────────┘       └──────────────┬──────────────┘   │
 │                    │                                     │                  │
 │                    │                      ┌──────────────┴──────────────┐   │
@@ -123,31 +127,198 @@ Camp 3 deploys a layered security architecture where APIM orchestrates multiple 
 │                    │                      │   (REST API backend)        │   │
 │                    │                      │                             │   │
 │                    │                      │  OUTBOUND:                  │   │
-│                    │                      │   • sanitize_output (L2) ✓  │   │
+│                    │                      │   • sanitize_output         │   │
 │                    │                      └──────────────┬──────────────┘   │
 │                    │                                     │                  │
 └────────────────────┼─────────────────────────────────────┼──────────────────┘
-                     ▼                                     ▼
-          ┌─────────────────────┐               ┌─────────────────────┐
-          │  Sherpa Container   │               │  Trail Container    │
-          │  App (Python MCP)   │               │  App (REST API)     │
-          └─────────────────────┘               └─────────────────────┘
+                     │                                     ▼
+                     ▼                          ┌─────────────────────┐
+          ┌─────────────────────┐               │  Trail Container    │
+          │  Sherpa Container   │               │  App (REST API)     │
+          │  App (Python MCP)   │               └─────────────────────┘
+          │                     │
+          │  SERVER-SIDE:       │
+          │   • sanitize_output │
+          └─────────────────────┘
 ```
 
-**Two MCP Server Patterns with Different Security Strategies:**
+**Two MCP Server Patterns with Different Sanitization Strategies:**
 
-| Server | Type | Outbound Sanitization | Why |
-|--------|------|----------------------|-----|
-| Sherpa MCP | Native passthrough | ✓ On MCP policy | Backend server controls SSE stream lifecycle |
-| Trail MCP | APIM-synthesized | ✗ Not possible | APIM controls SSE stream, blocks `Body.As<string>()` |
-| Trail API | REST backend | ✓ On API policy | Sanitizes before APIM wraps in SSE |
+| Server | Type | Output Sanitization | Where | Why |
+|--------|------|---------------------|-------|-----|
+| Sherpa MCP | Native passthrough | ✓ Server-side | In MCP server | Streamable HTTP uses SSE format |
+| Trail MCP | APIM-synthesized | ✗ Not possible | N/A | APIM controls SSE stream |
+| Trail API | REST backend | ✓ APIM outbound | APIM policy | JSON response, then wrapped in SSE |
 
-!!! info "Why Different Strategies?"
-    **Real MCP servers** (sherpa-mcp): The backend Python server controls when the SSE stream closes. APIM's outbound policy can read the complete response body.
+!!! info "Why Server-Side Sanitization for Sherpa MCP?"
+    **The Challenge:** FastMCP's Streamable HTTP transport always returns `Content-Type: text/event-stream`, even for instant, complete responses. APIM outbound policies cannot reliably distinguish between:
     
-    **Synthesized MCP servers** (trail-mcp): APIM generates the MCP SSE stream from REST responses. The stream stays open while APIM waits for more events, blocking `Body.As<string>()` calls in outbound policies.
+    - A complete response delivered as an SSE event (can be sanitized)
+    - A long-running stream that will timeout (should pass through)
     
-    **Solution**: Apply output sanitization to `trail-api` (the REST backend) instead of `trail-mcp`. The response is sanitized *before* APIM wraps it in SSE events.
+    **The Solution:** Move sanitization **inside the MCP server**. The `get_guide_contact` tool calls the sanitize-output Azure Function directly before returning data, ensuring PII is always redacted regardless of transport format.
+    
+    **For trail-api:** Standard REST responses use `application/json`, so APIM outbound sanitization works normally. The sanitized JSON is then wrapped in SSE events by the trail-mcp API.
+
+---
+
+## Understanding MCP Transports
+
+Before implementing I/O security, it's important to understand how MCP traffic flows through APIM. This affects **what you can inspect** and **where security checks can run**.
+
+### Streamable HTTP: The MCP Transport
+
+The MCP specification defines **Streamable HTTP** as the standard transport for remote MCP servers:
+
+| Aspect | How It Works |
+|--------|--------------|
+| **Request** | Standard HTTP POST to `/mcp` endpoint |
+| **Request Body** | JSON-RPC 2.0 payload |
+| **Response** | Either single JSON **or** SSE stream (server decides) |
+
+```
+Client                                                     MCP Server
+   │                                                            │
+   │  POST /mcp                                                 │
+   │  Content-Type: application/json                            │
+   │  {"jsonrpc": "2.0", ...}                                   │
+   │ ──────────────────────────────────────────────────────────>│
+   │                                                            │
+   │  Response (one of):                                        │
+   │  A) Content-Type: application/json     ← Single response   │
+   │  B) Content-Type: text/event-stream    ← SSE stream        │
+   │ <──────────────────────────────────────────────────────────│
+```
+
+### Two MCP Patterns in This Workshop
+
+This workshop demonstrates two ways to expose MCP functionality through APIM:
+
+| Pattern | Backend | APIM Role | Streaming Handled By |
+|---------|---------|-----------|---------------------|
+| **Native MCP** | sherpa-mcp-server (FastMCP) | Passthrough proxy | Backend server |
+| **Synthesized MCP** | trail-api (REST) | Protocol translator | APIM |
+
+**Native MCP (sherpa-mcp-server):**
+```
+Client ─── POST /mcp ───► APIM ───► sherpa-mcp-server
+                          │              │
+                    Proxies MCP    Handles MCP protocol
+                    traffic        Returns JSON or SSE
+```
+
+**Synthesized MCP (trail-api):**
+```
+Client ─── POST /mcp ───► APIM ───► trail-api (REST)
+                          │              │
+                    Translates      Standard REST API
+                    MCP ↔ REST      No MCP awareness
+```
+
+!!! tip "When to Use Each Pattern"
+    - **Native MCP**: Building new AI-first services with full MCP protocol support
+    - **Synthesized MCP**: Exposing existing REST APIs to AI agents without code changes
+
+### Why This Matters for Output Sanitization
+
+The outbound policy we'll implement reads the response body:
+
+```xml
+<set-body>@(context.Response.Body.As<string>(preserveContent: true))</set-body>
+```
+
+This works **only when the response is complete before the outbound policy runs**.
+
+| Response Type | `Body.As<string>()` | Outbound Sanitization |
+|---------------|---------------------|----------------------|
+| **Single JSON** | Returns complete body | Works |
+| **SSE Stream** | May timeout or get partial data | Unreliable |
+
+??? info "Deep Dive: Why Server-Side Sanitization for MCP Servers"
+
+    ### The FastMCP Content-Type Challenge
+    
+    FastMCP's Streamable HTTP transport **always returns `Content-Type: text/event-stream`**, even for instant, complete responses like `get_weather`. This creates a problem for APIM outbound policies:
+    
+    ```xml
+    <!-- This approach is UNRELIABLE for MCP servers -->
+    <choose>
+        <when condition="@(!context.Response.Headers.GetValueOrDefault('Content-Type','').Contains('event-stream'))">
+            <!-- Sanitize JSON responses -->
+        </when>
+        <!-- Skip SSE streams -->
+    </choose>
+    ```
+    
+    The Content-Type check skips sanitization for **all** MCP responses, even ones that complete instantly and could be sanitized.
+    
+    !!! warning "Timeout-Based Approach Also Has Issues"
+        An alternative is to attempt sanitization with a timeout, letting true streams fail gracefully. However, this adds latency to every request and the timeout tuning is fragile.
+
+    ---
+
+    ### The Server-Side Solution
+    
+    For native MCP servers (sherpa-mcp), we move sanitization **inside the server itself**:
+    
+    ```python
+    @mcp.tool()
+    async def get_guide_contact(guide_id: str) -> str:
+        guide = get_guide_data(guide_id)
+        raw_json = json.dumps(guide)
+        
+        # Sanitize PII before returning (server-side Layer 2)
+        sanitized = await sanitize_output(raw_json)
+        return sanitized
+    ```
+    
+    The `sanitize_output()` function calls the same Azure Function that APIM would call, but from inside the server:
+    
+    - Works regardless of transport format (JSON or SSE)
+    - No timeout tuning required
+    - PII is redacted before it ever leaves the server
+    - Fail-open strategy maintains availability
+
+    ---
+
+    ### Why trail-api Uses APIM Outbound Sanitization
+    
+    For synthesized MCP (trail-mcp → trail-api), the situation is different:
+    
+    - **trail-api** is a standard REST API returning `application/json`
+    - APIM outbound policies can read and modify JSON responses
+    - The sanitized JSON is then wrapped in SSE events by trail-mcp
+    
+    This works because APIM sees a complete JSON response **before** generating the SSE stream.
+
+    ---
+
+    ### Summary: Choose the Right Approach
+    
+    | Backend Type | Transport | Output Sanitization |
+    |--------------|-----------|--------------------|
+    | Native MCP (FastMCP) | Streamable HTTP (SSE) | Server-side |
+    | REST API | JSON | APIM outbound policy |
+    | Synthesized MCP | Streamable HTTP (SSE) | Sanitize the REST backend |
+
+    ---
+
+    ### Workshop Scripts Use Simple HTTP
+    
+    The workshop scripts use `curl` with synchronous HTTP POST requests:
+    
+    ```bash
+    curl -X POST "$MCP_ENDPOINT/mcp" \
+      -H "Content-Type: application/json" \
+      -d '{"jsonrpc": "2.0", ...}'
+    ```
+    
+    This works because **Streamable HTTP accepts standard POST requests** and can respond with either:
+    
+    - **Single JSON** (what the workshop scripts receive)
+    - **SSE stream** (what a full MCP client like VS Code can handle)
+    
+    The server decides based on the operation. Simple tool calls return JSON; long-running operations could stream progress updates.
 
 ---
 
@@ -473,18 +644,23 @@ Now that you've seen the vulnerabilities, let's review the security function cod
 
 ??? success "Step 2: Wire the Function to APIM"
 
-    The security function is already deployed. Now connect it to APIM:
+    The security function is already deployed. Now connect it to APIM and enable server-side sanitization:
 
     ```bash
     ./scripts/1.2-enable-io-security.sh
     ```
 
-    This script applies **three different policies** based on each API's needs:
+    This script does **six things**:
 
     1. **Named Value** — Adds the function URL for policy use
-    2. **Sherpa MCP Policy** — Full I/O security (OAuth + Content Safety + input_check + sanitize_output)
+    2. **Sherpa MCP Policy** — Input security (OAuth + Content Safety + input_check)
     3. **Trail MCP Policy** — Input security only (OAuth + Content Safety + input_check)
     4. **Trail API Policy** — Output sanitization (sanitize_output before SSE wrapping)
+    5. **Enable Server-Side Sanitization** — Sets `SANITIZE_ENABLED=true` on sherpa-mcp-server
+    6. **Wait for Deployment** — Polls until the new Container App revision is running
+
+    !!! info "Why the Environment Variable Toggle?"
+        The sherpa-mcp-server has server-side PII sanitization built in, but it's **disabled by default** (`SANITIZE_ENABLED=false`). This allows you to see the vulnerability in Section 1.1 before enabling the fix here. The script flips the toggle and waits for the Container App to redeploy.
 
     **Expected output:**
     ```
@@ -502,11 +678,13 @@ Now that you've seen the vulnerabilities, let's review the security function cod
       │  • ContentSafety│     │  • ContentSafety│
       │  • Input Check  │     │  • Input Check  │
       │  • Output Sanit.│     │  (no outbound)  │
+      │   (server-side) │     │                 │
       └────────┬────────┘     └────────┬────────┘
                │                       │
                │              ┌────────┴────────┐
                │              │   trail-api     │
                │              │  • Output Sanit.│
+               │              │   (APIM policy) │
                │              └────────┬────────┘
                ▼                       ▼
          Container App          Container App
@@ -548,9 +726,9 @@ Now that you've seen the vulnerabilities, let's review the security function cod
         </inbound>
         ```
 
-        **Outbound Policy (for sherpa-mcp and trail-api):**
+        **Outbound Policy (for trail-api only):**
 
-        This policy is applied to `sherpa-mcp` (real MCP proxy) and `trail-api` (REST backend for synthesized MCP). It sanitizes PII in responses:
+        This policy is applied to `trail-api` (REST backend for synthesized MCP). It sanitizes PII in REST responses before APIM wraps them in SSE events:
 
         ```xml
         <outbound>
@@ -568,6 +746,11 @@ Now that you've seen the vulnerabilities, let's review the security function cod
             </choose>
         </outbound>
         ```
+
+        !!! info "sherpa-mcp uses Server-Side Sanitization"
+            For `sherpa-mcp` (native MCP server), output sanitization happens **inside the server**, not in APIM. The `get_guide_contact` tool calls the sanitize-output Azure Function directly before returning data.
+            
+            This approach is necessary because FastMCP's Streamable HTTP transport always uses `Content-Type: text/event-stream`, making APIM outbound policies unreliable.
 
         !!! warning "trail-mcp has NO outbound policy"
             For `trail-mcp` (synthesized MCP), there is no outbound sanitization policy. APIM controls the SSE stream lifecycle, causing `Body.As<string>()` to block indefinitely.
@@ -704,8 +887,10 @@ Congratulations! You've implemented defense-in-depth I/O security for MCP server
 │  • Content Safety │           │  • Content Safety │
 │  • input_check    │           │  • input_check    │
 ├───────────────────┤           ├───────────────────┤
-│ OUTBOUND:         │           │ OUTBOUND:         │
+│ SERVER-SIDE:      │           │ OUTBOUND:         │
 │  • sanitize_output│           │  (none)           │
+│   (SANITIZE_      │           │                   │
+│    ENABLED=true)  │           │                   │
 └─────────┬─────────┘           └─────────┬─────────┘
           │                               │
           │                     ┌─────────┴─────────┐
@@ -714,12 +899,13 @@ Congratulations! You've implemented defense-in-depth I/O security for MCP server
           │                     ├───────────────────┤
           │                     │ OUTBOUND:         │
           │                     │  • sanitize_output│
+          │                     │   (APIM policy)   │
           │                     └─────────┬─────────┘
           ▼                               ▼
     Container App                   Container App
 ```
 
-**Key Insight**: Real MCP servers (sherpa-mcp) close their SSE streams when done, allowing outbound policies to read the response body. Synthesized MCP servers (trail-mcp) have APIM-controlled streams that block `Body.As<string>()` calls. The solution is to apply output sanitization at the REST API level before SSE wrapping.
+**Key Insight**: Native MCP servers using Streamable HTTP (like sherpa-mcp with FastMCP) always return `Content-Type: text/event-stream`, making APIM outbound policies unreliable. The solution is **server-side sanitization**, where the MCP server calls the sanitize-output Function directly before returning data, controlled by the `SANITIZE_ENABLED` environment variable. For REST APIs (like trail-api), APIM outbound policies work normally because the response is `application/json`.
 
 ---
 
@@ -729,7 +915,7 @@ Congratulations! You've implemented defense-in-depth I/O security for MCP server
 |---------|--------------|------------|----------------------|
 | **Content Safety (L1)** | Harmful content detection | All APIs | MCP-06 (partial) |
 | **input_check (L2)** | Prompt/shell/SQL/path injection | All APIs | MCP-05, MCP-06 |
-| **sanitize_output (L2)** | PII redaction, credential scanning | sherpa-mcp, trail-api | MCP-03, MCP-10 |
+| **sanitize_output (L2)** | PII redaction, credential scanning | sherpa-mcp (server-side), trail-api (APIM) | MCP-03, MCP-10 |
 | **Server validation (L3)** | Pydantic schemas, regex patterns | MCP servers | Defense in depth |
 
 ---
@@ -747,15 +933,13 @@ Congratulations! You've implemented defense-in-depth I/O security for MCP server
     **Layer them together** for comprehensive protection.
 
 !!! success "MCP Architecture Matters"
-    **Real vs Synthesized MCP servers behave differently:**
+    **Real vs Synthesized MCP servers require different sanitization strategies:**
 
-    - **Real MCP** (sherpa-mcp): Backend controls stream lifecycle → outbound policies work normally
-    - **Synthesized MCP** (trail-mcp): APIM controls stream → outbound policies block on body reads
+    - **Real MCP** (sherpa-mcp): FastMCP always uses `text/event-stream` → **server-side sanitization**
+    - **Synthesized MCP** (trail-mcp): APIM controls SSE stream → sanitize the REST backend instead
+    - **REST API** (trail-api): Standard JSON responses → **APIM outbound sanitization**
 
-    **Solution**: Apply output sanitization at the appropriate layer:
-    
-    - sherpa-mcp: Sanitize in MCP policy outbound
-    - trail-mcp: Sanitize in trail-api policy (before SSE wrapping)
+    **Key Insight**: Don't assume APIM outbound policies can modify all response types. Streamable HTTP's SSE format requires sanitization to happen before the response enters the transport layer.
 
 !!! success "Fail Open vs Fail Closed"
     The `sanitize_output` function **fails open** — if Azure AI Language is unavailable, the original response passes through. This prioritizes availability over security.

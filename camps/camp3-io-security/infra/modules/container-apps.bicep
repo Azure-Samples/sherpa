@@ -13,6 +13,12 @@ param containerRegistryServer string
 @description('Managed Identity ID for ACR access')
 param identityId string
 
+@description('Function App URL for sanitization (optional - enables server-side PII sanitization)')
+param sanitizeFunctionUrl string = ''
+
+@description('Enable server-side PII sanitization (default: false for workshop vulnerability demo)')
+param sanitizeEnabled bool = false
+
 // Sherpa MCP Server - Pre-provisioned with placeholder
 resource sherpaMcpServer 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'sherpa-mcp-server'
@@ -57,6 +63,14 @@ resource sherpaMcpServer 'Microsoft.App/containerApps@2024-03-01' = {
             {
               name: 'PORT'
               value: '8000'
+            }
+            {
+              name: 'SANITIZE_FUNCTION_URL'
+              value: sanitizeFunctionUrl
+            }
+            {
+              name: 'SANITIZE_ENABLED'
+              value: string(sanitizeEnabled)
             }
           ]
         }

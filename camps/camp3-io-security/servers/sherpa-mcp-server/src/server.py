@@ -5,15 +5,20 @@ Provides tools for mountain climbing assistance:
 - get_weather: Get current weather conditions
 - check_trail_conditions: Check trail status
 - get_gear_recommendations: Get gear list for conditions
+- get_guide_contact: Get guide contact info (PII sanitized server-side)
 
 This server is protected by APIM gateway security (OAuth, Content Safety, I/O Security).
+Output sanitization for PII is handled server-side for the get_guide_contact tool.
 """
 
 import os
 import json
+import asyncio
 from datetime import datetime
 from fastmcp import FastMCP
 import uvicorn
+
+from .sanitizer import sanitize_output
 
 # Create FastMCP server
 mcp = FastMCP("Sherpa MCP Server")
@@ -98,7 +103,7 @@ def get_gear_recommendations(condition_type: str = "summer") -> str:
 
 
 @mcp.tool()
-def get_guide_contact(guide_id: str = "guide-001") -> str:
+async def get_guide_contact(guide_id: str = "guide-001") -> str:
     """
     Get contact information for a mountain guide.
     
@@ -106,7 +111,7 @@ def get_guide_contact(guide_id: str = "guide-001") -> str:
         guide_id: Guide identifier
     
     Returns:
-        Guide contact information as JSON string (contains PII for testing)
+        Guide contact information as JSON string (PII is sanitized server-side)
     """
     # Sample guide data with PII for testing output sanitization
     guides = {
@@ -134,13 +139,19 @@ def get_guide_contact(guide_id: str = "guide-001") -> str:
         }
     }
     guide = guides.get(guide_id, guides["guide-001"])
-    return json.dumps(guide, indent=2)
+    raw_json = json.dumps(guide, indent=2)
+    
+    # Sanitize PII before returning (server-side Layer 2 security)
+    sanitized = await sanitize_output(raw_json)
+    return sanitized
 
 
 if __name__ == "__main__":
     import uvicorn
     
     port = int(os.environ.get("PORT", 8000))
+    sanitize_enabled = os.environ.get("SANITIZE_ENABLED", "false").lower() == "true"
+    sanitize_url = os.environ.get("SANITIZE_FUNCTION_URL", "not configured")
     
     print("=" * 70)
     print("Sherpa MCP Server - Camp 3: I/O Security")
@@ -148,16 +159,22 @@ if __name__ == "__main__":
     print(f"Server Name: {mcp.name}")
     print("Listening on: http://0.0.0.0:" + str(port))
     print("")
-    print("Security: Protected by APIM gateway")
-    print("  - OAuth 2.0 authentication")
-    print("  - Azure AI Content Safety (Layer 1)")
-    print("  - Input validation function (Layer 2)")
-    print("  - Output sanitization function (Layer 2)")
+    print("Security: Protected by APIM gateway + server-side sanitization")
+    print("  - OAuth 2.0 authentication (APIM)")
+    print("  - Azure AI Content Safety (APIM Layer 1)")
+    print("  - Input validation function (APIM Layer 2)")
+    print(f"  - Output sanitization: {'ENABLED' if sanitize_enabled else 'DISABLED'}")
+    if sanitize_enabled:
+        print(f"    Function URL: {sanitize_url}")
+    else:
+        print("    Run 1.2-enable-io-security.sh to enable PII redaction")
     print("")
     print("Available Tools:")
     print("   - get_weather(location)")
     print("   - check_trail_conditions(trail_id)")
     print("   - get_gear_recommendations(condition_type)")
+    status = "[PII sanitized]" if sanitize_enabled else "[PII EXPOSED - run 1.2 to fix]"
+    print(f"   - get_guide_contact(guide_id) {status}")
     print("=" * 70)
     print("")
     

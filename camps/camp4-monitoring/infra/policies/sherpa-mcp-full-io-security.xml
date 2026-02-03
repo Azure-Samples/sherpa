@@ -106,7 +106,11 @@
         <base />
         
         <!-- Layer 2: Output Sanitization (Azure Function) -->
-        <!-- Works for real MCP servers because backend controls stream closure -->
+        <!-- 
+            Streamable HTTP responses may use text/event-stream even for complete responses.
+            We attempt sanitization for all responses and rely on timeout for actual streams.
+            The ignore-error="true" ensures graceful fallback if sanitization fails/times out.
+        -->
         <send-request mode="new" response-variable-name="sanitized" timeout="10" ignore-error="true">
             <set-url>{{function-app-url}}/api/sanitize-output</set-url>
             <set-method>POST</set-method>
@@ -119,13 +123,13 @@
             </set-header>
             <set-body>@(context.Response.Body.As<string>(preserveContent: true))</set-body>
         </send-request>
-        
         <!-- Use sanitized response if function call succeeded -->
         <choose>
             <when condition="@(context.Variables.ContainsKey("sanitized") && ((IResponse)context.Variables["sanitized"]).StatusCode == 200)">
                 <set-body>@(((IResponse)context.Variables["sanitized"]).Body.As<string>())</set-body>
             </when>
-            <!-- On sanitization failure, pass through original (fail open for availability) -->
+            <!-- On sanitization failure/timeout, pass through original (fail open for availability) -->
+            <!-- This handles true streaming responses gracefully - they pass through unsanitized -->
         </choose>
     </outbound>
     

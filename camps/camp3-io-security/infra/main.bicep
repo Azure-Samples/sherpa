@@ -179,6 +179,7 @@ module containerApps 'modules/container-apps.bicep' = {
     tags: tags
     containerRegistryServer: containerRegistry.outputs.loginServer
     identityId: containerAppsIdentity.outputs.id
+    sanitizeFunctionUrl: '${functionApp.outputs.url}/api/sanitize-output'
   }
 }
 

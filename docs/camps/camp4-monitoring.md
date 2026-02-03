@@ -197,6 +197,19 @@ Your MCP Request
 !!! info "The 2-5 Minute Delay"
     Logs don't appear instantly in Log Analytics. Azure buffers and batches them for efficiency, resulting in a 2-5 minute ingestion delay. This is normal! When validating your setup, give it a few minutes before panicking.
 
+---
+
+## MCP Transport and Logging
+
+!!! info "MCP Transport Recap"
+    As covered in [Camp 3: Understanding MCP Transports](camp3-io-security.md#understanding-mcp-transports), MCP uses **Streamable HTTP** transport (not WebSocket). The sherpa-mcp-server returns single JSON responses, which is why:
+    
+    - APIM can buffer and log complete responses
+    - Outbound sanitization policies work correctly  
+    - Standard HTTP logging in `ApiManagementGatewayLogs` captures everything
+    
+    For synthesized MCP (trail-api), APIM controls the SSE stream, so output sanitization is applied to the REST backend instead.
+
 ### Unified Telemetry
 
 Camp 4 uses a **single shared Application Insights** instance for all services. This enables:
@@ -391,11 +404,13 @@ This workshop focuses on these Azure Monitor log tables for MCP security monitor
 |-----------|---------------|------------|
 | **ApiManagementGatewayLogs** | GatewayLogs | `CallerIpAddress`, `ResponseCode`, `CorrelationId`, `Url`, `Method`, `ApiId` |
 | **ApiManagementGatewayLlmLog** | GatewayLlmLogs | `PromptTokens`, `CompletionTokens`, `ModelName`, `CorrelationId` |
-| **ApiManagementWebSocketConnectionLogs** | WebSocketConnectionLogs | `EventName`, `Source`, `Destination`, `CorrelationId` |
 | **AppTraces** | (App Insights) | `Message`, `SeverityLevel`, custom dimensions (`event_type`, `correlation_id`, `injection_type`) |
 
+!!! note "About WebSocketConnectionLogs"
+    The `ApiManagementWebSocketConnectionLogs` table is included in diagnostic settings for completeness, but **MCP Streamable HTTP does not use WebSockets**. This table would only contain data if you had separate WebSocket APIs in APIM.
+
 !!! note "MCP Protocol-Level Logging"
-    Azure is developing MCP-specific logging capabilities (`ApiManagementGatewayMCPLog`) that will capture tool names, session IDs, and client information. Until generally available, `GatewayLogs` captures all HTTP-level MCP traffic. This workshop focuses on what's available today.
+    Azure is developing MCP-specific logging capabilities that will capture tool names, session IDs, and client information at the protocol level. Until generally available, `GatewayLogs` captures HTTP-level MCP traffic, and `AppTraces` captures security function events including tool names extracted from JSON-RPC payloads.
 
 !!! info "Correlation IDs"
     The **CorrelationId** field appears across all log tables and is essential for incident response. It allows you to trace a single request from APIM through the security function and back, correlating HTTP logs and application traces.
@@ -1324,7 +1339,7 @@ These queries leverage the shared Application Insights instance where all servic
     
     - **APIM, funcv1, funcv2**: Auto-instrumented, appear in `AppRequests`
     - **trail-api**: FastAPI instrumentation, appears in `AppRequests` when receiving HTTP traffic
-    - **sherpa-mcp-server**: OpenTelemetry configured, appears in `AppTraces` (MCP uses Streamable HTTP transport, which supports both single JSON responses and SSE streaming. APIM proxies these requests to the backend MCP server.)
+    - **sherpa-mcp-server**: OpenTelemetry configured, appears in `AppTraces` (MCP uses **Streamable HTTP** transport, which supports both single JSON responses and SSE streaming for longer operations. APIM proxies these requests to the backend MCP server.)
     
     The queries below union data from both `AppRequests` and `AppTraces` to give a complete picture across all services.
 
@@ -1521,6 +1536,36 @@ ApiManagementGatewayLogs                       AppTraces
 ```
 
 This is why correlation IDs are so powerful: one ID links together HTTP details and security events.
+
+### Outbound Policy Considerations
+
+APIM outbound policies can inspect and modify responses, but there's an important limitation with streaming responses:
+
+| Response Type | `context.Response.Body.As<string>()` | Outbound Policy Safe? |
+|---------------|--------------------------------------|----------------------|
+| Single JSON | ✅ Returns complete body | ✅ Yes |
+| SSE Stream | ⚠️ May timeout or return partial data | ⚠️ Unreliable |
+
+**Why the workshop's outbound sanitization works:**
+
+The sherpa-mcp-server returns **single JSON responses** for its simple tools. The connection closes after the complete response, so APIM can buffer and inspect the body.
+
+```xml
+<!-- This works because sherpa-mcp-server returns complete JSON responses -->
+<set-body>@(context.Response.Body.As<string>(preserveContent: true))</set-body>
+```
+
+!!! warning "If Your MCP Server Returns SSE Streams"
+    If you modify the MCP server to return SSE streams (for long-running operations or progress updates), the outbound policy will:
+    
+    - **Timeout** waiting for the stream to complete
+    - **Get partial data** if the stream takes longer than the policy timeout
+    - **Block streaming** if `buffer-response="true"` is set
+    
+    For streaming MCP servers, move security validation to:
+    
+    1. **Inbound policies** (validate input before forwarding)
+    2. **The MCP server itself** (sanitize before streaming)
 
 ---
 

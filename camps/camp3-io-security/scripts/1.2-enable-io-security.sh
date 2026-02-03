@@ -158,6 +158,54 @@ fi
 rm -f /tmp/sherpa-mcp-policy.json /tmp/trail-mcp-policy.json /tmp/trail-api-policy.json
 
 echo ""
+
+# ============================================
+# Step 6: Enable Server-Side Sanitization
+# ============================================
+echo "Step 6: Enable Server-Side Sanitization for Sherpa MCP"
+echo "-------------------------------------------------------"
+echo "Setting SANITIZE_ENABLED=true on sherpa-mcp-server Container App..."
+echo ""
+
+az containerapp update \
+    --name sherpa-mcp-server \
+    --resource-group "$RG_NAME" \
+    --set-env-vars "SANITIZE_ENABLED=true" \
+    --output none 2>/dev/null
+
+# Wait for new revision to be ready
+echo "Waiting for new revision to deploy..."
+
+for i in {1..30}; do
+    # Check if the env var is set in the active revision
+    SANITIZE_VALUE=$(az containerapp show \
+        --name sherpa-mcp-server \
+        --resource-group "$RG_NAME" \
+        --query "properties.template.containers[0].env[?name=='SANITIZE_ENABLED'].value | [0]" -o tsv 2>/dev/null)
+    
+    if [ "$SANITIZE_VALUE" == "true" ]; then
+        # Verify the revision is actually running (status can be "Running" or "RunningAtMaxScale")
+        REVISION_STATUS=$(az containerapp revision list \
+            --name sherpa-mcp-server \
+            --resource-group "$RG_NAME" \
+            --query "[?properties.active].properties.runningState | [0]" -o tsv 2>/dev/null)
+        
+        if [[ "$REVISION_STATUS" == Running* ]]; then
+            echo "✓ Sherpa MCP Server updated with SANITIZE_ENABLED=true"
+            break
+        fi
+    fi
+    
+    if [ $i -eq 30 ]; then
+        echo "⚠ Warning: Timeout waiting for deployment. The revision may still be provisioning."
+        echo "  Wait a moment before running validation scripts."
+    else
+        echo "  Waiting for deployment... ($i/30)"
+        sleep 3
+    fi
+done
+
+echo ""
 echo "=========================================="
 echo "I/O Security Enabled!"
 echo "=========================================="
@@ -172,11 +220,13 @@ echo "  │  • OAuth        │     │  • OAuth        │"
 echo "  │  • ContentSafety│     │  • ContentSafety│"
 echo "  │  • Input Check  │     │  • Input Check  │"
 echo "  │  • Output Sanit.│     │  (no outbound)  │"
+echo "  │   (server-side) │     │                 │"
 echo "  └────────┬────────┘     └────────┬────────┘"
 echo "           │                       │"
 echo "           │              ┌────────┴────────┐"
 echo "           │              │   trail-api     │"
 echo "           │              │  • Output Sanit.│"
+echo "           │              │   (APIM policy) │"
 echo "           │              └────────┬────────┘"
 echo "           ▼                       ▼"
 echo "     Container App          Container App"
