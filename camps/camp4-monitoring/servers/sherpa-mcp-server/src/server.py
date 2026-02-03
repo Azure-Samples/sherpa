@@ -15,6 +15,7 @@ import logging
 from datetime import datetime
 from fastmcp import FastMCP
 import uvicorn
+from .sanitizer import sanitize_output, SANITIZE_ENABLED
 
 # Configure OpenTelemetry for Azure Monitor (Application Insights)
 # This enables request tracing, custom spans for each MCP tool, and unified telemetry
@@ -159,7 +160,7 @@ def get_gear_recommendations(condition_type: str = "summer") -> str:
 
 
 @mcp.tool()
-def get_guide_contact(guide_id: str = "guide-001") -> str:
+async def get_guide_contact(guide_id: str = "guide-001") -> str:
     """
     Get contact information for a mountain guide.
     
@@ -167,7 +168,7 @@ def get_guide_contact(guide_id: str = "guide-001") -> str:
         guide_id: Guide identifier
     
     Returns:
-        Guide contact information as JSON string (contains PII for testing)
+        Guide contact information as JSON string (PII sanitized by default)
     """
     # Create custom span for tracing
     span_context = tracer.start_as_current_span("mcp_tool_get_guide_contact") if tracer else None
@@ -176,6 +177,7 @@ def get_guide_contact(guide_id: str = "guide-001") -> str:
         span = trace.get_current_span()
         span.set_attribute("mcp.tool", "get_guide_contact")
         span.set_attribute("mcp.tool.guide_id", guide_id)
+        span.set_attribute("mcp.tool.sanitize_enabled", SANITIZE_ENABLED)
     
     try:
         # Sample guide data with PII for testing output sanitization
@@ -204,8 +206,11 @@ def get_guide_contact(guide_id: str = "guide-001") -> str:
             }
         }
         guide = guides.get(guide_id, guides["guide-001"])
+        raw_json = json.dumps(guide, indent=2)
         logger.info(f"get_guide_contact called for guide_id={guide_id}")
-        return json.dumps(guide, indent=2)
+        
+        # Sanitize PII before returning (enabled by default in Camp 4)
+        return await sanitize_output(raw_json)
     finally:
         if span_context:
             span_context.__exit__(None, None, None)
@@ -226,7 +231,7 @@ if __name__ == "__main__":
     print("  - OAuth 2.0 authentication")
     print("  - Azure AI Content Safety (Layer 1)")
     print("  - Input validation function (Layer 2)")
-    print("  - Output sanitization function (Layer 2)")
+    print("  - Server-side PII sanitization: " + ("ENABLED" if SANITIZE_ENABLED else "DISABLED"))
     print("")
     print("Telemetry: " + ("Enabled (Azure Monitor)" if tracer else "Disabled (no connection string)"))
     print("")

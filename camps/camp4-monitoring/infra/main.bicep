@@ -231,12 +231,29 @@ module containerApps 'modules/container-apps.bicep' = {
     containerRegistryServer: containerRegistry.outputs.loginServer
     identityId: containerAppsIdentity.outputs.id
     appInsightsConnectionString: appInsights.outputs.connectionString
+    sanitizeFunctionUrl: '${functionAppV1.outputs.url}/api/sanitize-output'
+    sanitizeEnabled: true  // Camp 4: sanitization enabled by default
+  }
+}
+
+// APIM Diagnostic Settings - routes GatewayLogs to Log Analytics
+// Pre-configured for immediate visibility (no manual enablement needed in Section 1)
+// This enables the ApiManagementGatewayLogs table for KQL queries
+module apimDiagnostics 'modules/apim-diagnostics.bicep' = {
+  name: 'apim-diagnostics'
+  params: {
+    apimResourceId: apim.outputs.id
+    logAnalyticsWorkspaceId: logAnalytics.outputs.id
   }
 }
 
 // NOTE: Azure Monitor Workbook and Action Group are NOT deployed here - they are created by
 // workshop scripts (3.1-deploy-workbook.sh, 3.2-create-alerts.sh) as part of the 
-// "hidden → visible → actionable" learning progression. This keeps Section 3 meaningful.
+// "visible → actionable" learning progression in Section 3.
+// 
+// APIM Diagnostic Settings ARE deployed (apim-diagnostics module above) so that
+// ApiManagementGatewayLogs is available immediately. Section 1 focuses on understanding
+// and querying these logs rather than enabling them.
 
 // Outputs for azd and waypoint scripts
 output AZURE_RESOURCE_GROUP string = resourceGroup().name

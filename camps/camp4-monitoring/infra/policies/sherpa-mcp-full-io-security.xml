@@ -2,13 +2,16 @@
     APIM Policy: Full I/O Security for Sherpa MCP Server
     
     This policy is for REAL MCP servers (proxied through APIM).
-    The backend server controls stream lifecycle, so outbound sanitization works.
     
     Includes:
     - OAuth 2.0 validation (Entra ID)
     - Layer 1: Azure AI Content Safety
     - Layer 2: Azure Function input_check (injection detection)
-    - Layer 2: Azure Function sanitize_output (PII redaction)
+    
+    NOTE: Output sanitization (PII redaction) is handled SERVER-SIDE in sherpa-mcp-server.
+    This is because MCP Streamable HTTP always returns Content-Type: text/event-stream,
+    which requires buffering the full response before sanitization can occur.
+    Server-side sanitization avoids APIM buffering and stream interruption issues.
 -->
 <policies>
     <inbound>
@@ -104,33 +107,11 @@
     
     <outbound>
         <base />
-        
-        <!-- Layer 2: Output Sanitization (Azure Function) -->
         <!-- 
-            Streamable HTTP responses may use text/event-stream even for complete responses.
-            We attempt sanitization for all responses and rely on timeout for actual streams.
-            The ignore-error="true" ensures graceful fallback if sanitization fails/times out.
+            Output sanitization (PII redaction) is handled server-side in sherpa-mcp-server.
+            See src/sanitizer.py - this approach works better with MCP Streamable HTTP
+            which always returns Content-Type: text/event-stream.
         -->
-        <send-request mode="new" response-variable-name="sanitized" timeout="10" ignore-error="true">
-            <set-url>{{function-app-url}}/api/sanitize-output</set-url>
-            <set-method>POST</set-method>
-            <set-header name="Content-Type" exists-action="override">
-                <value>application/json</value>
-            </set-header>
-            <!-- Pass APIM's correlation ID for cross-service log tracing -->
-            <set-header name="x-correlation-id" exists-action="override">
-                <value>@(context.RequestId.ToString())</value>
-            </set-header>
-            <set-body>@(context.Response.Body.As<string>(preserveContent: true))</set-body>
-        </send-request>
-        <!-- Use sanitized response if function call succeeded -->
-        <choose>
-            <when condition="@(context.Variables.ContainsKey("sanitized") && ((IResponse)context.Variables["sanitized"]).StatusCode == 200)">
-                <set-body>@(((IResponse)context.Variables["sanitized"]).Body.As<string>())</set-body>
-            </when>
-            <!-- On sanitization failure/timeout, pass through original (fail open for availability) -->
-            <!-- This handles true streaming responses gracefully - they pass through unsanitized -->
-        </choose>
     </outbound>
     
     <on-error>

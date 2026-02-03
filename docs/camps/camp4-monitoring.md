@@ -13,7 +13,7 @@ hide:
     **Tech Stack:** Log Analytics, Application Insights, Azure Monitor, Workbooks, API Management, Container Apps, Functions, MCP  
     **Primary Risks:** [MCP08](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp08-telemetry/) (Lack of Audit and Telemetry)
 
-## Welcome to Observation Peak!
+### Welcome to Observation Peak!
 
 You've made it to Camp 4, the last skill-building camp before the Summit! Throughout your journey, you've built authentication (Camp 1), MCP gateways (Camp 2), and I/O security (Camp 3). Your MCP server is now protected by multiple layers of defense.
 
@@ -199,17 +199,6 @@ Your MCP Request
 
 ---
 
-## MCP Transport and Logging
-
-!!! info "MCP Transport Recap"
-    As covered in [Camp 3: Understanding MCP Transports](camp3-io-security.md#understanding-mcp-transports), MCP uses **Streamable HTTP** transport (not WebSocket). The sherpa-mcp-server returns single JSON responses, which is why:
-    
-    - APIM can buffer and log complete responses
-    - Outbound sanitization policies work correctly  
-    - Standard HTTP logging in `ApiManagementGatewayLogs` captures everything
-    
-    For synthesized MCP (trail-api), APIM controls the SSE stream, so output sanitization is applied to the REST backend instead.
-
 ### Unified Telemetry
 
 Camp 4 uses a **single shared Application Insights** instance for all services. This enables:
@@ -247,21 +236,21 @@ Camp 4 uses a **single shared Application Insights** instance for all services. 
 
 ## Workshop Pattern
 
-Camp 4 follows the **hidden → visible → actionable** pattern:
+Camp 4 follows the **explore → understand → actionable** pattern for APIM (already configured), and the **hidden → visible → actionable** pattern for function logging:
 
 <div class="grid cards" markdown>
 
-- :material-eye-off:{ .lg .middle } __Hidden__
+- :material-eye:{ .lg .middle } __APIM: Pre-Configured__
 
     ---
 
-    Security works, but you can't see what's happening. APIM has no diagnostic settings. APIM points to Function v1 which uses basic `logging.warning()`. Events occur without any visibility.
+    APIM diagnostic settings are deployed via Bicep. Gateway logs flow to Log Analytics automatically. Section 1 explores and validates this configuration.
 
-- :material-eye:{ .lg .middle } __Visible__
+- :material-eye-off:{ .lg .middle } __Functions: Hidden__
 
     ---
 
-    Enable APIM diagnostics and switch to Function v2 with structured telemetry. Security events become queryable, searchable, and visualizable.
+    Security function v1 uses basic `logging.warning()`. Events occur but aren't queryable in Log Analytics. Section 2 fixes this.
 
 - :material-bell-ring:{ .lg .middle } __Actionable__
 
@@ -275,7 +264,7 @@ Camp 4 follows the **hidden → visible → actionable** pattern:
 
 | Section | Focus | Scripts |
 |---------|-------|---------|
-| **1. APIM Logging** | Enable diagnostic settings for gateway logs | `section1/1.1-exploit.sh` → `1.2-fix.sh` → `1.3-validate.sh` |
+| **1. APIM Logging** | Explore pre-configured diagnostics and validate logs flow | `section1/1.1-explore.sh` → `1.2-verify.sh` → `1.3-validate.sh` |
 | **2. Function Observability** | Switch from v1 (basic) to v2 (structured logging) | `section2/2.1-exploit.sh` → `2.2-fix.sh` → `2.3-validate.sh` |
 | **3. Dashboard & Alerts** | Make security actionable | `section3/3.1-deploy-workbook.sh`, `3.2-create-alerts.sh` |
 | **4. Incident Response** | Test the complete system | `section4/4.1-simulate-attack.sh` |
@@ -309,20 +298,6 @@ Camp 4 follows the **hidden → visible → actionable** pattern:
     Learn Kusto Query Language to analyze security events and create custom reports.
 
 </div>
-
----
-
-## Prerequisites
-
-Before starting Camp 4, ensure you have:
-
-:material-check: Azure subscription with Contributor access  
-:material-check: Azure CLI installed and logged in (`az login`)  
-:material-check: Azure Developer CLI installed (`azd`)  
-:material-check: Completed Camp 3: I/O Security (recommended, but not required)
-
-!!! note "Standalone Lab"
-    While Camp 4 builds on concepts from earlier camps, it's designed to work standalone. The `azd provision` command will deploy everything you need, including the security function from Camp 3.
 
 ---
 
@@ -406,14 +381,30 @@ This workshop focuses on these Azure Monitor log tables for MCP security monitor
 | **ApiManagementGatewayLlmLog** | GatewayLlmLogs | `PromptTokens`, `CompletionTokens`, `ModelName`, `CorrelationId` |
 | **AppTraces** | (App Insights) | `Message`, `SeverityLevel`, custom dimensions (`event_type`, `correlation_id`, `injection_type`) |
 
-!!! note "About WebSocketConnectionLogs"
-    The `ApiManagementWebSocketConnectionLogs` table is included in diagnostic settings for completeness, but **MCP Streamable HTTP does not use WebSockets**. This table would only contain data if you had separate WebSocket APIs in APIM.
-
 !!! note "MCP Protocol-Level Logging"
     Azure is developing MCP-specific logging capabilities that will capture tool names, session IDs, and client information at the protocol level. Until generally available, `GatewayLogs` captures HTTP-level MCP traffic, and `AppTraces` captures security function events including tool names extracted from JSON-RPC payloads.
 
 !!! info "Correlation IDs"
     The **CorrelationId** field appears across all log tables and is essential for incident response. It allows you to trace a single request from APIM through the security function and back, correlating HTTP logs and application traces.
+
+---
+
+## Prerequisites
+
+Before starting Camp 4, ensure you have:
+
+:material-check: Azure subscription with Contributor access  
+:material-check: Azure CLI installed and logged in (`az login`)  
+:material-check: Azure Developer CLI installed (`azd auth login`)  
+:material-check: Docker installed and running (for Container Apps deployment)  
+:material-check: Completed Camp 3: I/O Security (recommended, but not required)
+
+!!! note "Standalone Lab"
+    While Camp 4 builds on concepts from earlier camps, it's designed to work standalone. The `azd up` command will deploy everything you need, including the security function from Camp 3.
+
+:material-arrow-right: [Full prerequisites guide](../prerequisites.md) with installation instructions for all tools.
+
+---
 
 ## Getting Started
 
@@ -438,13 +429,13 @@ This deploys:
 - **Security Function v2** - Structured logging with Azure Monitor - deployed but not active
 - **Log Analytics Workspace** - Central log storage for querying
 - **Application Insights** - Telemetry collection (shared by all services)
-- **APIM Gateway** - API Management (diagnostics NOT enabled initially)
+- **APIM Gateway** - API Management with diagnostic settings pre-configured
 - **Container Apps** - MCP server and Trail API backends with OpenTelemetry
 
-!!! note "Initial State: Hidden"
-    The initial deployment intentionally creates a "hidden" state:
+!!! note "Initial State"
+    The deployment creates a ready-to-use observability foundation:
     
-    - APIM has no diagnostic settings (no ApiManagementGatewayLogs)
+    - APIM diagnostic settings are configured (ApiManagementGatewayLogs flow immediately)
     - APIM's `function-app-url` named value points to v1 (basic logging)
     - v1 uses `logging.warning()` which writes to console, not Application Insights
     
@@ -456,12 +447,14 @@ Once deployment completes, you're ready to start the workshop. Each section foll
 
 ## Section 1: API Management Logging
 
-APIM processes all your MCP traffic, but by default it doesn't send detailed logs to Log Analytics. This section enables diagnostic settings.
+APIM processes all your MCP traffic, and in this workshop, diagnostic settings are pre-configured via Bicep. This section explores what's been configured and validates that logs are flowing.
 
 ### The Logging Gap: Before & After
 
+Understanding diagnostic settings helps when configuring other Azure resources. Here's what APIM looks like without diagnostic settings vs with them:
+
 ```
-BEFORE: No Diagnostic Settings                 AFTER: Diagnostics Enabled
+WITHOUT: No Diagnostic Settings                WITH: Diagnostics Enabled (Our Setup)
 ═══════════════════════════════════════        ═══════════════════════════════════════
 
    MCP Client                                     MCP Client
@@ -479,26 +472,26 @@ BEFORE: No Diagnostic Settings                 AFTER: Diagnostics Enabled
        ▼                                               ▼                │                 │
 ┌─────────────┐                                ┌─────────────┐          │ • GatewayLogs   │
 │   Backend   │                                │   Backend   │          │ • GatewayLlmLogs│
-│   Services  │                                │   Services  │          │ • WebSocket     │
-└─────────────┘                                └─────────────┘          └─────────────────┘
-                                                                              │
-Traffic works fine,                            Traffic works AND              ▼
-but NO VISIBILITY                              you can QUERY everything    KQL Queries
-                                                                           Dashboards
+│   Services  │                                │   Services  │          └─────────────────┘
+└─────────────┘                                └─────────────┘                │
+                                                                              ▼
+Traffic works fine,                            Traffic works AND           KQL Queries
+but NO VISIBILITY                              you can QUERY everything    Dashboards
                                                                            Alerts
 ```
 
 ### Why APIM Logging Matters
 
-Azure API Management sits at the front door of your MCP infrastructure. Every request, legitimate or malicious, passes through it. But here's the thing: **APIM doesn't log to Log Analytics by default**.
+Azure API Management sits at the front door of your MCP infrastructure. Every request, legitimate or malicious, passes through it. In this workshop, **APIM diagnostic settings are pre-configured via Bicep**, so you can immediately query logs once `azd up` completes.
 
-Without explicit configuration, APIM only:  
+!!! success "Pre-Configured for Learning"
+    Unlike a default APIM deployment where you'd have no visibility, this workshop configures diagnostic settings automatically during infrastructure deployment. This means:
+    
+    - :material-check: Gateway logs flow to Log Analytics immediately
+    - :material-check: You can start querying traffic right away
+    - :material-check: No manual configuration required
 
-- Routes traffic (works fine)  
-- Applies policies (works fine) 
-- Returns responses (works fine)
-
-But you have **zero visibility** into:  
+With diagnostic settings enabled, you have full visibility into:
 
 - Who called your APIs (IP addresses)  
 - What MCP tools were invoked  
@@ -506,63 +499,59 @@ But you have **zero visibility** into:
 - Which requests failed and why
 
 !!! example "The Security Guard Analogy"
-    It's like having a security guard who checks IDs but never writes anything down. The guard does their job, but there's no record anyone can review later.
+    It's like having a security guard who checks IDs **and** writes down every entry in a log book. The guard does their job, and there's a complete record anyone can review later.
 
 ### Understanding Diagnostic Settings
 
 **Diagnostic Settings** are Azure's way of routing telemetry from a resource to a destination. For APIM, you configure:
 
-- **Source**: Which log categories to capture (GatewayLogs, GatewayLlmLogs, WebSocketConnectionLogs)
+- **Source**: Which log categories to capture (GatewayLogs, GatewayLlmLogs)
 - **Destination**: Where to send them (Log Analytics workspace)
 
-Once enabled, APIM automatically streams logs to your workspace. No code changes needed—it's pure configuration.
+In this workshop, the Bicep infrastructure configures these automatically. Once deployed, APIM streams logs to your workspace without any manual steps.
 
-### 1.1 Experience the Gap
+### 1.1 Explore APIM Gateway Logging
 
-??? abstract "See What's Missing"
+??? abstract "Send Traffic and See Logs Flow"
 
-    Run the script to see the APIM logging gap:
+    Run the script to send traffic through APIM and verify logging:
 
     ```bash
-    ./scripts/section1/1.1-exploit.sh
+    ./scripts/section1/1.1-explore.sh
     ```
 
     **What this script does:**
 
     1. **Sends legitimate MCP requests** through APIM
     2. **Sends attack requests** (SQL injection, path traversal)
-    3. **Checks APIM diagnostic settings** - spoiler: none configured!
-    4. **Shows the KQL query** that would return nothing
+    3. **Verifies diagnostic settings** are configured
+    4. **Shows sample KQL queries** you can run
 
-    **The problem:**
+    **What you'll see:**
 
-    | What Works | What's Missing |
-    |------------|----------------|
-    | :material-check: Requests routed through APIM | :material-close: No record of who made requests |
-    | :material-check: Security function blocks attacks | :material-close: No caller IP addresses |
-    | :material-check: Responses returned correctly | :material-close: No query-able logs in Log Analytics |
+    | Component | Status |
+    |-----------|--------|
+    | :material-check: APIM routes requests | Working |
+    | :material-check: Security function blocks attacks | Working |
+    | :material-check: Diagnostic settings configured | Pre-deployed via Bicep |
+    | :material-check: Logs flowing to Log Analytics | Verified |
 
-    !!! warning "The Hidden Problem"
-        Your gateway is routing traffic, but you have zero visibility into:
-        
-        - Who's calling your APIs (CallerIpAddress)
-        - What's being called (Url, Method)
-        - Request/response timing (TotalTime, BackendTime)
-        - Correlation across services (CorrelationId)
+    !!! tip "Log Ingestion Delay"
+        Azure Monitor has a 2-5 minute ingestion delay. The first logs from a new deployment may take 5-10 minutes to appear.
 
-### 1.2 Enable APIM Diagnostics
+### 1.2 Verify Diagnostic Configuration
 
-??? success "Make APIM Traffic Visible"
+??? success "Understand What's Configured"
 
-    Enable diagnostic settings:
+    Examine the diagnostic settings:
 
     ```bash
-    ./scripts/section1/1.2-fix.sh
+    ./scripts/section1/1.2-verify.sh
     ```
 
     **What this does:**
 
-    Creates diagnostic settings that send `GatewayLogs`, `GatewayLlmLogs`, and `WebSocketConnectionLogs` to your Log Analytics workspace.
+    Shows you the diagnostic settings deployed via Bicep, including enabled log categories and destination.
 
     **ApiManagementGatewayLogs (HTTP level):**
 
@@ -583,20 +572,17 @@ Once enabled, APIM automatically streams logs to your workspace. No code changes
     | `ModelName` | LLM model used |
     | `CorrelationId` | For cross-service tracing |
 
-    !!! warning "Avoid Portal Edits During Script Execution"
-        Don't edit diagnostic settings in the Azure Portal while this script is running. Concurrent edits can corrupt the settings, causing logs to not flow properly. If you suspect issues, run the script again—it will delete and recreate the settings cleanly.
-
     !!! tip "Verify in Azure Portal"
-        You can confirm the diagnostic settings were created by navigating to your APIM resource in the Azure Portal:
+        You can also view diagnostic settings by navigating to your APIM resource:
         
         **APIM** → **Monitoring** → **Diagnostic settings** → **mcp-security-logs**
         
-        You should see `GatewayLogs`, `WebSocketConnectionLogs`, and other categories enabled, all pointing to your Log Analytics workspace.
+        You should see `GatewayLogs` and `GatewayLlmLogs` enabled, pointing to your Log Analytics workspace.
 
 ### 1.3 Validate Logs Appear
 
 !!! warning "Wait for Log Ingestion"
-    The test requests from 1.2-fix.sh need 2-5 minutes to appear in Log Analytics. If you run this immediately after 1.2, you may see "No HTTP logs found yet." Wait a few minutes and try again.
+    For new deployments, logs need 2-5 minutes to appear in Log Analytics. If you run this immediately after `azd up`, you may see "No HTTP logs found yet." Wait a few minutes and try again.
 
 ??? success "Query APIM Logs"
 

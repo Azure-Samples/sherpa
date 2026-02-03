@@ -1,14 +1,14 @@
 #!/bin/bash
 # =============================================================================
-# Camp 4 - Section 1.1: Demonstrate APIM Logging Gap
+# Camp 4 - Section 1.1: Explore APIM Gateway Logging
 # =============================================================================
-# Pattern: hidden → visible → actionable
-# Current state: HIDDEN (APIM diagnostic settings not configured)
-#
-# This script sends REAL attacks through APIM to demonstrate:
+# This script sends MCP requests through APIM to demonstrate:
 # 1. Security layers (OAuth, Content Safety, Input Validation) are working
-# 2. But APIM has NO detailed logs of these MCP transactions
-# Without diagnostic settings, ApiManagementGatewayLogs remains empty.
+# 2. APIM diagnostic settings are pre-configured (deployed via Bicep)
+# 3. All traffic is logged to ApiManagementGatewayLogs for analysis
+#
+# After running, you can query the logs in Log Analytics.
+# NOTE: Logs may take 2-5 minutes to appear in Log Analytics (Azure ingestion delay).
 # =============================================================================
 
 set -e
@@ -26,9 +26,8 @@ NC='\033[0m' # No Color
 
 echo ""
 echo -e "${CYAN}================================================================${NC}"
-echo -e "${CYAN}  Camp 4 - Section 1: APIM Logging Gap${NC}"
-echo -e "${CYAN}  Pattern: hidden → visible → actionable${NC}"
-echo -e "${CYAN}  Current State: HIDDEN${NC}"
+echo -e "${CYAN}  Camp 4 - Section 1: APIM Gateway Logging${NC}"
+echo -e "${CYAN}  Explore how MCP traffic is captured in Log Analytics${NC}"
 echo -e "${CYAN}================================================================${NC}"
 echo ""
 
@@ -59,16 +58,16 @@ fi
 echo -e "${GREEN}✓ OAuth token acquired${NC}"
 echo ""
 
-echo -e "${YELLOW}What we're about to demonstrate:${NC}"
-echo "1. Send REAL MCP requests through APIM (including attacks)"
-echo "2. Security layers (Layer 1 + Layer 2) block the attacks"
-echo "3. But APIM has NO detailed logs of these MCP transactions"
+echo -e "${YELLOW}What we're about to do:${NC}"
+echo "1. Send MCP requests through APIM (including attack simulations)"
+echo "2. Security layers (Layer 1 + Layer 2) will block attacks"
+echo "3. All traffic is logged to ApiManagementGatewayLogs"
 echo ""
-echo -e "${YELLOW}Why this matters:${NC}"
-echo "• You can't see WHO made requests (no caller IP)"
-echo "• You can't see WHAT tools were called (no tool name)"
-echo "• You can't correlate requests across services"
-echo "• You can't build dashboards or alerts"
+echo -e "${YELLOW}What you'll learn:${NC}"
+echo "• How to find caller IP addresses in logs"
+echo "• How to identify which APIs/tools are being called"
+echo "• How to correlate requests across services"
+echo "• How to build queries for security analysis"
 echo ""
 
 # -------------------------------------------------------------------
@@ -160,7 +159,7 @@ echo ""
 # Check APIM Diagnostic Settings
 # -------------------------------------------------------------------
 echo -e "${CYAN}================================================================${NC}"
-echo -e "${CYAN}  Checking APIM Diagnostic Logs${NC}"
+echo -e "${CYAN}  Verifying APIM Diagnostic Configuration${NC}"
 echo -e "${CYAN}================================================================${NC}"
 echo ""
 
@@ -173,6 +172,7 @@ DIAG_SETTINGS=$(az monitor diagnostic-settings list \
 
 # Check if logs are actually flowing (not just settings exist)
 LOGS_FOUND=false
+LOG_COUNT="0"
 if [ -n "$DIAG_SETTINGS" ]; then
     # Get workspace GUID for query
     WORKSPACE_GUID=$(az monitor log-analytics workspace show \
@@ -194,46 +194,23 @@ fi
 if [ -z "$DIAG_SETTINGS" ]; then
     echo -e "${RED}✗ No diagnostic settings configured!${NC}"
     echo ""
-    echo "  APIM is processing requests but logging NOTHING to Log Analytics."
-    echo "  ApiManagementGatewayLogs: EMPTY"
+    echo "  This is unexpected - diagnostic settings should be deployed via Bicep."
+    echo "  Please check the deployment or run 'azd up' again."
     echo ""
-    echo -e "${CYAN}================================================================${NC}"
-    echo -e "${CYAN}  KQL Query (will return nothing without diagnostics)${NC}"
-    echo -e "${CYAN}================================================================${NC}"
-    echo ""
-    echo "Try this query in Log Analytics - it will return 0 results:"
-    echo ""
-    echo -e "${YELLOW}  ApiManagementGatewayLogs"
-    echo "  | where TimeGenerated > ago(1h)"
-    echo "  | where ApiId contains 'mcp'"
-    echo "  | project TimeGenerated, CallerIpAddress, Method, Url, ResponseCode"
-    echo -e "  | limit 10${NC}"
-    echo ""
-    echo -e "${CYAN}================================================================${NC}"
-    echo -e "${CYAN}  The Problem: Security is HIDDEN${NC}"
-    echo -e "${CYAN}================================================================${NC}"
-    echo ""
-    echo "The security layers blocked attacks, but:"
-    echo ""
-    echo -e "  ${RED}✗${NC} APIM has no record of these requests"
-    echo -e "  ${RED}✗${NC} You can't see attacker IPs"
-    echo -e "  ${RED}✗${NC} You can't see which tools are being targeted"
-    echo -e "  ${RED}✗${NC} You can't correlate across services"
-    echo -e "  ${RED}✗${NC} You can't build dashboards or set up alerts"
-    echo ""
-    echo -e "${GREEN}Next: Run ./scripts/section1/1.2-fix.sh to enable APIM diagnostics${NC}"
+    echo -e "${YELLOW}Troubleshooting:${NC}"
+    echo "  1. Verify Bicep deployment completed successfully"
+    echo "  2. Check Azure Portal: APIM → Monitoring → Diagnostic settings"
+    echo "  3. Run ./scripts/section1/1.2-verify.sh to diagnose"
 elif [ "$LOGS_FOUND" = true ]; then
-    echo -e "${GREEN}✓ Diagnostic settings found: $DIAG_SETTINGS${NC}"
-    echo -e "${GREEN}✓ Logs ARE flowing to Log Analytics ($LOG_COUNT records in last hour)${NC}"
+    echo -e "${GREEN}✓ Diagnostic settings configured: $DIAG_SETTINGS${NC}"
+    echo -e "${GREEN}✓ Logs flowing to Log Analytics ($LOG_COUNT records in last hour)${NC}"
     echo ""
     echo -e "${CYAN}================================================================${NC}"
-    echo -e "${CYAN}  Diagnostics Already Configured!${NC}"
+    echo -e "${CYAN}  Success! Your traffic is being logged.${NC}"
     echo -e "${CYAN}================================================================${NC}"
     echo ""
-    echo "It looks like you've already enabled APIM diagnostics (Section 1.2)."
-    echo "The requests above are being logged to ApiManagementGatewayLogs."
-    echo ""
-    echo "You can verify with this KQL query:"
+    echo "The requests above are now in ApiManagementGatewayLogs."
+    echo "You can query them using KQL:"
     echo ""
     echo -e "${YELLOW}  ApiManagementGatewayLogs"
     echo "  | where TimeGenerated > ago(1h)"
@@ -241,14 +218,23 @@ elif [ "$LOGS_FOUND" = true ]; then
     echo "  | project TimeGenerated, CallerIpAddress, Method, Url, ResponseCode"
     echo -e "  | limit 10${NC}"
     echo ""
-    echo -e "${GREEN}Section 1 is complete! Move on to Section 2 to see the function logging gap.${NC}"
-    echo -e "${GREEN}Next: Run ./scripts/section2/2.1-exploit.sh${NC}"
+    echo -e "${GREEN}Next: Run ./scripts/section1/1.2-verify.sh to explore the diagnostic configuration${NC}"
+    echo -e "${GREEN}      Then run ./scripts/section1/1.3-validate.sh to query logs${NC}"
 else
-    echo -e "${GREEN}✓ Diagnostic settings found: $DIAG_SETTINGS${NC}"
-    echo -e "${YELLOW}⏳ Settings exist but no logs found yet (may take 2-5 minutes)${NC}"
+    echo -e "${GREEN}✓ Diagnostic settings configured: $DIAG_SETTINGS${NC}"
+    echo -e "${YELLOW}⏳ Logs not visible yet (2-5 minute ingestion delay)${NC}"
     echo ""
-    echo "  Diagnostic settings are configured, but logs haven't appeared yet."
-    echo "  This is normal - Azure Monitor has a 2-5 minute ingestion delay."
+    echo "  Diagnostic settings are configured. The requests you just sent"
+    echo "  will appear in Log Analytics after Azure processes them."
     echo ""
-    echo "  Run ./scripts/section1/1.3-validate.sh to check when logs appear."
+    echo -e "${CYAN}================================================================${NC}"
+    echo -e "${CYAN}  Log Ingestion Delay${NC}"
+    echo -e "${CYAN}================================================================${NC}"
+    echo ""
+    echo "  Azure Monitor batches and processes logs for efficiency."
+    echo "  New deployments may take 5-10 minutes for the first logs to appear."
+    echo "  Subsequent logs typically appear within 2-5 minutes."
+    echo ""
+    echo -e "${GREEN}Next: Run ./scripts/section1/1.2-verify.sh to explore the diagnostic configuration${NC}"
+    echo -e "${GREEN}      Wait 2-5 minutes, then run ./scripts/section1/1.3-validate.sh${NC}"
 fi

@@ -83,6 +83,10 @@ else
     
     echo ""
     echo -e "${GREEN}✓ APIM now points to v2!${NC}"
+    
+    echo ""
+    echo -e "${YELLOW}Waiting 10 seconds for APIM to propagate the change...${NC}"
+    sleep 10
 fi
 
 echo ""

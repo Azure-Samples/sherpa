@@ -16,6 +16,12 @@ param identityId string
 @description('Application Insights connection string for distributed tracing')
 param appInsightsConnectionString string
 
+@description('Sanitize Function URL for PII redaction')
+param sanitizeFunctionUrl string = ''
+
+@description('Enable server-side PII sanitization (default: true for Camp 4)')
+param sanitizeEnabled bool = true
+
 // Sherpa MCP Server - Pre-provisioned with placeholder
 resource sherpaMcpServer 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'sherpa-mcp-server'
@@ -68,6 +74,14 @@ resource sherpaMcpServer 'Microsoft.App/containerApps@2024-03-01' = {
             {
               name: 'OTEL_SERVICE_NAME'
               value: 'sherpa-mcp-server'
+            }
+            {
+              name: 'SANITIZE_FUNCTION_URL'
+              value: sanitizeFunctionUrl
+            }
+            {
+              name: 'SANITIZE_ENABLED'
+              value: string(sanitizeEnabled)
             }
           ]
         }

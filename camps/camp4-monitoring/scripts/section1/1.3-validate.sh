@@ -2,11 +2,8 @@
 # =============================================================================
 # Camp 4 - Section 1.3: Validate APIM Logging
 # =============================================================================
-# Pattern: hidden → visible → actionable
-# Current state: VISIBLE (verifying logs are flowing)
-#
 # This script queries Log Analytics to verify that APIM diagnostic logs
-# from 1.2-fix.sh are being captured correctly.
+# configured via Bicep infrastructure are capturing traffic correctly.
 # =============================================================================
 
 set -e
@@ -25,8 +22,6 @@ NC='\033[0m'
 echo ""
 echo -e "${CYAN}================================================================${NC}"
 echo -e "${CYAN}  Camp 4 - Section 1.3: Validate APIM Logging${NC}"
-echo -e "${CYAN}  Pattern: hidden → visible → actionable${NC}"
-echo -e "${CYAN}  Current State: VISIBLE${NC}"
 echo -e "${CYAN}================================================================${NC}"
 echo ""
 
@@ -54,7 +49,7 @@ if [ -z "$WORKSPACE_ID" ]; then
 fi
 
 echo -e "${YELLOW}Note: Log Analytics has a 2-5 minute ingestion delay.${NC}"
-echo -e "${YELLOW}This script queries for logs sent by 1.2-fix.sh.${NC}"
+echo -e "${YELLOW}This script queries the logs captured by Bicep-deployed diagnostics.${NC}"
 echo ""
 
 echo -e "${BLUE}Step 1: Verifying diagnostic settings...${NC}"
@@ -68,7 +63,7 @@ if [ "$DIAG_SETTINGS" != "[]" ]; then
     echo -e "${GREEN}✓ Diagnostic settings configured${NC}"
 else
     echo -e "${RED}✗ No diagnostic settings found${NC}"
-    echo "  Run ./scripts/section1/1.2-fix.sh first"
+    echo "  Run 'azd up' to deploy infrastructure with diagnostics"
     exit 1
 fi
 
