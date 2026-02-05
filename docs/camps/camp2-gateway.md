@@ -331,8 +331,8 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
         **1. RFC 9728 PRM Metadata Endpoints**  
         Creates two discovery endpoints for OAuth autodiscovery:
         
-        - **RFC 9728 path-based:** `/.well-known/oauth-protected-resource/sherpa/mcp`
-        - **Suffix pattern:** `/sherpa/mcp/.well-known/oauth-protected-resource`
+        - **RFC 9728 path-based:** `https://apim-xxxxx.azure-api.net/.well-known/oauth-protected-resource/sherpa/mcp`
+        - **Suffix pattern:** `https://apim-xxxxx.azure-api.net/sherpa/mcp/.well-known/oauth-protected-resource`
 
         Both return the same PRM metadata:
 
@@ -433,7 +433,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
           ✅ Suffix PRM metadata returned
 
         ==========================================
-        ✅ Waypoint 1.1 Complete
+        Waypoint 1.1 Complete
         ==========================================
 
         OAuth is properly configured. VS Code can now:
@@ -468,7 +468,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
     :material-check: Tokens expire automatically (short-lived)  
     :material-check: VS Code authenticates automatically via PRM discovery  
 
-    **OWASP MCP-07** mitigated at the gateway!  ✅  
+    **OWASP MCP-07** mitigated at the gateway!   
 
     !!! warning "Backend Still Exposed"
         OAuth is now enforced at the APIM gateway, but the Container App running Sherpa is still publicly accessible. Anyone who discovers the direct Container App URL can bypass APIM entirely (as shown in Step 2's `sherpa-direct` test).
@@ -715,7 +715,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
             **1. RFC 9728 PRM Metadata Endpoint**  
             Creates a discovery endpoint for the Trail MCP server:
             
-            - **RFC 9728 path-based:** `/.well-known/oauth-protected-resource/trails/mcp`
+            - **RFC 9728 path-based:** `https://apim-xxxxx.azure-api.net/.well-known/oauth-protected-resource/trails/mcp`
 
             Returns PRM metadata:
 
@@ -729,6 +729,8 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
               "bearer_methods_supported": ["header"]
             }
             ```
+
+            **Why only one endpoint?** In Waypoint 1.1, we created *two* PRM discovery endpoints for Sherpa (RFC 9728 path-based and suffix pattern). Here we only create the RFC 9728 path-based endpoint because **VS Code uses RFC 9728 path-based first** - when it needs to discover OAuth configuration, it queries `/.well-known/oauth-protected-resource/{path}`. If that succeeds (which it does), VS Code never tries the suffix pattern. The suffix pattern exists for compatibility with older OAuth implementations, but isn't needed for VS Code. We demonstrated both patterns in Waypoint 1.1 for educational purposes, but for Trail MCP we keep it simple.
 
             **2. OAuth Validation Policy**  
             Adds token validation to the Trail MCP API:

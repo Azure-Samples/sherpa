@@ -34,9 +34,9 @@ VS_CODE_APP_ID="aebc6443-996d-45c2-90f0-388ff96faa56"
 
 # Create MCP Resource App
 echo ""
-echo "Creating MCP Resource App: MCP Server - $APP_SUFFIX"
+echo "Creating MCP Resource App: sherpa-mcp-client-camp2-$APP_SUFFIX"
 MCP_APP_CLIENT_ID=$(az ad app create \
-    --display-name "MCP Server - $APP_SUFFIX" \
+    --display-name "sherpa-mcp-client-camp2-$APP_SUFFIX" \
     --sign-in-audience "AzureADMyOrg" \
     --query appId -o tsv)
 
@@ -139,9 +139,9 @@ az ad sp create --id "$MCP_APP_CLIENT_ID" 2>/dev/null || echo "Service principal
 
 # Create APIM Client App for Credential Manager
 echo ""
-echo "Creating APIM Client App: APIM Credential Manager - $APP_SUFFIX"
+echo "Creating APIM Client App: sherpa-apim-client-camp2-$APP_SUFFIX"
 APIM_CLIENT_APP_ID=$(az ad app create \
-    --display-name "APIM Credential Manager - $APP_SUFFIX" \
+    --display-name "sherpa-apim-client-camp2-$APP_SUFFIX" \
     --sign-in-audience "AzureADMyOrg" \
     --query appId -o tsv)
 
