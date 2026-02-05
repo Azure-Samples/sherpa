@@ -42,6 +42,7 @@ Throughout the workshop, we reference specific sections for deeper dives on each
 - **VS Code** with GitHub Copilot or MCP extension
 - **Azure CLI** installed and authenticated
 - **Python 3.10+** installed
+- **node.js 22>** installed
 - Basic familiarity with Azure Portal
 - No prior MCP or security expertise required
 

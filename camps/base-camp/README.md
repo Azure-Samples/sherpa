@@ -11,7 +11,7 @@ Experience the risk of unauthenticated MCP servers firsthand. Deploy a vulnerabl
 | | |
 |---|---|
 | **Difficulty** | Beginner |
-| **Prerequisites** | Python 3.11+, uv |
+| **Prerequisites** | Python 3.11+, uv, node.js >=22 |
 | **Tech Stack** | Python, FastMCP, MCP Inspector |
 
 ## What You'll Learn
