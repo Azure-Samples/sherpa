@@ -7,9 +7,10 @@
 # 3. Removes subscription key requirement
 #
 # Key learnings:
-# - VS Code tries RFC 9728 path first: /.well-known/oauth-protected-resource/{path}
+# - VS Code discovers PRM via suffix path: /{api-path}/.well-known/oauth-protected-resource
 # - PRM must return BEFORE OAuth validation (uses <return-response> before <base />)
 # - 401 responses must include resource_metadata in both header AND body
+# - APIM native MCP type auto-prepends API path to resource_metadata in WWW-Authenticate header
 # - Entra app must have empty identifierUris for VS Code MCP OAuth to work
 
 set -e

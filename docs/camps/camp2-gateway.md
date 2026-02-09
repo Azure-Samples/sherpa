@@ -143,7 +143,6 @@ Before climbing through the waypoints, let's establish camp by provisioning the 
         **Phase 3: Post-Provision Hook**  
         Configures post-deployment settings:
         
-        - Updates Entra ID redirect URI with actual APIM gateway URL
         - Reports any region adjustments made for service availability
         - Outputs connection details and next steps
 
@@ -358,10 +357,13 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
 
         ```
         HTTP/1.1 401 Unauthorized
-        WWW-Authenticate: Bearer resource_metadata="https://apim-xxxxx.azure-api.net/.well-known/oauth-protected-resource/sherpa/mcp"
+        WWW-Authenticate: Bearer error="invalid_token", resource_metadata="https://apim-xxxxx.azure-api.net/sherpa/mcp/.well-known/oauth-protected-resource"
         ```
         
         This tells OAuth clients where to discover authentication requirements.
+
+        !!! note "APIM Native MCP Behavior"
+            When using APIM's native MCP type (`apiType: mcp`), APIM automatically prepends the API path to `resource_metadata` URLs in WWW-Authenticate headers. Your policy should omit the API path from the header value—APIM adds it for you.
 
         ??? info "What is Protected Resource Metadata (RFC 9728)?"
             **RFC 9728** defines PRM as a standard for OAuth autodiscovery. Instead of manually configuring:
@@ -730,7 +732,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
             }
             ```
 
-            **Why only one endpoint?** In Waypoint 1.1, we created *two* PRM discovery endpoints for Sherpa (RFC 9728 path-based and suffix pattern). Here we only create the RFC 9728 path-based endpoint because **VS Code uses RFC 9728 path-based first** - when it needs to discover OAuth configuration, it queries `/.well-known/oauth-protected-resource/{path}`. If that succeeds (which it does), VS Code never tries the suffix pattern. The suffix pattern exists for compatibility with older OAuth implementations, but isn't needed for VS Code. We demonstrated both patterns in Waypoint 1.1 for educational purposes, but for Trail MCP we keep it simple.
+            **Why only one endpoint?** In Waypoint 1.1, we created *two* PRM discovery endpoints for Sherpa (RFC 9728 path-based and suffix pattern). Here we only create the RFC 9728 path-based endpoint because both patterns work and one is sufficient. VS Code's MCP client will try multiple discovery paths and use whichever responds. The suffix pattern (`/{path}/.well-known/oauth-protected-resource`) and RFC 9728 path-based pattern (`/.well-known/oauth-protected-resource/{path}`) both work. We demonstrated both in Waypoint 1.1 for educational purposes, but for Trail MCP we keep it simple.
 
             **2. OAuth Validation Policy**  
             Adds token validation to the Trail MCP API:
@@ -744,7 +746,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
 
             ```
             HTTP/1.1 401 Unauthorized
-            WWW-Authenticate: Bearer resource_metadata="https://apim-xxxxx.azure-api.net/.well-known/oauth-protected-resource/trails/mcp"
+            WWW-Authenticate: Bearer error="invalid_token", resource_metadata="https://apim-xxxxx.azure-api.net/trails/mcp/.well-known/oauth-protected-resource"
             ```
 
         ??? tip "Why Keep Both Subscription Keys AND OAuth?"
@@ -806,7 +808,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
 
         Test 3: Check WWW-Authenticate header
           WWW-Authenticate header present
-          WWW-Authenticate: Bearer error="invalid_token", resource_metadata="https://apim-xxxxx.azure-api.net/trails/.well-known/oauth-protected-resource"
+          WWW-Authenticate: Bearer error="invalid_token", resource_metadata="https://apim-xxxxx.azure-api.net/trails/mcp/.well-known/oauth-protected-resource"
 
         Test 4: RFC 9728 PRM discovery
           GET https://apim-xxxxx.azure-api.net/.well-known/oauth-protected-resource/trails/mcp

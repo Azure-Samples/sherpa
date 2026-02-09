@@ -31,9 +31,6 @@ if [ "$APIM_LOCATION" != "$LOCATION" ] || [ "$API_CENTER_LOCATION" != "$LOCATION
     [ "$CONTENT_SAFETY_LOCATION" != "$LOCATION" ] && echo "  Content Safety: $LOCATION -> $CONTENT_SAFETY_LOCATION"
 fi
 
-# Load Entra ID app IDs from environment
-MCP_APP_CLIENT_ID=$(azd env get-value MCP_APP_CLIENT_ID)
-
 echo ""
 echo "Configuration:"
 echo "  Resource Group: $RG_NAME"
@@ -42,15 +39,6 @@ echo "  APIM: $APIM_NAME"
 echo "  Gateway URL: $APIM_GATEWAY_URL"
 echo ""
 
-# Update Entra ID redirect URI with actual APIM gateway URL
-if [ -n "$MCP_APP_CLIENT_ID" ] && [ -n "$APIM_GATEWAY_URL" ]; then
-    echo "Updating Entra ID redirect URI..."
-    az ad app update --id "$MCP_APP_CLIENT_ID" \
-        --web-redirect-uris "$APIM_GATEWAY_URL/auth/callback" 2>/dev/null || \
-        echo "Note: Could not update redirect URI. You may need to update it manually."
-fi
-
-echo ""
 echo "=========================================="
 echo "Post-provision Complete"
 echo "=========================================="

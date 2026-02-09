@@ -1,6 +1,10 @@
 <!--
   OAuth + Rate Limiting + Content Safety policy
   Full protection stack for MCP servers
+  
+  Key learnings:
+  - APIM native MCP type auto-prepends API path to resource_metadata URLs in WWW-Authenticate
+    (so omit the path in the header value, but include it in the body)
 -->
 <policies>
   <inbound>
@@ -13,6 +17,12 @@
         <!-- Use appId directly when identifierUris is empty -->
         <audience>{{mcp-app-client-id}}</audience>
       </audiences>
+      <required-claims>
+        <!-- Ensure token has the user_impersonate scope for MCP access -->
+        <claim name="scp" match="any">
+          <value>user_impersonate</value>
+        </claim>
+      </required-claims>
     </validate-azure-ad-token>
     <!-- Extract MCP session ID for rate limiting -->
     <set-variable name="mcp-session-id" value="@(context.Request.Headers.GetValueOrDefault("Mcp-Session-Id", context.Request.Headers.GetValueOrDefault("X-Request-Id", Guid.NewGuid().ToString())))" />
@@ -40,17 +50,18 @@
       <when condition="@(context.Response.StatusCode == 401)">
         <return-response>
           <set-status code="401" reason="Unauthorized" />
+          <!-- APIM native MCP type auto-prepends API path to resource_metadata URLs in WWW-Authenticate -->
           <set-header name="WWW-Authenticate" exists-action="override">
-            <!-- Dynamic: uses context.Api.Path for any MCP API (trim leading slash) -->
-            <value>@("Bearer error=\"invalid_token\", resource_metadata=\"" + "{{apim-gateway-url}}/" + context.Api.Path.TrimStart('/') + "/.well-known/oauth-protected-resource\"")</value>
+            <value>Bearer error="invalid_token", resource_metadata="{{apim-gateway-url}}/.well-known/oauth-protected-resource"</value>
           </set-header>
           <set-body>@{
             var gatewayUrl = "{{apim-gateway-url}}";
             var apiPath = context.Api.Path.TrimStart('/');
+            var prmUrl = gatewayUrl + "/" + apiPath + "/.well-known/oauth-protected-resource";
             return JsonConvert.SerializeObject(new {
               error = "unauthorized",
               message = "Valid OAuth token required",
-              resource_metadata = gatewayUrl + "/" + apiPath + "/.well-known/oauth-protected-resource"
+              resource_metadata = prmUrl
             });
           }</set-body>
         </return-response>
