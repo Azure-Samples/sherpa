@@ -9,48 +9,27 @@ hide:
 
 ![Base Camp](../images/sherpa-base-camp.png)
 
-Welcome to **Base Camp**, the foundation of your MCP security journey. Before we ascend to the higher camps where we'll tackle production-grade security patterns, we need to establish a solid foundation. Just as mountaineers acclimatize at base camp before attempting the summit, you'll start here by understanding what MCP is, why it needs security, and experiencing firsthand what happens when security is absent.
+Welcome to **Base Camp**, the foundation of your MCP security journey. Before we ascend to the higher camps where we'll tackle production-grade security patterns, we need to establish a solid foundation. Just as mountaineers acclimatize at base camp before attempting the summit, you'll start here by understanding why MCP needs security and experiencing firsthand what happens when security is absent.
+
+!!! tip "New to MCP?"
+    If you haven't worked with the Model Context Protocol before, start with **[Trail Head](trail-head.md)** to learn the fundamentals—what MCP is, how it works, and how to explore MCP servers with MCP Inspector.
 
 This camp introduces you to the **"vulnerable → exploit → fix → validate"** methodology that you'll use throughout the entire workshop series. You'll run an intentionally vulnerable MCP server, exploit it to see the real-world impact, implement a basic security fix, and validate that the fix works. By the end of Base Camp, you'll have hands-on experience with MCP security fundamentals and be ready for the advanced patterns in the camps ahead.
 
 **Tech Stack:** Python, FastMCP, VS Code  
 **Primary Risks:** [MCP01](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token-mismanagement/) (Token Mismanagement & Secret Exposure), [MCP07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) (Insufficient Authentication & Authorization)
 
-## What is the Model Context Protocol (MCP)?
+## Why Does MCP Need Security?
 
-The **Model Context Protocol (MCP)** is an open standard for connecting AI applications to data sources and tools. It provides a common communication protocol so any AI system can work with any data source, without requiring custom integrations for each combination.
+MCP servers often expose sensitive operations—reading user data, executing commands, accessing internal systems. If these servers lack proper authentication and authorization, **anyone who can connect to them can access everything they expose**.
 
-**Why does this matter for security?** Because MCP servers often expose sensitive operations, such as reading user data, executing commands, and accessing internal systems. If these servers lack proper authentication and authorization, anyone who can connect to them can access everything they expose.
+Consider this scenario: An MCP server exposes a `get_user_info` tool that returns user profiles including email, SSN, and account balances. The server runs on a network with no authentication. Any AI agent—or attacker—who discovers the endpoint can extract all user data.
 
-!!! info "Learn More"
-    - [Introduction to MCP](https://modelcontextprotocol.io/docs/getting-started/intro) — Official MCP documentation
+This is exactly what you'll exploit in this camp.
+
+!!! info "MCP Security Resources"
     - [MCP Security Guidance](https://microsoft.github.io/mcp-azure-security-guide/) — OWASP MCP Azure Security Guide
-
-### MCP Architecture
-
-At its core, MCP connects AI applications (like VS Code or Claude Desktop) to data sources and tools (like databases, APIs, and file systems). The protocol sits in the middle, enabling bidirectional communication so AI applications can discover capabilities and invoke them on demand.
-
-```
-┌─────────────────────┐                              ┌─────────────────────┐
-│                     │                              │                     │
-│  AI Applications    │        ┌─────────────┐       │  Data Sources       │
-│                     │        │             │       │  and Tools          │
-│  • Claude Desktop   │◄──────►│     MCP     │◄─────►│                     │
-│  • VS Code          │        │             │       │  • Databases        │
-│  • Custom AI Agents │        │ Standardized│       │  • APIs             │
-│  • ChatGPT          │        │  Protocol   │       │  • File Systems     │
-│                     │        │             │       │  • Dev Tools        │
-│                     │        └─────────────┘       │                     │
-└─────────────────────┘                              └─────────────────────┘
-     (Hosts/Clients)          Bidirectional                (MCP Servers)
-                               Data Flow
-```
-
-In this workshop, you'll work with both sides of this architecture to understand where security risks emerge and how to address them.
-
-- **Left side (AI Applications):** VS Code, and other applications, act as the MCP client, connecting to MCP servers
-- **Right side (MCP Servers):** We'll run both vulnerable and secure servers that expose user data
-- **The Risk:** If the MCP server (right side) has no authentication, any client can connect and access all data
+    - [MCP Specification](https://spec.modelcontextprotocol.io/) — Official protocol specification
 
 ---
 

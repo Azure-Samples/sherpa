@@ -76,6 +76,7 @@ nav:
   - Home: index.md
   - Prerequisites: prerequisites.md
   - The Journey:
+    - Trail Head: camps/trail-head.md
     - Base Camp: camps/base-camp.md
     - Camp 1 - Identity: camps/camp1-identity.md
     - Camp 2 - Gateway: camps/camp2-gateway.md
