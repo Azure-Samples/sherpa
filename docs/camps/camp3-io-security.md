@@ -373,7 +373,8 @@ Before climbing through the waypoints, let's establish camp by deploying all Azu
         - **Sherpa MCP API** — Native MCP passthrough to Container App
         - **Trail MCP API** — APIM-synthesized MCP from Trail REST API
         - **Trail REST API** — Backend for Trail MCP
-        - **OAuth validation** — On all MCP endpoints
+        - **OAuth validation** — JWT validation with `mcp.access` scope on all MCP endpoints
+        - **RFC 9728 PRM discovery** — Enables VS Code OAuth autodiscovery (see Camp 2 for details)
         - **Content Safety** — Layer 1 filtering on all APIs
 
         Note: The security function is deployed but **not yet wired** to APIM. You'll do that in Waypoint 1.2 after seeing why it's needed.
@@ -913,6 +914,7 @@ Congratulations! You've implemented defense-in-depth I/O security for MCP server
 
 | Control | What It Does | Applied To | OWASP Risk Mitigated |
 |---------|--------------|------------|----------------------|
+| **OAuth (mcp.access scope)** | Token validation with scope check | All APIs | MCP-01 (Authentication) |
 | **Content Safety (L1)** | Harmful content detection | All APIs | MCP-06 (partial) |
 | **input_check (L2)** | Prompt/shell/SQL/path injection | All APIs | MCP-05, MCP-06 |
 | **sanitize_output (L2)** | PII redaction, credential scanning | sherpa-mcp (server-side), trail-api (APIM) | MCP-03, MCP-10 |
