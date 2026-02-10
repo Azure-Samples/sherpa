@@ -64,6 +64,7 @@ echo "--------------------------------"
 
 TENANT_ID=$(azd env get-value AZURE_TENANT_ID 2>/dev/null || az account show --query tenantId -o tsv)
 MCP_APP_CLIENT_ID=$(azd env get-value MCP_APP_CLIENT_ID 2>/dev/null || echo "")
+APIM_GATEWAY_URL=$(azd env get-value APIM_GATEWAY_URL)
 
 if [ -z "$MCP_APP_CLIENT_ID" ]; then
     echo "Warning: MCP_APP_CLIENT_ID not set."
@@ -73,6 +74,7 @@ fi
 
 echo "Tenant ID: $TENANT_ID"
 echo "MCP App Client ID: $MCP_APP_CLIENT_ID"
+echo "APIM Gateway URL: $APIM_GATEWAY_URL"
 echo ""
 
 # ============================================
@@ -86,7 +88,8 @@ echo ""
 # Prepare Sherpa MCP policy (full I/O security - works because backend controls stream)
 SHERPA_POLICY_XML=$(cat infra/policies/sherpa-mcp-full-io-security.xml | \
     sed "s/{{tenant-id}}/$TENANT_ID/g" | \
-    sed "s/{{mcp-app-client-id}}/$MCP_APP_CLIENT_ID/g")
+    sed "s/{{mcp-app-client-id}}/$MCP_APP_CLIENT_ID/g" | \
+    sed "s|{{apim-gateway-url}}|$APIM_GATEWAY_URL|g")
 
 echo "$SHERPA_POLICY_XML" | jq -Rs '{properties: {format: "rawxml", value: .}}' > /tmp/sherpa-mcp-policy.json
 
@@ -114,7 +117,8 @@ echo ""
 # Prepare Trail MCP policy (input only - outbound blocks on synthesized MCP)
 TRAIL_MCP_POLICY_XML=$(cat infra/policies/trail-mcp-input-security.xml | \
     sed "s/{{tenant-id}}/$TENANT_ID/g" | \
-    sed "s/{{mcp-app-client-id}}/$MCP_APP_CLIENT_ID/g")
+    sed "s/{{mcp-app-client-id}}/$MCP_APP_CLIENT_ID/g" | \
+    sed "s|{{apim-gateway-url}}|$APIM_GATEWAY_URL|g")
 
 echo "$TRAIL_MCP_POLICY_XML" | jq -Rs '{properties: {format: "rawxml", value: .}}' > /tmp/trail-mcp-policy.json
 
@@ -164,13 +168,13 @@ echo ""
 # ============================================
 echo "Step 6: Enable Server-Side Sanitization for Sherpa MCP"
 echo "-------------------------------------------------------"
-echo "Setting SANITIZE_ENABLED=true on sherpa-mcp-server Container App..."
+echo "Setting SANITIZE_ENABLED=true and SANITIZE_FUNCTION_URL on sherpa-mcp-server Container App..."
 echo ""
 
 az containerapp update \
     --name sherpa-mcp-server \
     --resource-group "$RG_NAME" \
-    --set-env-vars "SANITIZE_ENABLED=true" \
+    --set-env-vars "SANITIZE_ENABLED=true" "SANITIZE_FUNCTION_URL=$FUNCTION_APP_URL/api/sanitize-output" \
     --output none 2>/dev/null
 
 # Wait for new revision to be ready

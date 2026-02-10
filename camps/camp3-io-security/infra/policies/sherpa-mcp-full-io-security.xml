@@ -11,6 +11,10 @@
     NOTE: Output sanitization (PII redaction) is handled SERVER-SIDE by the MCP server itself.
     This avoids issues with Streamable HTTP transport where responses arrive as SSE events.
     The sherpa-mcp-server calls the sanitize-output Function directly via managed identity.
+    
+    Key learnings:
+    - APIM native MCP type auto-prepends API path to resource_metadata URLs in WWW-Authenticate
+      (so omit the path in the header value, but include it in the body)
 -->
 <policies>
     <inbound>
@@ -21,6 +25,12 @@
             <audiences>
                 <audience>{{mcp-app-client-id}}</audience>
             </audiences>
+            <required-claims>
+                <!-- Ensure token has the mcp.access scope for MCP access -->
+                <claim name="scp" match="any">
+                    <value>mcp.access</value>
+                </claim>
+            </required-claims>
         </validate-azure-ad-token>
 
         <!-- Layer 1: Azure AI Content Safety (fast, broad filtering) -->
@@ -105,5 +115,26 @@
     
     <on-error>
         <base />
+        <choose>
+            <when condition="@(context.Response.StatusCode == 401)">
+                <return-response>
+                    <set-status code="401" reason="Unauthorized" />
+                    <!-- APIM native MCP type auto-prepends API path to resource_metadata URLs in WWW-Authenticate -->
+                    <set-header name="WWW-Authenticate" exists-action="override">
+                        <value>Bearer error="invalid_token", resource_metadata="{{apim-gateway-url}}/.well-known/oauth-protected-resource"</value>
+                    </set-header>
+                    <set-body>@{
+                        var gatewayUrl = "{{apim-gateway-url}}";
+                        var apiPath = context.Api.Path.TrimStart('/');
+                        var prmUrl = gatewayUrl + "/" + apiPath + "/.well-known/oauth-protected-resource";
+                        return JsonConvert.SerializeObject(new {
+                            error = "unauthorized",
+                            message = "Valid OAuth token required",
+                            resource_metadata = prmUrl
+                        });
+                    }</set-body>
+                </return-response>
+            </when>
+        </choose>
     </on-error>
 </policies>

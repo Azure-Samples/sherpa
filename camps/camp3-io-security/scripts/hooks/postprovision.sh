@@ -70,14 +70,6 @@ az deployment group create \
 
 echo "APIM APIs configured successfully"
 
-# Update Entra ID redirect URI with actual APIM gateway URL
-if [ -n "$MCP_APP_CLIENT_ID" ] && [ -n "$APIM_GATEWAY_URL" ]; then
-    echo "Updating Entra ID redirect URI..."
-    az ad app update --id "$MCP_APP_CLIENT_ID" \
-        --web-redirect-uris "$APIM_GATEWAY_URL/auth/callback" 2>/dev/null || \
-        echo "Note: Could not update redirect URI. You may need to update it manually."
-fi
-
 echo ""
 echo "=========================================="
 echo "Post-provision Complete"
