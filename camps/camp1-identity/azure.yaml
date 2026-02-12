@@ -2,6 +2,13 @@ name: sherpa-camp1-identity
 metadata:
   template: sherpa-mcp-security-workshop@1.0.0
 
+hooks:
+  preprovision:
+    shell: sh
+    run: ./scripts/hooks/preprovision.sh
+    interactive: true
+    continueOnError: false
+
 services:
   vulnerable-server:
     project: ./vulnerable-server
@@ -17,6 +24,3 @@ infra:
   provider: bicep
   path: infra
   module: main
-  parameters:
-    azureClientId: ${AZURE_CLIENT_ID}
-    azureTenantId: ${AZURE_TENANT_ID}

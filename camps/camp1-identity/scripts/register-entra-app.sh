@@ -158,6 +158,12 @@ if [ -z "${TENANT_ID}" ]; then
     exit 1
 fi
 
+# Save to azd environment
+echo "Saving to azd environment..."
+azd env set AZURE_CLIENT_ID "${APP_ID}"
+azd env set AZURE_TENANT_ID "${TENANT_ID}"
+echo "✅ Environment variables saved"
+
 echo ""
 echo "✅ Entra ID Application Registered!"
 echo "===================================="
@@ -176,11 +182,9 @@ echo "   - http://127.0.0.1:33418 (VS Code)"
 echo "   - https://vscode.dev/redirect (VS Code)"
 echo "   - http://localhost:8090/callback (demo client)"
 echo ""
-echo "📝 Save these values - you'll need them for deployment!"
-echo ""
-echo "Add to your .env file:"
-echo "AZURE_TENANT_ID=${TENANT_ID}"
-echo "AZURE_CLIENT_ID=${APP_ID}"
+echo "✅ Environment variables set:"
+echo "   AZURE_CLIENT_ID=${APP_ID}"
+echo "   AZURE_TENANT_ID=${TENANT_ID}"
 echo ""
 echo "💡 To enable the demo client with full OAuth flow:"
 echo "   Run: ./scripts/generate-client-secret.sh"

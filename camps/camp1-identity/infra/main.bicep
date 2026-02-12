@@ -1,7 +1,7 @@
 targetScope = 'resourceGroup'
 
 @description('Primary location for all resources')
-param location string = 'eastus'
+param location string = resourceGroup().location
 
 @description('Entra ID Application Client ID for JWT validation')
 param azureClientId string = ''
@@ -9,8 +9,13 @@ param azureClientId string = ''
 @description('Entra ID Tenant ID for JWT validation')
 param azureTenantId string = ''
 
+@description('Unique resource suffix - set by preprovision hook via RESOURCE_SUFFIX env var')
+param resourceSuffix string = ''
+
 var abbrs = loadJsonContent('abbreviations.json')
-var suffix = substring(uniqueString(resourceGroup().id, location), 0, 5)
+// Suffix comes from preprovision hook (RESOURCE_SUFFIX) to avoid soft-delete conflicts.
+// The fallback using uniqueString is only for manual deployments and may cause issues.
+var suffix = !empty(resourceSuffix) ? resourceSuffix : substring(uniqueString(resourceGroup().id, location), 0, 5)
 var tags = {
   workshop: 'sherpa'
   camp: 'camp1'

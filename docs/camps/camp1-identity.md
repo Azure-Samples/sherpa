@@ -77,6 +77,15 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     ### Deploy to Azure Container Apps
 
+    In this waypoint, you'll deploy two MCP servers to **Azure Container Apps**—a fully managed serverless container platform that handles scaling, networking, and TLS certificates automatically.
+
+    **Why start with a vulnerable server?** Following the "exploit → fix → validate" methodology, you'll first deploy an intentionally insecure server to see how cloud deployment amplifies security risks. Then, in later waypoints, you'll progressively harden it with Managed Identity, Key Vault, and OAuth 2.1.
+
+    **What gets deployed:**
+
+    - **Vulnerable server** — Uses static tokens (same pattern as Base Camp, but now the risks are worse because tokens are visible in the Azure Portal)
+    - **Secure server** — Pre-configured for OAuth 2.1 with JWT validation (you'll enable this in Waypoint 5)
+
     The vulnerable server uses the same `StaticTokenVerifier` pattern from Base Camp, but now deployed to Azure where the vulnerabilities become even more dangerous.
 
     ??? info "What is StaticTokenVerifier? (Optional - Skip if you completed Base Camp)"
@@ -104,41 +113,36 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
         
         In this camp, we'll migrate from this vulnerable pattern to **JWTVerifier** with OAuth 2.1, which solves all these problems using industry-standard authentication with Microsoft Entra ID.
 
-    Let's start by provisioning the Azure infrastructure and deploying both servers:
+    Let's provision the Azure infrastructure and deploy both servers:
 
     ```bash
     cd camps/camp1-identity
-    azd provision
+    azd up
     ```
 
     When prompted:
     
     - **Environment name:** Choose a name (e.g., `camp1-dev`)
     - **Subscription:** Select your Azure subscription
-    - **Resource group:** Create new or select existing (e.g., `rg-camp1-dev`)
     - **Location:** Select your Azure region (e.g., `eastus` or `westus2`)
 
-    This provisions all Azure resources:
+    This single command provisions all Azure resources and deploys your code:
     
-    1. Resource group
-    2. Container Registry with Managed Identity access
-    3. Log Analytics workspace
-    4. Container Apps Environment
-    5. Key Vault with RBAC for Managed Identity
-    6. Managed Identity with proper role assignments
-    7. Both Container Apps (vulnerable-server and secure-server)
+    **Infrastructure provisioned:**
 
-    Next, deploy the application code:
+    - Resource group
+    - Container Registry with Managed Identity access
+    - Log Analytics workspace
+    - Container Apps Environment
+    - Key Vault with RBAC for Managed Identity
+    - Managed Identity with proper role assignments
+    - Both Container Apps (vulnerable-server and secure-server)
 
-    ```bash
-    azd deploy
-    ```
+    **Code deployed:**
 
-    This builds and deploys your Python MCP servers:
-    
-    1. Builds Docker images for both servers
-    2. Pushes images to Azure Container Registry
-    3. Updates Container Apps with the new images
+    - Builds Docker images for both servers
+    - Pushes images to Azure Container Registry
+    - Updates Container Apps with the new images
 
     ### What Just Deployed?
 
@@ -253,6 +257,19 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
     | No audience check | Confused deputy attacks | MCP07 |
 
 ??? success "Waypoint 3: Enable Managed Identity"
+
+    You've seen how the **vulnerable server** exposes tokens and lacks proper authentication. Now it's time to harden the **secure server**.
+
+    From this waypoint forward, all steps focus on the secure server:
+
+    - **Waypoint 3:** Enable Managed Identity (passwordless Azure authentication)
+    - **Waypoint 4:** Migrate secrets to Key Vault
+    - **Waypoint 5:** Configure OAuth 2.1 with JWT validation
+    - **Waypoint 6:** Validate the security improvements
+
+    The vulnerable server stays unchanged—it's your "before" snapshot for comparison.
+
+    ---
 
     ### What is Managed Identity?
 
