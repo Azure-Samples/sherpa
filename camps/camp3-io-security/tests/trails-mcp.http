@@ -1,0 +1,145 @@
+# ==============================================================================
+# Trails MCP Server - HTTP Request Examples
+# ==============================================================================
+# Use with any HTTP client: REST Client, Postman, Insomnia, curl, etc.
+#
+# ⚠️  IMPORTANT: Set a 5-second timeout!
+# MCP uses Server-Sent Events (SSE) which keeps connections open.
+# Data arrives quickly (~1s) but the stream stays open. Set a timeout to close it.
+#
+# Timeout settings by tool:
+#   - VS Code REST Client: Add to settings.json:
+#       "rest-client.timeoutinmilliseconds": 5000
+#   - Postman: Settings > General > Request Timeout = 5000ms
+#   - Insomnia: Preferences > General > Timeout = 5000ms
+#   - curl: --max-time 5
+#
+# Before running:
+# 1. Update @baseUrl with your APIM gateway URL
+# 2. Update @token with a valid OAuth token:
+#    ./tests/get-mcp-token.sh
+#
+# Trail MCP is APIM-synthesized (REST API exposed as MCP).
+# It uses client-generated session IDs - no initialize call needed.
+#
+# Available Tools:
+#   - list-trails              - List all available trails
+#   - get-trail(trailId)       - Get details for a specific trail
+#   - check-conditions(trailId) - Check trail conditions and hazards
+#   - get-permit(permitId)     - Get permit details by ID
+#   - get-permit-holder(permitId) - Get permit holder PII (demo data leakage)
+#   - request-permit(...)      - Request a new trail permit
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Configuration - Update these values!
+# ------------------------------------------------------------------------------
+
+@baseUrl = YOUR-BASE-URL
+@mcpEndpoint = {{baseUrl}}/trails/mcp
+
+# Generate session ID (used for rate limiting/tracking)
+@sessionId = session-http-client-001
+
+# Get your token with:
+# az account get-access-token --resource "YOUR-APP-ID" --query accessToken -o tsv
+@token = YOUR-TOKEN
+
+# ==============================================================================
+# MCP Requests
+# ==============================================================================
+
+### 1. List Available Tools
+# Discover what tools the MCP server provides
+POST {{mcpEndpoint}}
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+Mcp-Session-Id: {{sessionId}}
+
+{
+    "jsonrpc": "2.0",
+    "method": "tools/list",
+    "id": 1
+}
+
+### 2. List Trails
+# Get all available hiking trails
+POST {{mcpEndpoint}}
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+Mcp-Session-Id: {{sessionId}}
+
+{
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+        "name": "list-trails",
+        "arguments": {}
+    },
+    "id": 2
+}
+
+### 3. Get Trail Details
+# Get details for a specific trail
+# Valid trailIds: summit-trail, base-trail, ridge-walk
+POST {{mcpEndpoint}}
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+Mcp-Session-Id: {{sessionId}}
+
+{
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+        "name": "get-trail",
+        "arguments": {
+            "trailId": "summit-trail"
+        }
+    },
+    "id": 3
+}
+
+### 4. Check Trail Conditions
+# Get current conditions and hazards for a trail
+POST {{mcpEndpoint}}
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+Mcp-Session-Id: {{sessionId}}
+
+{
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+        "name": "check-conditions",
+        "arguments": {
+            "trailId": "summit-trail"
+        }
+    },
+    "id": 4
+}
+
+### 5. Get Permit Details
+# Retrieve a trail permit by ID
+# Valid permitIds: TRAIL-2024-001, TRAIL-2024-002
+POST {{mcpEndpoint}}
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{token}}
+Mcp-Session-Id: {{sessionId}}
+
+{
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+        "name": "get-permit",
+        "arguments": {
+            "permitId": "TRAIL-2024-001"
+        }
+    },
+    "id": 5
+}
+
