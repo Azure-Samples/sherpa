@@ -31,6 +31,7 @@ APP_SUFFIX="${AZURE_ENV_NAME:-camp2}-$(date +%s | tail -c 5)"
 # Generate UUIDs upfront
 SCOPE_ID=$(uuidgen)
 VS_CODE_APP_ID="aebc6443-996d-45c2-90f0-388ff96faa56"
+AZURE_CLI_APP_ID="04b07795-8ddb-461a-bbee-02f9e1bf7b46"
 
 # Create MCP Resource App
 echo ""
@@ -88,8 +89,8 @@ echo "API scope created"
 # Wait for API update to propagate
 sleep 2
 
-# Pre-authorize VS Code with updated API config
-echo "Pre-authorizing VS Code..."
+# Pre-authorize VS Code and Azure CLI with updated API config
+echo "Pre-authorizing VS Code and Azure CLI..."
 cat > /tmp/mcp-api-full.json <<EOF
 {
   "acceptMappedClaims": null,
@@ -110,6 +111,10 @@ cat > /tmp/mcp-api-full.json <<EOF
     {
       "appId": "$VS_CODE_APP_ID",
       "delegatedPermissionIds": ["$SCOPE_ID"]
+    },
+    {
+      "appId": "$AZURE_CLI_APP_ID",
+      "delegatedPermissionIds": ["$SCOPE_ID"]
     }
   ],
   "requestedAccessTokenVersion": 2
@@ -120,13 +125,13 @@ az ad app update --id "$MCP_APP_CLIENT_ID" \
     --set api=@/tmp/mcp-api-full.json
 
 if [ $? -ne 0 ]; then
-    echo "Failed to pre-authorize VS Code"
+    echo "Failed to pre-authorize clients"
     rm -f /tmp/mcp-api-full.json
     exit 1
 fi
 
 rm -f /tmp/mcp-api-full.json
-echo "VS Code pre-authorized"
+echo "VS Code and Azure CLI pre-authorized"
 
 # NOTE: We do NOT add VS Code redirect URIs to our app!
 # VS Code uses its OWN Entra app (managed by Microsoft) with its own redirect URIs.
