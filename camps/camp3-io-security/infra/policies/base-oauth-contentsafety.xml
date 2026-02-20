@@ -4,7 +4,7 @@
     This policy is the initial state before Camp 3 fixes are applied.
     It includes:
     - OAuth 2.0 validation (from Camp 1)
-    - Azure AI Content Safety (llm-content-safety) - Layer 1
+    - Content Safety with Prompt Shields (Layer 1) via policy fragment
     
     What's MISSING (vulnerable):
     - Advanced injection pattern detection (Layer 2 input)
@@ -14,6 +14,7 @@
     Key learnings:
     - APIM native MCP type auto-prepends API path to resource_metadata URLs in WWW-Authenticate
       (so omit the path in the header value, but include it in the body)
+    - Content safety uses a reusable policy fragment for Prompt Shields integration
 -->
 <policies>
     <inbound>
@@ -34,15 +35,8 @@
             </required-claims>
         </validate-azure-ad-token>
 
-        <!-- Layer 1: Azure AI Content Safety -->
-        <llm-content-safety backend-id="content-safety-backend" shield-prompt="true">
-            <categories output-type="EightSeverityLevels">
-                <category name="Hate" threshold="4" />
-                <category name="Violence" threshold="4" />
-                <category name="Sexual" threshold="4" />
-                <category name="SelfHarm" threshold="4" />
-            </categories>
-        </llm-content-safety>
+        <!-- Layer 1: Content Safety with Prompt Shields (reusable fragment) -->
+        <include-fragment fragment-id="mcp-content-safety" />
         
         <!-- NOTE: No Layer 2 input validation - advanced injections bypass Content Safety! -->
     </inbound>

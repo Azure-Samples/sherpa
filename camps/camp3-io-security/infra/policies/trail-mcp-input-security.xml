@@ -33,15 +33,8 @@
             </required-claims>
         </validate-azure-ad-token>
 
-        <!-- Layer 1: Azure AI Content Safety (fast, broad filtering) -->
-        <llm-content-safety backend-id="content-safety-backend" shield-prompt="true">
-            <categories output-type="EightSeverityLevels">
-                <category name="Hate" threshold="4" />
-                <category name="Violence" threshold="4" />
-                <category name="Sexual" threshold="4" />
-                <category name="SelfHarm" threshold="4" />
-            </categories>
-        </llm-content-safety>
+        <!-- Layer 1: Azure AI Content Safety via Policy Fragment (Prompt Shields) -->
+        <include-fragment fragment-id="mcp-content-safety" />
 
         <!-- Layer 2: Advanced Input Check (Azure Function) -->
         <send-request mode="new" response-variable-name="inputCheck" timeout="5" ignore-error="false">

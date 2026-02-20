@@ -67,6 +67,21 @@ resource contentSafetyBackend 'Microsoft.ApiManagement/service/backends@2024-06-
 }
 
 // ============================================
+// Policy Fragment: MCP Content Safety (Prompt Shields)
+// Reusable fragment for Layer 1 content safety checks
+// ============================================
+
+resource mcpContentSafetyFragment 'Microsoft.ApiManagement/service/policyFragments@2024-06-01-preview' = {
+  parent: apim
+  name: 'mcp-content-safety'
+  properties: {
+    description: 'Extracts MCP tool arguments and checks for prompt injection using Azure Content Safety Prompt Shields API'
+    format: 'rawxml'
+    value: loadTextContent('../policies/fragments/mcp-content-safety.xml')
+  }
+}
+
+// ============================================
 // Sherpa MCP API (Native MCP Type - Passthrough)
 // ============================================
 
@@ -114,6 +129,9 @@ resource sherpaMcpPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-
       '{{mcp-app-client-id}}', mcpAppClientId),
       '{{apim-gateway-url}}', apim.properties.gatewayUrl)
   }
+  dependsOn: [
+    mcpContentSafetyFragment
+  ]
 }
 
 // Note: Cannot add suffix-pattern PRM operation to MCP type API
@@ -318,6 +336,9 @@ resource trailMcpPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-0
       '{{mcp-app-client-id}}', mcpAppClientId),
       '{{apim-gateway-url}}', apim.properties.gatewayUrl)
   }
+  dependsOn: [
+    mcpContentSafetyFragment
+  ]
 }
 
 // Note: Cannot add suffix-pattern PRM operation to MCP type API

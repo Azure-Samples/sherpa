@@ -167,6 +167,7 @@ module apim 'modules/apim.bicep' = {
     apimClientAppId: apimClientAppId
     tenantId: tenantId
     mcpAppClientId: mcpAppClientId
+    contentSafetyEndpoint: contentSafety.outputs.endpoint
   }
 }
 

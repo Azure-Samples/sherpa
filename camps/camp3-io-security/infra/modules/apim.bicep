@@ -8,6 +8,7 @@ param managedIdentityClientId string
 param apimClientAppId string = ''
 param tenantId string
 param mcpAppClientId string = ''
+param contentSafetyEndpoint string = ''
 
 resource apim 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
   name: name
@@ -82,6 +83,18 @@ resource namedValueMcpAppClientId 'Microsoft.ApiManagement/service/namedValues@2
   properties: {
     displayName: 'mcp-app-client-id'
     value: mcpAppClientId
+    secret: false
+  }
+}
+
+// Named value for Content Safety endpoint (used in policy fragments)
+// Only created if the value is provided
+resource namedValueContentSafety 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = if (!empty(contentSafetyEndpoint)) {
+  parent: apim
+  name: 'content-safety-endpoint'
+  properties: {
+    displayName: 'content-safety-endpoint'
+    value: contentSafetyEndpoint
     secret: false
   }
 }

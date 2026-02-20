@@ -700,8 +700,8 @@ Now that you've seen the vulnerabilities, let's review the security function cod
 
         ```xml
         <inbound>
-            <!-- Layer 1: Content Safety (existing) -->
-            <llm-content-safety backend-id="content-safety-backend" ... />
+            <!-- Layer 1: Prompt Shields via Policy Fragment -->
+            <include-fragment fragment-id="mcp-content-safety" />
 
             <!-- Layer 2: Advanced Input Check (NEW) -->
             <send-request mode="new" response-variable-name="inputCheck">

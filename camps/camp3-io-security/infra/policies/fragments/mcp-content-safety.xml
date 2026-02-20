@@ -1,0 +1,87 @@
+<!--
+  MCP Content Safety Fragment
+  
+  Extracts user input from MCP tools/call requests and checks for prompt injection
+  using Azure Content Safety Prompt Shields API.
+  
+  Prerequisites:
+  - Named value: managed-identity-client-id
+  - Named value: content-safety-endpoint
+  
+  Behavior:
+  - Only checks tools/call requests (other MCP methods pass through)
+  - Extracts all argument values and concatenates for analysis
+  - Returns 400 if prompt injection detected
+  - Passes through if no attack detected or if Content Safety unavailable
+-->
+<fragment>
+  <!-- Save request body for analysis -->
+  <set-variable name="original-body" value="@(context.Request.Body.As<string>(preserveContent: true))" />
+  <!-- Extract MCP arguments as the text to analyze -->
+  <set-variable name="mcp-user-input" value="@{
+    try {
+      var body = JObject.Parse((string)context.Variables["original-body"]);
+      var method = body["method"]?.ToString() ?? "";
+      if (method != "tools/call") { return ""; }
+      var args = body["params"]?["arguments"];
+      if (args == null) { return ""; }
+      var values = new List<string>();
+      foreach (var prop in ((JObject)args).Properties()) {
+        values.Add(prop.Value.ToString());
+      }
+      return string.Join(" ", values);
+    } catch {
+      return "";
+    }
+  }" />
+  <!-- Only run content safety check if we have user input -->
+  <choose>
+    <when condition="@(!string.IsNullOrEmpty((string)context.Variables["mcp-user-input"]))">
+      <!-- Get managed identity token for Content Safety -->
+      <authentication-managed-identity resource="https://cognitiveservices.azure.com/" client-id="{{managed-identity-client-id}}" output-token-variable-name="cs-token" />
+      <!-- Call Content Safety Prompt Shields API -->
+      <send-request mode="new" response-variable-name="cs-response" timeout="10" ignore-error="true">
+        <set-url>{{content-safety-endpoint}}contentsafety/text:shieldPrompt?api-version=2024-09-01</set-url>
+        <set-method>POST</set-method>
+        <set-header name="Authorization" exists-action="override">
+          <value>@("Bearer " + (string)context.Variables["cs-token"])</value>
+        </set-header>
+        <set-header name="Content-Type" exists-action="override">
+          <value>application/json</value>
+        </set-header>
+        <set-body>@{
+          var userInput = (string)context.Variables["mcp-user-input"];
+          return JsonConvert.SerializeObject(new {
+            userPrompt = userInput,
+            documents = new object[] {}
+          });
+        }</set-body>
+      </send-request>
+      <!-- Check if prompt injection was detected -->
+      <choose>
+        <when condition="@{
+          var response = context.Variables.GetValueOrDefault<IResponse>("cs-response");
+          if (response == null || response.StatusCode != 200) { return false; }
+          var body = response.Body.As<JObject>(preserveContent: true);
+          var userAnalysis = body["userPromptAnalysis"];
+          if (userAnalysis == null) { return false; }
+          var attackDetected = userAnalysis["attackDetected"]?.Value<bool>() ?? false;
+          return attackDetected;
+        }">
+          <return-response>
+            <set-status code="400" reason="Bad Request" />
+            <set-header name="Content-Type" exists-action="override">
+              <value>application/json</value>
+            </set-header>
+            <set-body>@{
+              return JsonConvert.SerializeObject(new {
+                error = "content_blocked",
+                message = "Request blocked: potential prompt injection detected"
+              });
+            }</set-body>
+          </return-response>
+        </when>
+      </choose>
+    </when>
+  </choose>
+</fragment>
