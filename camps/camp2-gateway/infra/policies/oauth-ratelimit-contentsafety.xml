@@ -1,10 +1,11 @@
 <!--
-  OAuth + Rate Limiting + Content Safety policy
-  Full protection stack for MCP servers
+  OAuth + Rate Limiting + Content Safety policy for MCP servers
+  Uses include-fragment for modular content safety check
   
   Key learnings:
   - APIM native MCP type auto-prepends API path to resource_metadata URLs in WWW-Authenticate
     (so omit the path in the header value, but include it in the body)
+  - Content safety logic is in the mcp-content-safety fragment for reuse
 -->
 <policies>
   <inbound>
@@ -14,11 +15,9 @@
                               failed-validation-httpcode="401" 
                               failed-validation-error-message="Unauthorized">
       <audiences>
-        <!-- Use appId directly when identifierUris is empty -->
         <audience>{{mcp-app-client-id}}</audience>
       </audiences>
       <required-claims>
-        <!-- Ensure token has the user_impersonate scope for MCP access -->
         <claim name="scp" match="any">
           <value>user_impersonate</value>
         </claim>
@@ -28,15 +27,9 @@
     <set-variable name="mcp-session-id" value="@(context.Request.Headers.GetValueOrDefault("Mcp-Session-Id", context.Request.Headers.GetValueOrDefault("X-Request-Id", Guid.NewGuid().ToString())))" />
     <!-- Rate limit: 10 requests per minute per session -->
     <rate-limit-by-key calls="10" renewal-period="60" counter-key="@((string)context.Variables["mcp-session-id"])" />
-    <!-- Content Safety check using llm-content-safety policy -->
-    <llm-content-safety backend-id="content-safety-backend" shield-prompt="true">
-      <categories output-type="EightSeverityLevels">
-        <category name="Hate" threshold="4" />
-        <category name="Violence" threshold="4" />
-        <category name="Sexual" threshold="4" />
-        <category name="SelfHarm" threshold="4" />
-      </categories>
-    </llm-content-safety>
+
+    <!-- Content Safety check (extracted to fragment for reusability) -->
+    <include-fragment fragment-id="mcp-content-safety" />
   </inbound>
   <backend>
     <forward-request />
@@ -50,7 +43,6 @@
       <when condition="@(context.Response.StatusCode == 401)">
         <return-response>
           <set-status code="401" reason="Unauthorized" />
-          <!-- APIM native MCP type auto-prepends API path to resource_metadata URLs in WWW-Authenticate -->
           <set-header name="WWW-Authenticate" exists-action="override">
             <value>Bearer error="invalid_token", resource_metadata="{{apim-gateway-url}}/.well-known/oauth-protected-resource"</value>
           </set-header>
@@ -72,17 +64,6 @@
           <set-header name="Retry-After" exists-action="override">
             <value>60</value>
           </set-header>
-        </return-response>
-      </when>
-      <when condition="@(context.LastError.Source == "llm-content-safety")">
-        <return-response>
-          <set-status code="400" reason="Bad Request" />
-          <set-body>@{
-            return JsonConvert.SerializeObject(new {
-              error = "content_blocked",
-              message = "Request blocked by content safety policy"
-            });
-          }</set-body>
         </return-response>
       </when>
     </choose>

@@ -142,7 +142,7 @@ echo "VS Code and Azure CLI pre-authorized"
 echo "Creating service principal for MCP app..."
 az ad sp create --id "$MCP_APP_CLIENT_ID" 2>/dev/null || echo "Service principal already exists"
 
-# Create APIM Client App for Credential Manager
+# Create APIM Client App
 echo ""
 echo "Creating APIM Client App: sherpa-apim-client-camp2-$APP_SUFFIX"
 APIM_CLIENT_APP_ID=$(az ad app create \
