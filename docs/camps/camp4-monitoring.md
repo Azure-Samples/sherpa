@@ -120,11 +120,14 @@ Without proper monitoring, your answer might be: *"I'd have to grep through thou
 With structured telemetry, your answer is: *"Give me 30 seconds."*
 
 ```kusto
+// Unified query that handles both Layer 1 (APIM) and Layer 2 (Function) logs
 AppTraces
 | where Properties has "event_type"
+| extend Props = parse_json(Properties)
 | extend CustomDims = parse_json(replace_string(replace_string(
-    tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-| where tostring(CustomDims.event_type) == "INJECTION_BLOCKED"
+    tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
+| where EventType == "INJECTION_BLOCKED"
 | where TimeGenerated > ago(30d)
 | summarize AttacksBlocked = count() by bin(TimeGenerated, 1d)
 | render barchart
@@ -171,28 +174,46 @@ Before we start configuring things, let's understand the Azure services we'll be
 
 ### How Logs Flow
 
-Understanding the data flow helps when troubleshooting:
+Understanding the data flow helps when troubleshooting. Camp 4 has a **two-layer security architecture**:
 
 ```
 Your MCP Request
        │
        ▼
-┌──────────────┐     Diagnostic Settings     ┌────────────────────┐
-│     APIM     │ ─────────────────────────── │   Log Analytics    │
-│   Gateway    │     GatewayLogs             │     Workspace      │
-│              │     GatewayLlmLogs          │                    │
-│              │     WebSocketConnectionLogs │  ApiManagement...  │
-└──────┬───────┘                             │  tables            │
-       │                                     └────────────────────┘
-       │ Routes to
-       ▼
-┌──────────────┐     App Insights SDK        ┌────────────────────┐
-│   Security   │ ─────────────────────────── │   Application      │
-│   Function   │     Custom events +         │   Insights         │
-│              │     auto-instrumentation    │                    │
-│              │                             │  AppTraces table   │
-└──────────────┘                             └────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                    LAYER 1: APIM + Prompt Shields                │
+│  ┌──────────────┐     Diagnostic Settings     ┌───────────────┐  │
+│  │     APIM     │ ──────────────────────────► │ Log Analytics │  │
+│  │   Gateway    │     GatewayLogs             │   Workspace   │  │
+│  │              │     GatewayLlmLogs          │               │  │
+│  │   + Prompt   │     WebSocketConnectionLogs │ ApiMgmt...    │  │
+│  │    Shields   │                             │ tables        │  │
+│  │              │     <trace> policy ────────►│               │  │
+│  │              │     (INJECTION_BLOCKED)     │ AppTraces     │  │
+│  └──────┬───────┘                             └───────────────┘  │
+│         │                                                        │
+│     Blocks: Prompt injection                                     │
+└─────────┼────────────────────────────────────────────────────────┘
+          │ If not blocked at Layer 1
+          ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                    LAYER 2: Security Function                    │
+│  ┌──────────────┐     App Insights SDK        ┌───────────────┐  │
+│  │   Security   │ ──────────────────────────► │  Application  │  │
+│  │   Function   │     Custom events +         │   Insights    │  │
+│  │              │     auto-instrumentation    │               │  │
+│  │              │                             │ AppTraces     │  │
+│  └──────────────┘                             └───────────────┘  │
+│                                                                  │
+│     Blocks: SQL injection, Path traversal, Shell injection       │
+└──────────────────────────────────────────────────────────────────┘
 ```
+
+!!! info "Two Log Formats for Security Events"
+    - **Layer 1 (APIM)**: Logs to `Properties.event_type` directly
+    - **Layer 2 (Function)**: Logs to `Properties.custom_dimensions.event_type`
+    
+    Dashboard queries use `coalesce()` to handle both formats transparently.
 
 !!! info "The 2-5 Minute Delay"
     Logs don't appear instantly in Log Analytics. Azure buffers and batches them for efficiency, resulting in a 2-5 minute ingestion delay. This is normal! When validating your setup, give it a few minutes before panicking.
@@ -353,6 +374,25 @@ AppTraces
     - Python `None` instead of JSON `null`
     
     The `replace_string()` calls convert to valid JSON before `parse_json()` can work.
+
+!!! info "Two Log Sources for Security Events"
+    Security events come from **two different sources** with slightly different formats:
+    
+    - **Layer 1 (APIM Policy)**: Prompt injections blocked by Prompt Shields. Properties are stored directly: `Properties.event_type`
+    - **Layer 2 (Security Function)**: SQL, path traversal, and shell injections. Properties are nested: `Properties.custom_dimensions.event_type`
+    
+    For comprehensive queries that capture ALL attack types, use `coalesce()`:
+    
+    ```kusto
+    AppTraces
+    | where Properties has "event_type"
+    | extend Props = parse_json(Properties)
+    | extend CustomDims = parse_json(replace_string(replace_string(
+        tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+    | extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
+    | extend Category = coalesce(tostring(Props.category), tostring(CustomDims.category))
+    | where EventType == "INJECTION_BLOCKED"
+    ```
 
 !!! tip "Pre-filter for Performance"
     Always use `| where Properties has "event_type"` before the parsing step. This filters at the storage level and dramatically improves query performance.
@@ -612,6 +652,43 @@ In this workshop, the Bicep infrastructure configures these automatically. Once 
 
 APIM logs show HTTP traffic, but the security function's internal operations (what attacks were blocked, what PII was found) are still invisible. This section upgrades from basic logging to structured telemetry.
 
+### Two-Layer Blocking Architecture
+
+Before diving into function logging, it's important to understand that attacks are blocked at **two different layers**:
+
+```
+                          MCP Request
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    LAYER 1: APIM Policy                             │
+│                                                                     │
+│    Prompt Shields (Azure Content Safety)                            │
+│    • Blocks prompt injection attacks                                │
+│    • Structured logging via <trace> policy                          │
+│    • Logs directly to AppTraces: Properties.event_type              │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │ (if not blocked)
+                               ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    LAYER 2: Security Function                       │
+│                                                                     │
+│    Regex-based pattern detection                                    │
+│    • Blocks SQL injection, path traversal, shell injection          │
+│    • Structured logging via OpenTelemetry                           │
+│    • Logs to AppTraces: Properties.custom_dimensions.event_type     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+| Attack Type | Blocked By | Log Location |
+|-------------|-----------|--------------|
+| **Prompt injection** | Layer 1 (APIM/Prompt Shields) | `Properties.event_type` |
+| **SQL injection** | Layer 2 (Security Function) | `Properties.custom_dimensions.event_type` |
+| **Path traversal** | Layer 2 (Security Function) | `Properties.custom_dimensions.event_type` |
+| **Shell injection** | Layer 2 (Security Function) | `Properties.custom_dimensions.event_type` |
+
+This two-layer design means KQL queries need to check **both** property locations to capture all attack types. The unified query pattern using `coalesce()` handles this automatically.
+
 ### The Problem with Basic Logging
 
 Most developers start with basic logging—and there's nothing wrong with that for debugging:
@@ -772,6 +849,9 @@ Think of custom dimensions as adding columns to your log database that you can f
     The test attacks from 2.2-fix.sh need 2-5 minutes to appear in Log Analytics. If you run this immediately after 2.2, you may see "No structured logs found yet." Wait a few minutes and try again.
 
 ??? success "Query Security Events"
+
+    !!! note "Layer 2 Queries"
+        These queries target Layer 2 (Security Function) logs specifically. For unified queries that handle both Layer 1 (APIM/Prompt Shields) and Layer 2 logs, see the [KQL Query Reference](#kql-query-reference) section.
 
     Verify structured events appear:
 
@@ -1180,11 +1260,13 @@ Each query is designed to answer a specific question. Copy them into Log Analyti
 ### Security Events Summary
 
 ```kusto
+// Unified query that captures events from both Layer 1 (APIM) and Layer 2 (Function)
 AppTraces
 | where Properties has "event_type"
+| extend Props = parse_json(Properties)
 | extend CustomDims = parse_json(replace_string(replace_string(
-    tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-| extend EventType = tostring(CustomDims.event_type)
+    tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
 | where EventType in ('INJECTION_BLOCKED', 'PII_REDACTED', 'CREDENTIAL_DETECTED')
 | summarize Count=count() by EventType
 | render piechart
@@ -1193,13 +1275,15 @@ AppTraces
 ### Attacks by Category
 
 ```kusto
+// Shows all attack types including prompt_injection (Layer 1) and sql/path/shell (Layer 2)
 AppTraces
 | where Properties has "event_type"
+| extend Props = parse_json(Properties)
 | extend CustomDims = parse_json(replace_string(replace_string(
-    tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-| extend EventType = tostring(CustomDims.event_type)
+    tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
 | where EventType == 'INJECTION_BLOCKED'
-| extend Category = tostring(CustomDims.injection_type)
+| extend Category = coalesce(tostring(Props.category), tostring(CustomDims.category))
 | summarize Count=count() by Category
 | order by Count desc
 ```
@@ -1209,9 +1293,10 @@ AppTraces
 ```kusto
 AppTraces
 | where Properties has "event_type"
+| extend Props = parse_json(Properties)
 | extend CustomDims = parse_json(replace_string(replace_string(
-    tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-| extend EventType = tostring(CustomDims.event_type)
+    tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
 | where EventType == 'INJECTION_BLOCKED'
 | summarize Count=count() by bin(TimeGenerated, 5m)
 | render timechart
@@ -1222,11 +1307,12 @@ AppTraces
 ```kusto
 AppTraces
 | where Properties has "event_type"
+| extend Props = parse_json(Properties)
 | extend CustomDims = parse_json(replace_string(replace_string(
-    tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-| extend EventType = tostring(CustomDims.event_type)
+    tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
 | where EventType == 'INJECTION_BLOCKED'
-| extend ToolName = tostring(CustomDims.tool_name)
+| extend ToolName = coalesce(tostring(Props.tool_name), tostring(CustomDims.tool_name))
 | where isnotempty(ToolName)
 | summarize Count=count() by ToolName
 | top 10 by Count desc
@@ -1239,11 +1325,12 @@ AppTraces
 let correlation_id = "YOUR-CORRELATION-ID";
 AppTraces
 | where Properties has "correlation_id"
+| extend Props = parse_json(Properties)
 | extend CustomDims = parse_json(replace_string(replace_string(
-    tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-| extend CorrelationId = tostring(CustomDims.correlation_id)
+    tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+| extend CorrelationId = coalesce(tostring(Props.correlation_id), tostring(CustomDims.correlation_id))
 | where CorrelationId == correlation_id
-| project TimeGenerated, Message, CustomDims
+| project TimeGenerated, Message, Props, CustomDims
 | order by TimeGenerated asc
 ```
 
@@ -1261,15 +1348,18 @@ ApiManagementGatewayLogs
 | where CorrelationId == correlationId
 | project TimeGenerated, Source="APIM-HTTP", CallerIpAddress, ResponseCode
 | union (
-    // Security function logs
+    // Security logs (both Layer 1 and Layer 2)
     AppTraces
     | where TimeGenerated > timeRange
     | where Properties has "correlation_id"
+    | extend Props = parse_json(Properties)
     | extend CustomDims = parse_json(replace_string(replace_string(
-        tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-    | where tostring(CustomDims.correlation_id) == correlationId
-    | extend EventType = tostring(CustomDims.event_type)
-    | project TimeGenerated, Source="Function", EventType, Message
+        tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+    | extend CorrelId = coalesce(tostring(Props.correlation_id), tostring(CustomDims.correlation_id))
+    | where CorrelId == correlationId
+    | extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
+    | extend Source = iff(isnotempty(tostring(Props.event_type)), "Layer1-APIM", "Layer2-Function")
+    | project TimeGenerated, Source, EventType, Message
 )
 | order by TimeGenerated asc
 ```
@@ -1291,17 +1381,18 @@ ApiManagementGatewayLogs
 
 ### MCP Tool Risk Assessment
 
-Identify which tools are most frequently targeted by attackers:
+Identify which tools are most frequently targeted by attackers (handles both Layer 1 and Layer 2 logs):
 
 ```kusto
-// Which tools are most frequently targeted? (using AppTraces)
+// Which tools are most frequently targeted? (unified query)
 AppTraces
 | where TimeGenerated > ago(7d)
 | where Properties has "event_type"
+| extend Props = parse_json(Properties)
 | extend CustomDims = parse_json(replace_string(replace_string(
-    tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-| extend EventType = tostring(CustomDims.event_type),
-         ToolName = tostring(CustomDims.tool_name)
+    tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type)),
+         ToolName = coalesce(tostring(Props.tool_name), tostring(CustomDims.tool_name))
 | where EventType == "INJECTION_BLOCKED" and isnotempty(ToolName)
 | summarize AttackAttempts=count() by ToolName
 | order by AttackAttempts desc
@@ -1470,58 +1561,98 @@ Let's look at how all the pieces fit together. Understanding this architecture h
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                     API Management (APIM)                       │
+│                                                                 │
+│   ┌─────────────────────────────────────────────────────────┐   │
+│   │ LAYER 1: Prompt Shields (AI Content Safety)             │   │
+│   │   • Scans for prompt injection attacks                  │   │
+│   │   • Blocks jailbreak/manipulation attempts              │   │
+│   │   • Logs via <trace> policy → AppTraces                 │   │
+│   │     └── Properties.event_type (direct)                  │   │
+│   └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
 │   • Receives all MCP traffic                                    │
 │   • Applies policies (auth, rate limiting)                      │
 │   • Generates CorrelationId for tracing                         │
-│   • Routes to security function                                 │
+│   • Routes clean requests to security function                  │
 │                                                                 │
 │   Diagnostic Settings → Log Analytics                           │
 │   └── GatewayLogs (HTTP details)                                │
 │   └── GatewayLlmLogs (LLM usage)                                │
 │   └── WebSocketConnectionLogs (WebSocket events)                │
 └───────────────────────────────┬─────────────────────────────────┘
-                                │
+                                │ (if not blocked by Layer 1)
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Security Function                            │
+│                    Security Function (Layer 2)                  │
 │   • Receives forwarded request + CorrelationId                  │
-│   • Checks for injection patterns                               │
+│   • Regex checks for SQL, path traversal, shell injection       │
 │   • Scans for PII/credentials in responses                      │
 │   • Logs structured events with custom dimensions               │
 │                                                                 │
 │   Application Insights SDK → AppTraces table                    │
-│   └── event_type, injection_type, correlation_id                │
+│   └── Properties.custom_dimensions.event_type                   │
+│   └── Properties.custom_dimensions.injection_type               │
+│   └── Properties.custom_dimensions.correlation_id               │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+!!! info "Two Different Log Formats"
+    Notice the different property paths:
+    
+    - **Layer 1 (APIM)**: `Properties.event_type` (direct)
+    - **Layer 2 (Function)**: `Properties.custom_dimensions.event_type` (nested)
+    
+    Dashboard queries use `coalesce()` to handle both formats transparently.
+
 ### The Security Event Types
 
-The security function emits five distinct event types, each serving a specific purpose:
+Security events come from two layers, each with specific event types:
+
+#### Layer 1 Events (APIM/Prompt Shields)
+
+| Event Type | When Emitted | What to Do |
+|------------|--------------|------------|
+| `INJECTION_BLOCKED` (prompt) | AI-based prompt injection detected | Investigate intent, may be attack reconnaissance |
+
+Layer 1 logs are at `Properties.event_type` directly.
+
+#### Layer 2 Events (Security Function)
 
 | Event Type | When Emitted | Severity | What to Do |
 |------------|--------------|----------|------------|
-| `INJECTION_BLOCKED` | Attack pattern detected in input | WARNING | Investigate source, consider blocking IP |
+| `INJECTION_BLOCKED` (sql/path/shell) | Regex pattern detected in input | WARNING | Investigate source, consider blocking IP |
 | `PII_REDACTED` | Personal data found and masked in output | INFO | Normal operation, audit trail |
 | `CREDENTIAL_DETECTED` | API keys/tokens found in output | ERROR | Immediate investigation, possible breach |
 | `INPUT_CHECK_PASSED` | Request passed all security checks | DEBUG | Normal operation |
 | `SECURITY_ERROR` | Security function itself failed | ERROR | Check function health, review logs |
 
+Layer 2 logs are at `Properties.custom_dimensions.event_type`.
+
 ### Log Table Relationships
 
-Here's how the tables connect via CorrelationId:
+Here's how the tables connect via CorrelationId, and the two different log formats for security events:
 
 ```
-ApiManagementGatewayLogs                       AppTraces
-┌────────────────────────┐                     ┌─────────────────────────┐
-│ CorrelationId: abc-123 │─────────────────────│ correlation_id: abc-123 │
-│ CallerIpAddress: ...   │                     │ event_type: INJECTION.. │
-│ ResponseCode: 200      │                     │ injection_type: sql_... │
-│ ApiId: sherpa-mcp      │                     │ tool_name: search-trails│
-│ Method: POST           │                     │ category: sql_injection │
-└────────────────────────┘                     └─────────────────────────┘
+ApiManagementGatewayLogs              AppTraces (Layer 1 - APIM)
+┌────────────────────────┐            ┌──────────────────────────────────┐
+│ CorrelationId: abc-123 │────────────│ Properties.event_type:           │
+│ CallerIpAddress: ...   │            │   INJECTION_BLOCKED              │
+│ ResponseCode: 403      │            │ Properties.category:             │
+│ ApiId: sherpa-mcp      │            │   prompt_injection               │
+│ Method: POST           │            │ Properties.correlation_id:       │
+└────────────────────────┘            │   abc-123                        │
+                                      └──────────────────────────────────┘
+
+                                      AppTraces (Layer 2 - Function)
+                                      ┌──────────────────────────────────┐
+                                      │ Properties.custom_dimensions:    │
+                                      │   {'event_type': 'INJECTION_..', │
+                                      │    'category': 'sql_injection',  │
+                                      │    'correlation_id': 'def-456'}  │
+                                      └──────────────────────────────────┘
 ```
 
-This is why correlation IDs are so powerful: one ID links together HTTP details and security events.
+Notice Layer 1 logs have properties at the root level, while Layer 2 logs have them nested in `custom_dimensions` as a Python dict string. This is why queries need `coalesce()` to handle both formats.
 
 ### Outbound Policy Considerations
 
@@ -1615,38 +1746,49 @@ Things don't always work the first time. Here are the most common issues and how
 
 ??? question "Properties.event_type returns nothing but I see the data"
 
-    **Custom dimensions in OpenTelemetry are stored differently than expected.**
+    **This depends on which layer emitted the log:**
     
-    The Azure Monitor OpenTelemetry SDK for Python stores custom dimensions in `Properties.custom_dimensions` as a Python dict string (with single quotes), not as direct JSON properties.
+    - **Layer 1 (APIM/Prompt Shields)**: Properties are stored directly
+    - **Layer 2 (Security Function)**: Properties are stored in `custom_dimensions` as a Python dict string
     
-    **Wrong approach** (won't work):
+    **For Layer 1 logs** (prompt injection):
     ```kusto
-    | extend EventType = tostring(Properties.event_type)  // ✗ Returns empty
-    | where Properties.event_type == "INJECTION_BLOCKED"  // ✗ No matches
+    | extend EventType = tostring(Properties.event_type)  // ✓ Works for APIM traces
     ```
     
-    **Correct approach** (parse the custom_dimensions):
+    **For Layer 2 logs** (SQL, path, shell injection):
     ```kusto
     | extend CustomDims = parse_json(replace_string(replace_string(
         tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-    | extend EventType = tostring(CustomDims.event_type)  // :material-check: Works
-    | where EventType == "INJECTION_BLOCKED"  // :material-check: Matches
+    | extend EventType = tostring(CustomDims.event_type)  // ✓ Works for Function logs
+    ```
+    
+    **For unified queries** (handles both layers):
+    ```kusto
+    | extend Props = parse_json(Properties)
+    | extend CustomDims = parse_json(replace_string(replace_string(
+        tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+    | extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
+    | where EventType == "INJECTION_BLOCKED"  // ✓ Matches both layers
     ```
 
     Check what's actually in Properties:
     ```kusto
     AppTraces 
     | where Properties has "event_type"
-    | take 1 
+    | take 5 
     | project Properties
     ```
 
-    You'll see something like:
+    Layer 1 logs will show `event_type` directly:
+    ```json
+    {"event_type": "INJECTION_BLOCKED", "category": "prompt_injection", ...}
+    ```
+    
+    Layer 2 logs will show it nested with single quotes:
     ```json
     {"custom_dimensions": "{'event_type': 'INJECTION_BLOCKED', ...}"}
     ```
-
-    Note the single quotes inside `custom_dimensions` - that's a Python dict string, not JSON!
 
 ??? question "I'm seeing 'Request rate is large' errors"
 
@@ -1683,8 +1825,9 @@ Think back to where you started:
 | Before | After |
 |--------|-------|
 | APIM routed traffic silently | Every request logged with caller IP, timing, correlation |
-| Function logged basic warnings | Structured events with custom dimensions for rich querying |
-| No way to see attack patterns | Real-time dashboard showing security posture |
+| No AI-based attack detection | Layer 1 (Prompt Shields) blocks prompt injection at the edge |
+| Function logged basic warnings | Layer 2 structured events for SQL/path/shell with custom dimensions |
+| No way to see attack patterns | Real-time dashboard showing all attack categories |
 | Manual log checking | Automated alerts notify you of threats |
 
 You've transformed your MCP infrastructure from a "black box" into a fully observable system.

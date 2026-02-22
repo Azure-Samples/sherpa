@@ -216,6 +216,7 @@ module apim 'modules/apim.bicep' = {
     apimClientAppId: apimClientAppId
     tenantId: tenantId
     mcpAppClientId: mcpAppClientId
+    contentSafetyEndpoint: contentSafety.outputs.endpoint
     appInsightsId: appInsights.outputs.id
     appInsightsInstrumentationKey: appInsights.outputs.instrumentationKey
   }

@@ -4,7 +4,7 @@
     This policy is the initial state before Camp 4 fixes are applied.
     It includes:
     - OAuth 2.0 validation (from Camp 1)
-    - Azure AI Content Safety (llm-content-safety) - Layer 1
+    - Prompt Shields via policy fragment (Layer 1)
     
     What's MISSING (vulnerable):
     - Advanced injection pattern detection (Layer 2 input)
@@ -36,15 +36,8 @@
             </audiences>
         </validate-azure-ad-token>
 
-        <!-- Layer 1: Azure AI Content Safety -->
-        <llm-content-safety backend-id="content-safety-backend" shield-prompt="true">
-            <categories output-type="EightSeverityLevels">
-                <category name="Hate" threshold="4" />
-                <category name="Violence" threshold="4" />
-                <category name="Sexual" threshold="4" />
-                <category name="SelfHarm" threshold="4" />
-            </categories>
-        </llm-content-safety>
+        <!-- Layer 1: Prompt Shields via Policy Fragment -->
+        <include-fragment fragment-id="mcp-content-safety" />
         
         <!-- NOTE: No Layer 2 input validation - advanced injections bypass Content Safety! -->
     </inbound>
@@ -60,5 +53,26 @@
     
     <on-error>
         <base />
+        <choose>
+            <when condition="@(context.Response.StatusCode == 401)">
+                <return-response>
+                    <set-status code="401" reason="Unauthorized" />
+                    <!-- APIM native MCP type auto-prepends API path to resource_metadata URLs in WWW-Authenticate -->
+                    <set-header name="WWW-Authenticate" exists-action="override">
+                        <value>Bearer error="invalid_token", resource_metadata="{{apim-gateway-url}}/.well-known/oauth-protected-resource"</value>
+                    </set-header>
+                    <set-body>@{
+                        var gatewayUrl = "{{apim-gateway-url}}";
+                        var apiPath = context.Api.Path.TrimStart('/');
+                        var prmUrl = gatewayUrl + "/" + apiPath + "/.well-known/oauth-protected-resource";
+                        return JsonConvert.SerializeObject(new {
+                            error = "unauthorized",
+                            message = "Valid OAuth token required",
+                            resource_metadata = prmUrl
+                        });
+                    }</set-body>
+                </return-response>
+            </when>
+        </choose>
     </on-error>
 </policies>

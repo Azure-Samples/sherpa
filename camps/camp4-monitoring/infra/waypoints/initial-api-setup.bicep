@@ -70,6 +70,21 @@ resource contentSafetyBackend 'Microsoft.ApiManagement/service/backends@2024-06-
   }
 }
 
+// ============================================
+// Policy Fragment: MCP Content Safety (Prompt Shields)
+// Reusable fragment for Layer 1 content safety checks
+// ============================================
+
+resource mcpContentSafetyFragment 'Microsoft.ApiManagement/service/policyFragments@2024-06-01-preview' = {
+  parent: apim
+  name: 'mcp-content-safety'
+  properties: {
+    description: 'Extracts MCP tool arguments and checks for prompt injection using Azure Content Safety Prompt Shields API'
+    format: 'rawxml'
+    value: loadTextContent('../policies/fragments/mcp-content-safety.xml')
+  }
+}
+
 // Named Value: Function App URL (for Layer 2 policies)
 // This is the URL that policies use - starts pointing to v1, workshop swaps to v2
 resource namedValueFunctionUrl 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = {
@@ -148,12 +163,13 @@ resource sherpaMcpPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-
   name: 'policy'
   properties: {
     format: 'rawxml'
-    value: replace(replace(
+    value: replace(replace(replace(
       loadTextContent('../policies/sherpa-mcp-full-io-security.xml'),
       '{{tenant-id}}', tenantId),
-      '{{mcp-app-client-id}}', mcpAppClientId)
+      '{{mcp-app-client-id}}', mcpAppClientId),
+      '{{apim-gateway-url}}', apim.properties.gatewayUrl)
   }
-  dependsOn: [namedValueFunctionUrl]
+  dependsOn: [namedValueFunctionUrl, mcpContentSafetyFragment]
 }
 
 // ============================================
@@ -341,12 +357,86 @@ resource trailMcpPolicy 'Microsoft.ApiManagement/service/apis/policies@2024-06-0
   name: 'policy'
   properties: {
     format: 'rawxml'
-    value: replace(replace(
+    value: replace(replace(replace(
       loadTextContent('../policies/trail-mcp-input-security.xml'),
       '{{tenant-id}}', tenantId),
-      '{{mcp-app-client-id}}', mcpAppClientId)
+      '{{mcp-app-client-id}}', mcpAppClientId),
+      '{{apim-gateway-url}}', apim.properties.gatewayUrl)
   }
-  dependsOn: [namedValueFunctionUrl]
+  dependsOn: [namedValueFunctionUrl, mcpContentSafetyFragment]
+}
+
+// ============================================
+// OAuth PRM Discovery API (RFC 9728)
+// Enables VS Code MCP OAuth discovery
+// ============================================
+
+// OAuth PRM API for RFC 9728 path-based discovery
+resource oauthPrmApi 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' = {
+  parent: apim
+  name: 'oauth-prm'
+  properties: {
+    displayName: 'OAuth Protected Resource Metadata'
+    description: 'RFC 9728 Protected Resource Metadata for OAuth discovery'
+    path: ''  // Root path
+    protocols: ['https']
+    subscriptionRequired: false
+    apiType: 'http'
+  }
+}
+
+// PRM operation for Sherpa MCP (RFC 9728 path-based discovery)
+resource oauthPrmSherpaMcpOperation 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' = {
+  parent: oauthPrmApi
+  name: 'get-prm-sherpa-mcp'
+  properties: {
+    displayName: 'Get PRM for Sherpa MCP'
+    description: 'RFC 9728 path-based discovery for /sherpa/mcp resource'
+    method: 'GET'
+    urlTemplate: '/.well-known/oauth-protected-resource/sherpa/mcp'
+  }
+}
+
+// Policy for Sherpa MCP PRM discovery
+resource oauthPrmSherpaMcpPolicy 'Microsoft.ApiManagement/service/apis/operations/policies@2024-06-01-preview' = {
+  parent: oauthPrmSherpaMcpOperation
+  name: 'policy'
+  properties: {
+    format: 'rawxml'
+    value: replace(replace(replace(replace(
+      loadTextContent('../policies/prm-metadata.xml'),
+      '{{tenant-id}}', tenantId),
+      '{{mcp-app-client-id}}', mcpAppClientId),
+      '{{apim-gateway-url}}', apim.properties.gatewayUrl),
+      '{{api-path}}', 'sherpa/mcp')
+  }
+}
+
+// PRM operation for Trail MCP (RFC 9728 path-based discovery)
+resource oauthPrmTrailMcpOperation 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' = {
+  parent: oauthPrmApi
+  name: 'get-prm-trail-mcp'
+  properties: {
+    displayName: 'Get PRM for Trail MCP'
+    description: 'RFC 9728 path-based discovery for /trails/mcp resource'
+    method: 'GET'
+    urlTemplate: '/.well-known/oauth-protected-resource/trails/mcp'
+  }
+}
+
+// Policy for Trail MCP PRM discovery
+resource oauthPrmTrailMcpPolicy 'Microsoft.ApiManagement/service/apis/operations/policies@2024-06-01-preview' = {
+  parent: oauthPrmTrailMcpOperation
+  name: 'policy'
+  properties: {
+    format: 'rawxml'
+    value: replace(replace(replace(replace(
+      loadTextContent('../policies/prm-metadata.xml'),
+      '{{tenant-id}}', tenantId),
+      '{{mcp-app-client-id}}', mcpAppClientId),
+      '{{apim-gateway-url}}', apim.properties.gatewayUrl),
+      '{{api-path}}', 'trails/mcp')
+  }
 }
 
 // ============================================

@@ -5,13 +5,17 @@
     
     Includes:
     - OAuth 2.0 validation (Entra ID)
-    - Layer 1: Azure AI Content Safety
+    - Layer 1: Prompt Shields via policy fragment
     - Layer 2: Azure Function input_check (injection detection)
     
     NOTE: Output sanitization (PII redaction) is handled SERVER-SIDE in sherpa-mcp-server.
     This is because MCP Streamable HTTP always returns Content-Type: text/event-stream,
     which requires buffering the full response before sanitization can occur.
     Server-side sanitization avoids APIM buffering and stream interruption issues.
+    
+    Key learnings:
+    - APIM native MCP type auto-prepends API path to resource_metadata URLs in WWW-Authenticate
+      (so omit the path in the header value, but include it in the body)
 -->
 <policies>
     <inbound>
@@ -36,15 +40,8 @@
             </audiences>
         </validate-azure-ad-token>
 
-        <!-- Layer 1: Azure AI Content Safety (fast, broad filtering) -->
-        <llm-content-safety backend-id="content-safety-backend" shield-prompt="true">
-            <categories output-type="EightSeverityLevels">
-                <category name="Hate" threshold="4" />
-                <category name="Violence" threshold="4" />
-                <category name="Sexual" threshold="4" />
-                <category name="SelfHarm" threshold="4" />
-            </categories>
-        </llm-content-safety>
+        <!-- Layer 1: Prompt Shields via Policy Fragment -->
+        <include-fragment fragment-id="mcp-content-safety" />
 
         <!-- Layer 2: Advanced Input Check (Azure Function) -->
         <send-request mode="new" response-variable-name="inputCheck" timeout="10" ignore-error="false">
@@ -116,5 +113,26 @@
     
     <on-error>
         <base />
+        <choose>
+            <when condition="@(context.Response.StatusCode == 401)">
+                <return-response>
+                    <set-status code="401" reason="Unauthorized" />
+                    <!-- APIM native MCP type auto-prepends API path to resource_metadata URLs in WWW-Authenticate -->
+                    <set-header name="WWW-Authenticate" exists-action="override">
+                        <value>Bearer error="invalid_token", resource_metadata="{{apim-gateway-url}}/.well-known/oauth-protected-resource"</value>
+                    </set-header>
+                    <set-body>@{
+                        var gatewayUrl = "{{apim-gateway-url}}";
+                        var apiPath = context.Api.Path.TrimStart('/');
+                        var prmUrl = gatewayUrl + "/" + apiPath + "/.well-known/oauth-protected-resource";
+                        return JsonConvert.SerializeObject(new {
+                            error = "unauthorized",
+                            message = "Valid OAuth token required",
+                            resource_metadata = prmUrl
+                        });
+                    }</set-body>
+                </return-response>
+            </when>
+        </choose>
     </on-error>
 </policies>

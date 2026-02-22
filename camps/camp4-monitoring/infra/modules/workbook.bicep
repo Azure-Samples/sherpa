@@ -83,7 +83,9 @@ var workbookContent = {
         query: '''
 AppTraces
 | where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}
-| extend EventType = tostring(Properties.event_type)
+| extend Props = parse_json(Properties)
+| extend CustomDims = parse_json(replace_string(replace_string(tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
 | where EventType in ('INJECTION_BLOCKED', 'PII_REDACTED', 'CREDENTIAL_DETECTED')
 | summarize Count=count() by bin(TimeGenerated, 5m), EventType
 | render timechart
@@ -111,9 +113,11 @@ AppTraces
         query: '''
 AppTraces
 | where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}
-| extend EventType = tostring(Properties.event_type)
+| extend Props = parse_json(Properties)
+| extend CustomDims = parse_json(replace_string(replace_string(tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
 | where EventType == 'INJECTION_BLOCKED'
-| extend Category = tostring(Properties.category)
+| extend Category = coalesce(tostring(Props.category), tostring(CustomDims.category))
 | summarize Count=count() by Category
 | render piechart
 '''
@@ -134,9 +138,11 @@ AppTraces
         query: '''
 AppTraces
 | where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}
-| extend EventType = tostring(Properties.event_type)
+| extend Props = parse_json(Properties)
+| extend CustomDims = parse_json(replace_string(replace_string(tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
 | where EventType == 'PII_REDACTED'
-| extend EntityCount = toint(Properties.entity_count)
+| extend EntityCount = toint(coalesce(Props.entity_count, CustomDims.entity_count))
 | summarize
     TotalEvents = count(),
     TotalEntities = sum(EntityCount)
@@ -164,9 +170,11 @@ AppTraces
         query: '''
 AppTraces
 | where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}
-| extend EventType = tostring(Properties.event_type)
+| extend Props = parse_json(Properties)
+| extend CustomDims = parse_json(replace_string(replace_string(tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
 | where EventType == 'INJECTION_BLOCKED'
-| extend ToolName = tostring(Properties.tool_name)
+| extend ToolName = coalesce(tostring(Props.tool_name), tostring(CustomDims.tool_name))
 | where isnotempty(ToolName)
 | summarize Count=count() by ToolName
 | top 10 by Count desc
@@ -188,12 +196,14 @@ AppTraces
         query: '''
 AppTraces
 | where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}
-| extend EventType = tostring(Properties.event_type)
+| extend Props = parse_json(Properties)
+| extend CustomDims = parse_json(replace_string(replace_string(tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
 | where EventType in ('INJECTION_BLOCKED', 'PII_REDACTED', 'CREDENTIAL_DETECTED', 'SECURITY_ERROR')
 | extend
-    Category = tostring(Properties.category),
-    CorrelationId = tostring(Properties.correlation_id),
-    Severity = tostring(Properties.severity)
+    Category = coalesce(tostring(Props.category), tostring(CustomDims.category)),
+    CorrelationId = coalesce(tostring(Props.correlation_id), tostring(CustomDims.correlation_id)),
+    Severity = coalesce(tostring(Props.severity), tostring(CustomDims.severity))
 | project TimeGenerated, EventType, Category, Severity, Message, CorrelationId
 | order by TimeGenerated desc
 | take 50
@@ -244,7 +254,9 @@ AppTraces
         query: '''
 AppTraces
 | where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}
-| extend EventType = tostring(Properties.event_type)
+| extend Props = parse_json(Properties)
+| extend CustomDims = parse_json(replace_string(replace_string(tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+| extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
 | where EventType == 'SECURITY_ERROR'
 | summarize ErrorCount=count() by bin(TimeGenerated, 5m)
 | render timechart
