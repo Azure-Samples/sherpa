@@ -47,7 +47,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend EventType = tostring(Properties.event_type)\n| where EventType in ('INJECTION_BLOCKED', 'PII_REDACTED', 'CREDENTIAL_DETECTED')\n| summarize Count=count() by bin(TimeGenerated, 5m), EventType\n| render timechart",
+        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend Props = parse_json(Properties)\n| extend EventType = coalesce(tostring(Props.event_type), tostring(parse_json(tostring(Props.custom_dimensions)).event_type))\n| where EventType in ('INJECTION_BLOCKED', 'PII_REDACTED', 'CREDENTIAL_DETECTED')\n| summarize Count=count() by bin(TimeGenerated, 5m), EventType\n| render timechart",
         "size": 0,
         "title": "Security Events Over Time",
         "queryType": 0,
@@ -67,7 +67,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend EventType = tostring(Properties.event_type)\n| where EventType == 'INJECTION_BLOCKED'\n| extend Category = tostring(Properties.category)\n| summarize Count=count() by Category\n| render piechart",
+        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend Props = parse_json(Properties)\n| extend EventType = coalesce(tostring(Props.event_type), tostring(parse_json(tostring(Props.custom_dimensions)).event_type))\n| where EventType == 'INJECTION_BLOCKED'\n| extend Category = coalesce(tostring(Props.category), tostring(parse_json(tostring(Props.custom_dimensions)).category))\n| summarize Count=count() by Category\n| render piechart",
         "size": 1,
         "title": "Blocked Attacks by Category",
         "queryType": 0,
@@ -81,7 +81,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend EventType = tostring(Properties.event_type)\n| where EventType == 'PII_REDACTED'\n| extend EntityCount = toint(Properties.entity_count)\n| summarize TotalEvents = count(), TotalEntities = sum(EntityCount)\n| project strcat('📊 PII Events: ', TotalEvents), strcat('🔒 Entities Redacted: ', TotalEntities)",
+        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend Props = parse_json(Properties)\n| extend EventType = coalesce(tostring(Props.event_type), tostring(parse_json(tostring(Props.custom_dimensions)).event_type))\n| where EventType == 'PII_REDACTED'\n| extend EntityCount = toint(coalesce(Props.entity_count, parse_json(tostring(Props.custom_dimensions)).entity_count))\n| summarize TotalEvents = count(), TotalEntities = sum(EntityCount)\n| project strcat('📊 PII Events: ', TotalEvents), strcat('🔒 Entities Redacted: ', TotalEntities)",
         "size": 3,
         "title": "PII Redaction Summary",
         "queryType": 0,
@@ -98,7 +98,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend EventType = tostring(Properties.event_type)\n| where EventType == 'INJECTION_BLOCKED'\n| extend ToolName = tostring(Properties.tool_name)\n| where isnotempty(ToolName)\n| summarize Count=count() by ToolName\n| top 10 by Count desc\n| render barchart",
+        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend Props = parse_json(Properties)\n| extend EventType = coalesce(tostring(Props.event_type), tostring(parse_json(tostring(Props.custom_dimensions)).event_type))\n| where EventType == 'INJECTION_BLOCKED'\n| extend ToolName = coalesce(tostring(Props.tool_name), tostring(parse_json(tostring(Props.custom_dimensions)).tool_name))\n| where isnotempty(ToolName)\n| summarize Count=count() by ToolName\n| top 10 by Count desc\n| render barchart",
         "size": 0,
         "title": "Attack Trends by MCP Tool",
         "queryType": 0,
@@ -111,7 +111,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend EventType = tostring(Properties.event_type)\n| where EventType in ('INJECTION_BLOCKED', 'PII_REDACTED', 'CREDENTIAL_DETECTED', 'SECURITY_ERROR')\n| extend Category = tostring(Properties.category), CorrelationId = tostring(Properties.correlation_id), Severity = tostring(Properties.severity)\n| project TimeGenerated, EventType, Category, Severity, Message, CorrelationId\n| order by TimeGenerated desc\n| take 50",
+        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend Props = parse_json(Properties)\n| extend EventType = coalesce(tostring(Props.event_type), tostring(parse_json(tostring(Props.custom_dimensions)).event_type))\n| where EventType in ('INJECTION_BLOCKED', 'PII_REDACTED', 'CREDENTIAL_DETECTED', 'SECURITY_ERROR')\n| extend Category = coalesce(tostring(Props.category), tostring(parse_json(tostring(Props.custom_dimensions)).category))\n| extend CorrelationId = coalesce(tostring(Props.correlation_id), tostring(parse_json(tostring(Props.custom_dimensions)).correlation_id))\n| extend Severity = coalesce(tostring(Props.severity), tostring(parse_json(tostring(Props.custom_dimensions)).severity))\n| project TimeGenerated, EventType, Category, Severity, Message, CorrelationId\n| order by TimeGenerated desc\n| take 50",
         "size": 0,
         "title": "Recent Security Events",
         "queryType": 0,
@@ -154,7 +154,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend EventType = tostring(Properties.event_type)\n| where EventType == 'SECURITY_ERROR'\n| summarize ErrorCount=count() by bin(TimeGenerated, 5m)\n| render timechart",
+        "query": "AppTraces\n| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}\n| extend Props = parse_json(Properties)\n| extend EventType = coalesce(tostring(Props.event_type), tostring(parse_json(tostring(Props.custom_dimensions)).event_type))\n| where EventType == 'SECURITY_ERROR'\n| summarize ErrorCount=count() by bin(TimeGenerated, 5m)\n| render timechart",
         "size": 0,
         "title": "Security Function Error Rate",
         "queryType": 0,

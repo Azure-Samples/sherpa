@@ -9,6 +9,9 @@ param apimClientAppId string = ''
 param tenantId string
 param mcpAppClientId string = ''
 
+@description('Content Safety endpoint for Prompt Shields policy fragment')
+param contentSafetyEndpoint string = ''
+
 @description('Application Insights resource ID for APIM logger')
 param appInsightsId string
 
@@ -88,6 +91,18 @@ resource namedValueMcpAppClientId 'Microsoft.ApiManagement/service/namedValues@2
   properties: {
     displayName: 'mcp-app-client-id'
     value: mcpAppClientId
+    secret: false
+  }
+}
+
+// Named value for Content Safety endpoint (used in policy fragments)
+// Only created if the value is provided
+resource namedValueContentSafety 'Microsoft.ApiManagement/service/namedValues@2024-06-01-preview' = if (!empty(contentSafetyEndpoint)) {
+  parent: apim
+  name: 'content-safety-endpoint'
+  properties: {
+    displayName: 'content-safety-endpoint'
+    value: contentSafetyEndpoint
     secret: false
   }
 }

@@ -17,10 +17,17 @@ def main():
         print("Error: WORKSPACE_ID, WORKBOOK_GUID, and LOCATION environment variables required", file=sys.stderr)
         return 1
     
-    # KQL query helper - custom dimensions parsing
-    # Azure Monitor OpenTelemetry for Python stores custom dimensions as a Python dict string
-    # (with single quotes and None). Properties itself is also a JSON string that must be parsed first.
-    custom_dims_parse = '''parse_json(replace_string(replace_string(tostring(parse_json(Properties).custom_dimensions), "'", "\\""), "None", "null"))'''
+    # KQL query helper - handles both log formats:
+    # 1. APIM trace logs: Properties contains event_type, category, etc. directly
+    # 2. Function v2 logs: Properties.custom_dimensions contains the values (as Python dict string)
+    # We use coalesce to check both locations (no 'let' - workbooks don't support it)
+    unified_props = '''extend Props = parse_json(Properties)
+| extend CustomDims = parse_json(replace_string(replace_string(tostring(Props.custom_dimensions), "'", "\\""), "None", "null"))
+| extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type)),
+       InjectionType = coalesce(tostring(Props.injection_type), tostring(CustomDims.injection_type)),
+       Category = coalesce(tostring(Props.category), tostring(CustomDims.category)),
+       ToolName = coalesce(tostring(Props.tool_name), tostring(CustomDims.tool_name)),
+       CorrelationId = coalesce(tostring(Props.correlation_id), tostring(CustomDims.correlation_id))'''
     
     # Workbook content with KQL queries
     workbook_content = {
@@ -51,8 +58,7 @@ def main():
                     "query": f'''AppTraces
 | where TimeGenerated > ago(24h)
 | where Properties has "event_type"
-| extend CustomDims = {custom_dims_parse}
-| extend EventType = tostring(CustomDims.event_type), InjectionType = tostring(CustomDims.injection_type)
+| {unified_props}
 | where EventType == "INJECTION_BLOCKED"
 | summarize Attacks=count() by InjectionType
 | order by Attacks desc''',
@@ -71,8 +77,7 @@ def main():
                     "query": f'''AppTraces
 | where TimeGenerated > ago(24h)
 | where Properties has "event_type"
-| extend CustomDims = {custom_dims_parse}
-| extend EventType = tostring(CustomDims.event_type), ToolName = tostring(CustomDims.tool_name)
+| {unified_props}
 | where EventType == "INJECTION_BLOCKED" and isnotempty(ToolName)
 | summarize Attacks=count() by ToolName
 | order by Attacks desc
@@ -105,11 +110,9 @@ def main():
                     "query": f'''AppTraces
 | where TimeGenerated > ago(4h)
 | where Properties has "event_type"
-| extend CustomDims = {custom_dims_parse}
-| extend EventType = tostring(CustomDims.event_type),
-         InjectionType = tostring(CustomDims.injection_type),
-         CorrelationId = tostring(CustomDims.correlation_id)
-| project TimeGenerated, EventType, InjectionType, CorrelationId
+| {unified_props}
+| where isnotempty(EventType)
+| project TimeGenerated, EventType, InjectionType, Category, ToolName, CorrelationId
 | order by TimeGenerated desc
 | limit 50''',
                     "size": 0,
