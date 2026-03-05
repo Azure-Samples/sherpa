@@ -11,72 +11,17 @@ hide:
 
 ---
 
-APIM processes all your MCP traffic, and in this workshop, diagnostic settings are pre-configured via Bicep. This section explores what's been configured and validates that logs are flowing.
+Every MCP reques, legitimate or malicious, passes through APIM. By default, APIM routes traffic but records nothing. In this workshop, the Bicep infrastructure pre-configures **diagnostic settings** that stream two log categories (`GatewayLogs` and `GatewayLlmLogs`) to your Log Analytics workspace, so you can query traffic immediately after `azd up`.
 
-## The Logging Gap: Before & After
-
-Understanding diagnostic settings helps when configuring other Azure resources. Here's what APIM looks like without diagnostic settings vs with them:
-
-```
-WITHOUT: No Diagnostic Settings                WITH: Diagnostics Enabled (Our Setup)
-═══════════════════════════════════════        ═══════════════════════════════════════
-
-   MCP Client                                     MCP Client
-       │                                              │
-       ▼                                              ▼
-┌──────────────┐                                ┌──────────────┐
-│    APIM      │                                │    APIM      │───────────────────┐
-│   Gateway    │                                │   Gateway    │                   │
-│              │                                │              │   Diagnostic      │
-│  • Routes ✓  │                                │  • Routes ✓  │   Settings        │
-│  • Policies ✓│                                │  • Policies ✓│                   │
-│  • Logs?     │                                │  • Logs ✓    │                   ▼
-└──────┬───────┘                                └──────┬───────┘        ┌─────────────────┐
-       │                                               │                │  Log Analytics  │
-       ▼                                               ▼                │                 │
-┌─────────────┐                                ┌─────────────┐          │ • GatewayLogs   │
-│   Backend   │                                │   Backend   │          │ • GatewayLlmLogs│
-│   Services  │                                │   Services  │          └─────────────────┘
-└─────────────┘                                └─────────────┘                │
-                                                                              ▼
-Traffic works fine,                            Traffic works AND           KQL Queries
-but NO VISIBILITY                              you can QUERY everything    Dashboards
-                                                                           Alerts
-```
-
-## Why Gateway Logging Matters
-
-Azure API Management sits at the front door of your MCP infrastructure. Every request, legitimate or malicious, passes through it. In this workshop, **APIM diagnostic settings are pre-configured via Bicep**, so you can immediately query logs once `azd up` completes.
-
-!!! success "Pre-Configured for Learning"
-    Unlike a default APIM deployment where you'd have no visibility, this workshop configures diagnostic settings automatically during infrastructure deployment. This means:
-    
-    - :material-check: Gateway logs flow to Log Analytics immediately
-    - :material-check: You can start querying traffic right away
-    - :material-check: No manual configuration required
-
-With diagnostic settings enabled, you have full visibility into:
-
-- Who called your APIs (IP addresses)  
-- What MCP tools were invoked  
-- How long requests took  
-- Which requests failed and why
-
-!!! example "The Security Guard Analogy"
-    It's like having a security guard who checks IDs **and** writes down every entry in a log book. The guard does their job, and there's a complete record anyone can review later.
-
-## Understanding Diagnostic Settings
-
-**Diagnostic Settings** are Azure's way of routing telemetry from a resource to a destination. For APIM, you configure:
-
-- **Source**: Which log categories to capture (GatewayLogs, GatewayLlmLogs)
-- **Destination**: Where to send them (Log Analytics workspace)
-
-In this workshop, the Bicep infrastructure configures these automatically. Once deployed, APIM streams logs to your workspace without any manual steps.
+| Without Diagnostic Settings | With Diagnostic Settings (this workshop) |
+|-----------------------------|------------------------------------------|
+| Traffic routes normally | Traffic routes normally |
+| No record of who called, what failed, or how long it took | Every request logged with caller IP, timing, response code, correlation ID |
+| Incidents are invisible | Queryable via KQL → dashboards → alerts |
 
 ## 1.1 Explore APIM Gateway Logging
 
-??? abstract "Send Traffic and See Logs Flow"
+???+ abstract "Send Traffic and See Logs Flow"
 
     Run the script to send traffic through APIM and verify logging:
 
@@ -105,7 +50,7 @@ In this workshop, the Bicep infrastructure configures these automatically. Once 
 
 ## 1.2 Verify Diagnostic Configuration
 
-??? success "Understand What's Configured"
+???+ success "Understand What's Configured"
 
     Examine the diagnostic settings:
 
@@ -113,42 +58,17 @@ In this workshop, the Bicep infrastructure configures these automatically. Once 
     ./scripts/section1/1.2-verify.sh
     ```
 
-    **What this does:**
-
-    Shows you the diagnostic settings deployed via Bicep, including enabled log categories and destination.
-
-    **ApiManagementGatewayLogs (HTTP level):**
-
-    | Field | Description |
-    |-------|-------------|
-    | `CallerIpAddress` | Client IP (for investigations) |
-    | `ResponseCode` | HTTP response code |
-    | `CorrelationId` | For cross-service tracing |
-    | `Url`, `Method` | Request path and HTTP method |
-    | `ApiId` | API identifier for filtering |
-
-    **ApiManagementGatewayLlmLog (AI/LLM gateway):**
-
-    | Field | Description |
-    |-------|-------------|
-    | `PromptTokens` | Input token count |
-    | `CompletionTokens` | Output token count |
-    | `ModelName` | LLM model used |
-    | `CorrelationId` | For cross-service tracing |
+    Shows the diagnostic settings deployed via Bicep, which log categories are enabled, and where they're sent. See the **Key Log Tables** below for the fields available in each table.
 
     !!! tip "Verify in Azure Portal"
-        You can also view diagnostic settings by navigating to your APIM resource:
-        
         **APIM** → **Monitoring** → **Diagnostic settings** → **mcp-security-logs**
-        
-        You should see `GatewayLogs` and `GatewayLlmLogs` enabled, pointing to your Log Analytics workspace.
 
 ## 1.3 Validate Logs Appear
 
 !!! warning "Wait for Log Ingestion"
     For new deployments, logs need 2-5 minutes to appear in Log Analytics. If you run this immediately after `azd up`, you may see "No HTTP logs found yet." Wait a few minutes and try again.
 
-??? success "Query APIM Logs"
+???+ success "Query APIM Logs"
 
     Verify logs are flowing:
 
@@ -184,8 +104,7 @@ This section uses these Azure Monitor log tables:
 | **ApiManagementGatewayLogs** | GatewayLogs | `CallerIpAddress`, `ResponseCode`, `CorrelationId`, `Url`, `Method`, `ApiId` |
 | **ApiManagementGatewayLlmLog** | GatewayLlmLogs | `PromptTokens`, `CompletionTokens`, `ModelName`, `CorrelationId` |
 
-!!! info "Correlation IDs"
-    The **CorrelationId** field appears across all log tables and is essential for incident response. It allows you to trace a single request from APIM through the security function and back, correlating HTTP logs and application traces.
+The `CorrelationId` field appears in both tables — you'll use it in Section 4 to trace a single request across APIM and the security function.
 
 ---
 

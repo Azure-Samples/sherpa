@@ -11,61 +11,11 @@ hide:
 
 ---
 
-## Why Practice Incident Response?
-
-Building a monitoring system is one thing. Actually using it under pressure is another.
-
-Security teams practice incident response for the same reason firefighters practice drills: when the real thing happens, you don't want to be figuring things out for the first time.
-
-In this section, you'll:
-
-1. **Simulate a realistic attack** - Multiple attack vectors, realistic payloads
-2. **Watch your dashboard light up** - See the "actionable" part in action
-3. **Investigate using correlation IDs** - Trace the attack across services
-4. **Verify alerts trigger** - Confirm your automated notifications work
-
-## The Power of Correlation IDs
-
-When investigating an incident, the most valuable tool is the **correlation ID**. Here's why:
-
-A single user action might touch multiple services:
-```
-Client Request → APIM → Security Function → MCP Server → Database
-```
-
-Each service logs independently. Without correlation, you'd have:
-
-- APIM log: "Request from 203.0.113.42"
-- Function log: "Injection blocked: sql_injection"  
-- MCP Server log: "Request failed"
-
-Which function log matches which APIM request? 🤷
-
-With correlation IDs, every service logs the same ID:
-```
-APIM:     correlation_id=abc-123, CallerIP=203.0.113.42
-Function: correlation_id=abc-123, event_type=INJECTION_BLOCKED  
-MCP:      correlation_id=abc-123, status=blocked
-```
-
-Now you can instantly reconstruct the full story:
-
-```kusto
-let id = "abc-123";
-ApiManagementGatewayLogs | where CorrelationId == id
-| union (
-    AppTraces 
-    | where Properties has "correlation_id"
-    | extend CustomDims = parse_json(replace_string(replace_string(
-        tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-    | where tostring(CustomDims.correlation_id) == id
-)
-| order by TimeGenerated
-```
+You've built the monitoring system. Now put it under pressure. This section simulates a realistic multi-vector attack so you can watch your dashboard light up, trace the attack across services, and verify your alerts fire.
 
 ## 4.1 Simulate Multi-Vector Attack
 
-??? warning "Attack Simulation"
+???+ warning "Attack Simulation"
 
     Run the attack simulation:
 
@@ -73,56 +23,51 @@ ApiManagementGatewayLogs | where CorrelationId == id
     ./scripts/section4/4.1-simulate-attack.sh
     ```
 
-    **Attack phases:**
+    The script sends attacks in phases: reconnaissance, SQL injection, path traversal, shell injection, and prompt injection. It outputs correlation IDs you can use to trace each attack.
 
-    1. **Reconnaissance** - Probe for available tools
-    2. **SQL Injection** - Multiple payload variations
-    3. **Path Traversal** - Try to access system files
-    4. **Shell Injection** - Command execution attempts
-    5. **Prompt Injection** - AI jailbreak attempts
+    **Now open your dashboard.** Go to the Azure Portal → your resource group → the Workbook you deployed in Section 3. Refresh and watch:
 
-    **What to observe:**
+    - **MCP Request Volume** spikes as attack traffic arrives
+    - **Attacks by Injection Type** breaks down exactly what was thrown at your server
+    - **Recent Security Events** shows each blocked request with its correlation ID
 
-    - Dashboard shows spike in attack volume
-    - "High Attack Volume" alert triggers
-    - Email notification (if configured)
+    This is everything you built — APIM logging, structured detection, and dashboards — working together in real time.
 
-    **Full log correlation query:**
+    !!! tip "Alerts take longer"
+        The "High Attack Volume" alert evaluates on a 5-minute window. Give it 5–10 minutes, then check your email (if you configured a notification in Section 3).
 
-    The script outputs a correlation ID. Use it to trace the attack across ALL services:
+    **Trace an attack across services:**
+
+    Copy a correlation ID from the script output and run this in Log Analytics:
 
     ```kusto
-    // Correlate attack across APIM and Function logs
-    let timeRange = ago(1h);
-    AppTraces
-    | where TimeGenerated > timeRange
-    | where Properties has "event_type"
-    | extend CustomDims = parse_json(replace_string(replace_string(
-        tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-    | extend CorrelationId = tostring(CustomDims.correlation_id)
-    | join kind=leftouter (
-        ApiManagementGatewayLogs
-        | where TimeGenerated > timeRange
-        | where ApiId contains "mcp" or ApiId contains "sherpa"
-        | project CorrelationId, CallerIpAddress, ResponseCode
-    ) on CorrelationId
-    | project TimeGenerated, CorrelationId, 
-        EventType=tostring(CustomDims.event_type),
-        InjectionType=tostring(CustomDims.injection_type),
-        CallerIpAddress, ResponseCode
-    | order by TimeGenerated desc
-    | take 50
+    let id = "PASTE-CORRELATION-ID";
+    union
+        (ApiManagementGatewayLogs | where CorrelationId == id
+         | project TimeGenerated, Source="APIM", CorrelationId,
+                  Details=strcat("HTTP ", ResponseCode, " from ", CallerIpAddress)),
+        (AppTraces | where Properties has id
+         | extend CustomDims = parse_json(replace_string(replace_string(
+             tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
+         | where tostring(CustomDims.correlation_id) == id
+         | project TimeGenerated, Source="Function", CorrelationId=id,
+                  Details=strcat(tostring(CustomDims.event_type), ": ", tostring(CustomDims.injection_type)))
+    | order by TimeGenerated asc
     ```
+
+    This reconstructs the full story of a single request across APIM and the security function. See the [KQL Query Reference](reference.md#kql-query-reference) for more investigation queries.
 
 ---
 
 ## Cleanup
 
+When you're done with the workshop:
+
 ```bash
 # Remove all Azure resources
 azd down --force --purge
 
-# Clean up Entra ID apps (optional - ignore errors if already deleted)
+# Clean up Entra ID app registrations (ignore errors if already deleted)
 az ad app delete --id $(azd env get-value MCP_APP_CLIENT_ID)
 az ad app delete --id $(azd env get-value APIM_CLIENT_APP_ID)
 ```
@@ -131,73 +76,19 @@ az ad app delete --id $(azd env get-value APIM_CLIENT_APP_ID)
 
 ## Congratulations!
 
-You've completed Camp 4: Monitoring & Telemetry and reached **Observation Peak**! One more climb to go. The Summit awaits!
-
-### Your Journey: Hidden → Visible → Actionable
-
-Think back to where you started:
+You've completed Camp 4 and reached **Observation Peak**! Here's how far you've come:
 
 | Before | After |
 |--------|-------|
 | APIM routed traffic silently | Every request logged with caller IP, timing, correlation |
 | No AI-based attack detection | Layer 1 (Prompt Shields) blocks prompt injection at the edge |
-| Function logged basic warnings | Layer 2 structured events for SQL/path/shell with custom dimensions |
+| Function logged basic warnings | Structured events with custom dimensions and correlation IDs |
 | No way to see attack patterns | Real-time dashboard showing all attack categories |
 | Manual log checking | Automated alerts notify you of threats |
 
-You've transformed your MCP infrastructure from a "black box" into a fully observable system.
+The **hidden → visible → actionable** pattern applies beyond monitoring: whenever you deploy something new, ask yourself, "If this breaks at 3 AM, how will I know?"
 
-### What You've Accomplished
-
-:material-check: **Enabled APIM diagnostics** with GatewayLogs, GatewayLlmLogs, and WebSocketConnectionLogs  
-:material-check: **Implemented structured logging** with correlation IDs and custom dimensions  
-:material-check: **Built a security dashboard** using Azure Workbooks  
-:material-check: **Configured alert rules** for attack detection  
-:material-check: **Learned KQL** for security investigations  
-:material-check: **Practiced incident response** with cross-service log correlation
-
-### The Hidden → Visible → Actionable Pattern
-
-This pattern applies beyond just monitoring:
-
-- **Hidden problems** → Use diagnostics, logging, tracing to make them **visible**
-- **Visible data** → Use dashboards, alerts, automation to make it **actionable**
-
-Whenever you deploy something new, ask yourself: "If this breaks at 3 AM, how will I know? How will I investigate?"
-
-### Skills You've Gained
-
-| Skill | What You Can Now Do |
-|-------|---------------------|
-| **Azure Monitor** | Configure diagnostic settings, use Log Analytics |
-| **KQL** | Write queries to investigate security events |
-| **Structured Logging** | Design log events that are queryable at scale |
-| **Dashboarding** | Build Workbooks for security visualization |
-| **Alerting** | Create rules that notify on security thresholds |
-| **Incident Response** | Trace requests across services using correlation IDs |
-
----
-
-## Almost at the Summit!
-
-You've completed all four skill-building camps:
-
-| Camp | What You Secured |
-|------|------------------|
-| **Base Camp** | Understanding MCP vulnerabilities |
-| **Camp 1: Identity** | OAuth 2.0 + Entra ID authentication |
-| **Camp 2: Gateway** | APIM protection + rate limiting |
-| **Camp 3: I/O Security** | Input validation + output sanitization |
-| **Camp 4: Monitoring** | Full observability + alerting |
-
-Your MCP servers are now **authenticated**, **protected**, **validated**, and **observable**.
-
-!!! tip "What's Next: The Summit"
-    You've learned all the individual security skills. Now it's time to put them all together!
-    
-    The **Summit** is where you'll deploy the complete secure MCP infrastructure and test it with realistic red team / blue team exercises.
-
-**One more climb to go!**
+Your MCP servers are now **authenticated**, **protected**, **validated**, and **observable**. One more climb to go!
 
 ---
 

@@ -15,7 +15,7 @@ hide:
 
 ### Welcome to Observation Peak!
 
-You've made it to Camp 4, the last skill-building camp before the Summit! Throughout your journey, you've built authentication (Camp 1), MCP gateways (Camp 2), and I/O security (Camp 3). Your MCP server is now protected by multiple layers of defense.
+You've made it to Camp 4, the last skill-building camp before the Summit! Throughout your journey, you've locked down authentication, put a gateway in front of your MCP servers, and added input validation and output sanitization. Your servers are now protected by multiple layers of defense.
 
 But here's a question: **How do you know it's working?**
 
@@ -75,33 +75,7 @@ By the end of Camp 4, every request will be logged, visualized, and alertable. H
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-<div class="grid cards" markdown>
-
-- :material-math-log:{ .lg .middle } __Structured Logging__
-
-    ---
-
-    Transform generic log messages into rich, queryable events with custom dimensions like `event_type`, `category`, and `correlation_id`.
-
-- :material-chart-line:{ .lg .middle } __Security Dashboard__
-
-    ---
-
-    Visualize attacks, PII redactions, and credential exposures in real-time with Azure Workbooks.
-
-- :material-bell-alert:{ .lg .middle } __Smart Alerting__
-
-    ---
-
-    Get notified immediately when attack rates spike or credentials are exposed.
-
-- :material-magnify:{ .lg .middle } __KQL Queries__
-
-    ---
-
-    Learn Kusto Query Language to analyze security events and create custom reports.
-
-</div>
+You'll wire up structured logging, build a security dashboard with Azure Workbooks, create alert rules that fire when attacks spike, and learn KQL to investigate incidents across services.
 
 ---
 
@@ -114,9 +88,6 @@ Before starting Camp 4, ensure you have:
 :material-check: Azure Developer CLI installed (`azd auth login`)  
 :material-check: Docker installed and running (for Container Apps deployment)  
 :material-check: Completed Camp 3: I/O Security (recommended, but not required)
-
-!!! note "Standalone Lab"
-    While Camp 4 builds on concepts from earlier camps, it's designed to work standalone. The `azd up` command will deploy everything you need, including the security function from Camp 3.
 
 :material-arrow-right: [Full prerequisites guide](../../prerequisites.md) with installation instructions for all tools.
 
@@ -132,76 +103,14 @@ cd camps/camp4-monitoring
 azd up
 ```
 
-This deploys:
+This deploys an APIM gateway, security functions (v1 with basic logging, v2 with structured logging), a Log Analytics workspace, Application Insights, and the MCP server and Trail API on Container Apps.
 
-- **Security Function v1** - Basic logging (the "hidden" state) - **ACTIVE**
-- **Security Function v2** - Structured logging with Azure Monitor - deployed but not active
-- **Log Analytics Workspace** - Central log storage for querying
-- **Application Insights** - Telemetry collection (shared by all services)
-- **APIM Gateway** - API Management with diagnostic settings pre-configured
-- **Container Apps** - MCP server and Trail API backends with OpenTelemetry
+!!! tip "Just want the full solution?"
+    Skip the workshop and deploy everything at once — dashboards, alerts, and structured logging included. See [Production Deployment](production-deploy.md).
 
-!!! note "Initial State"
-    The deployment creates a ready-to-use observability foundation:
-    
-    - APIM diagnostic settings are configured (ApiManagementGatewayLogs flow immediately)
-    - APIM's `function-app-url` named value points to v1 (basic logging)
-    - v1 uses `logging.warning()` which writes to console, not Application Insights
-    
-    Both function versions are pre-deployed. The workshop scripts switch between them by updating APIM's named value—no redeployment needed!
+Once deployment completes, you're ready to start the workshop. Camp 4 follows the **hidden → visible → actionable** pattern — you'll explore what's already logging, make hidden events visible, then turn that visibility into dashboards and alerts.
 
-Once deployment completes, you're ready to start the workshop.
-
----
-
-## Workshop Roadmap
-
-Camp 4 follows the **hidden → visible → actionable** pattern:
-
-<div class="grid cards" markdown>
-
-- :material-eye:{ .lg .middle } __APIM: Pre-Configured__
-
-    ---
-
-    APIM diagnostic settings are deployed via Bicep. Gateway logs flow to Log Analytics automatically. Section 1 explores and validates this configuration.
-
-- :material-eye-off:{ .lg .middle } __Functions: Hidden__
-
-    ---
-
-    Security function v1 uses basic `logging.warning()`. Events occur but aren't queryable in Log Analytics. Section 2 fixes this.
-
-- :material-bell-ring:{ .lg .middle } __Actionable__
-
-    ---
-
-    Create dashboards for monitoring and alerts that notify you when something needs attention. Turn visibility into automated response.
-
-</div>
-
-| Section | Focus | Page |
-|---------|-------|------|
-| **Gateway Logging** | Explore pre-configured diagnostics and validate logs flow | [Start →](section1-apim-logging.md) |
-| **Function Observability** | Switch from v1 (basic) to v2 (structured logging) | [Start →](section2-function-observability.md) |
-| **Dashboards & Alerts** | Make security actionable | [Start →](section3-dashboards-alerts.md) |
-| **Incident Response** | Test the complete system | [Start →](section4-incident-response.md) |
-
-Additional resources: [KQL Primer, Architecture Deep Dive, Troubleshooting →](reference.md)
-
----
-
-## What You'll Learn
-
-!!! tip "Learning Objectives"
-    - **Enable** APIM diagnostic settings for gateway and AI gateway logs
-    - **Implement** structured security logging in Azure Functions with correlation IDs
-    - **Query** logs using KQL for security investigations with full log correlation
-    - **Build** security monitoring dashboards using Azure Workbooks
-    - **Create** alert rules for attack pattern detection
-    - **Perform** incident response exercises with cross-service log tracing
-
-Ready? Let's start by exploring what APIM is already logging.
+Ready? Let's start by exploring what API Management is already logging.
 
 [Start: Gateway Logging →](section1-apim-logging.md){ .md-button .md-button--primary }
 

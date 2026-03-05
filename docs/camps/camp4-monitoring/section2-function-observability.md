@@ -15,31 +15,7 @@ APIM logs show HTTP traffic, but the security function's internal operations (wh
 
 ## Two-Layer Blocking Architecture
 
-Attacks are blocked at **two different layers**, and understanding this is key to writing correct queries:
-
-```
-                          MCP Request
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    LAYER 1: APIM Policy                             │
-│                                                                     │
-│    Prompt Shields (Azure Content Safety)                            │
-│    • Blocks prompt injection attacks                                │
-│    • Structured logging via <trace> policy                          │
-│    • Logs directly to AppTraces: Properties.event_type              │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │ (if not blocked)
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    LAYER 2: Security Function                       │
-│                                                                     │
-│    Regex-based pattern detection                                    │
-│    • Blocks SQL injection, path traversal, shell injection          │
-│    • Structured logging via OpenTelemetry                           │
-│    • Logs to AppTraces: Properties.custom_dimensions.event_type     │
-└─────────────────────────────────────────────────────────────────────┘
-```
+Attacks are blocked at two layers, and each logs to a different property path. KQL queries need to check **both** locations to capture all attack types:
 
 | Attack Type | Blocked By | Log Location |
 |-------------|-----------|--------------|
@@ -47,8 +23,6 @@ Attacks are blocked at **two different layers**, and understanding this is key t
 | **SQL injection** | Layer 2 (Security Function) | `Properties.custom_dimensions.event_type` |
 | **Path traversal** | Layer 2 (Security Function) | `Properties.custom_dimensions.event_type` |
 | **Shell injection** | Layer 2 (Security Function) | `Properties.custom_dimensions.event_type` |
-
-This two-layer design means KQL queries need to check **both** property locations to capture all attack types. The unified query pattern using `coalesce()` handles this automatically.
 
 ## The Problem: Basic Logging Is Invisible
 
@@ -63,7 +37,7 @@ This produces a log line like:
 2024-01-15 14:30:00 WARNING Injection blocked: sql_injection
 ```
 
-Simple, readable, and utterly useless for security analysis at scale:
+Simple and readable, but not useful for security analysis at scale:
 
 - **You can't query it** — Want to count SQL injections vs. shell injections? You'd need fragile regex parsing.
 - **You can't correlate it** — Which APIM request triggered this log? No correlation ID to link them.
@@ -73,7 +47,7 @@ The solution is **structured logging**: emitting events as key-value pairs (dime
 
 ## 2.1 See Basic Logging Limitations
 
-??? abstract "Experience Unstructured Logs"
+???+ abstract "Experience Unstructured Logs"
 
     Run the script to trigger security events:
 
@@ -94,16 +68,16 @@ The solution is **structured logging**: emitting events as key-value pairs (dime
 
 ## 2.2 Deploy Structured Logging
 
-??? success "Switch to v2 with Custom Dimensions"
+???+ success "Switch to v2 with Custom Dimensions"
 
-    Switch APIM to use the pre-deployed v2 function:
+    Switch APIM to use the pre-deployed v2 function and send test attacks:
 
     ```bash
     ./scripts/section2/2.2-fix.sh
     ```
 
     !!! tip "No Redeployment Required!"
-        Both function versions were deployed during initial `azd up`. This script simply updates APIM's named value `function-app-url` to point to v2. The switch is instant!
+        Both function versions were deployed during initial `azd up`. This script updates APIM's named value `function-app-url` to point to v2, then sends a few test attacks (SQL injection, path traversal, shell injection) to generate structured log entries for the next step.
 
     **What changes:**
 
@@ -147,21 +121,18 @@ The solution is **structured logging**: emitting events as key-value pairs (dime
 
 ## 2.3 Validate Structured Logs
 
-!!! warning "Wait for Log Ingestion"
-    The test attacks from 2.2-fix.sh need 2-5 minutes to appear in Log Analytics. If you run this immediately after 2.2, you may see "No structured logs found yet." Wait a few minutes and try again.
+???+ success "Query Security Events"
 
-??? success "Query Security Events"
+    !!! warning "Wait for Log Ingestion"
+        The test attacks from step 2.2 need 2-5 minutes to appear in Log Analytics. If you see "No structured logs found yet," wait a few minutes and try again.
 
-    !!! note "Layer 2 Queries"
-        These queries target Layer 2 (Security Function) logs specifically. For unified queries that handle both Layer 1 (APIM/Prompt Shields) and Layer 2 logs, see the [KQL Query Reference](reference.md#kql-query-reference).
-
-    Verify structured events appear:
+    Run the validation script:
 
     ```bash
     ./scripts/section2/2.3-validate.sh
     ```
 
-    **Count attacks by injection type:**
+    **Try it yourself** — open Log Analytics in the Azure portal and run this query to count attacks by type:
 
     ```kusto
     AppTraces
@@ -175,85 +146,10 @@ The solution is **structured logging**: emitting events as key-value pairs (dime
     | order by Count desc
     ```
 
-    **Recent security events with details:**
+    The `parse_json(replace_string(...))` pattern normalizes Python's single-quoted JSON into valid JSON for KQL. You'll see this pattern throughout the workshop.
 
-    ```kusto
-    AppTraces
-    | where Properties has "event_type"
-    | extend CustomDims = parse_json(replace_string(replace_string(
-        tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-    | extend EventType = tostring(CustomDims.event_type),
-             InjectionType = tostring(CustomDims.injection_type),
-             ToolName = tostring(CustomDims.tool_name),
-             CorrelationId = tostring(CustomDims.correlation_id)
-    | where EventType == "INJECTION_BLOCKED"
-    | project TimeGenerated, EventType, InjectionType, ToolName, CorrelationId
-    | order by TimeGenerated desc
-    | limit 20
-    ```
-
-    **Most targeted tools:**
-
-    ```kusto
-    AppTraces
-    | where Properties has "event_type"
-    | extend CustomDims = parse_json(replace_string(replace_string(
-        tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-    | where tostring(CustomDims.event_type) == "INJECTION_BLOCKED"
-    | extend ToolName = tostring(CustomDims.tool_name)
-    | where isnotempty(ToolName)
-    | summarize AttackCount=count() by ToolName
-    | order by AttackCount desc
-    ```
-
-    **End-to-end correlation (auto-finds latest correlation ID):**
-
-    This query finds the most recent blocked attack and traces it across both APIM and Function logs:
-
-    ```kusto
-    // Get the most recent correlation ID from a blocked attack
-    let timeRange = ago(24h);  // Adjust as needed
-    let recentAttack = AppTraces
-    | where TimeGenerated > timeRange
-    | where Properties has "event_type"
-    | extend CustomDims = parse_json(replace_string(replace_string(
-        tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-    | where tostring(CustomDims.event_type) == "INJECTION_BLOCKED"
-    | extend CorrelationId = tostring(CustomDims.correlation_id)
-    | top 1 by TimeGenerated desc
-    | project CorrelationId;
-    // Now trace that request across APIM and Function
-    let correlationId = toscalar(recentAttack);
-    union
-        (ApiManagementGatewayLogs 
-         | where TimeGenerated > timeRange
-         | where CorrelationId == correlationId
-         | project TimeGenerated, Source="APIM", CorrelationId,
-                   Details=strcat("HTTP ", ResponseCode, " from ", CallerIpAddress)),
-        (AppTraces 
-         | where TimeGenerated > timeRange
-         | where Properties has "correlation_id"
-         | extend CustomDims = parse_json(replace_string(replace_string(
-             tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-         | where tostring(CustomDims.correlation_id) == correlationId
-         | project TimeGenerated, Source="Function", CorrelationId=tostring(CustomDims.correlation_id),
-                   Details=strcat(tostring(CustomDims.event_type), ": ", tostring(CustomDims.injection_type)))
-    | order by TimeGenerated asc
-    ```
-
-    **Manual correlation (paste your own ID):**
-
-    ```kusto
-    let correlationId = "YOUR-CORRELATION-ID";
-    union
-        (ApiManagementGatewayLogs | where CorrelationId == correlationId),
-        (AppTraces 
-         | where Properties has "correlation_id"
-         | extend CustomDims = parse_json(replace_string(replace_string(
-             tostring(Properties.custom_dimensions), "'", "\""), "None", "null"))
-         | where tostring(CustomDims.correlation_id) == correlationId)
-    | order by TimeGenerated
-    ```
+    !!! note "More KQL Queries"
+        The [KQL Query Reference](reference.md#kql-query-reference) has additional queries including recent events with details, most targeted tools, end-to-end correlation tracing, and unified queries that span both Layer 1 and Layer 2 logs.
 
 ---
 

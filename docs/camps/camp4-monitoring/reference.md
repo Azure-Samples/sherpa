@@ -13,12 +13,6 @@ hide:
 
 ## Understanding Observability
 
-### Logging vs. Observability
-
-You might be thinking: *"I already have logs. My application writes to console. Isn't that enough?"*
-
-Not quite. There's a crucial difference:
-
 | Aspect | Basic Logging | Observability |
 |--------|---------------|---------------|
 | **What it captures** | Text messages | Structured events with dimensions |
@@ -27,126 +21,29 @@ Not quite. There's a crucial difference:
 | **Visualization** | Read log files | Dashboards, charts, trends |
 | **Alerting** | Custom scripts | Built-in threshold monitoring |
 
-!!! example "A Tale of Two Approaches"
-    **Basic logging:** `WARNING: Injection blocked: sql_injection`
-    
-    - Where did it come from? 🤷
-    - What tool was targeted? 🤷
-    - How many happened today? 🤷 (time to write a grep script...)
-    
-    **Structured observability:**
-    ```json
-    {
-      "event_type": "INJECTION_BLOCKED",
-      "injection_type": "sql_injection",
-      "tool_name": "search-trails",
-      "correlation_id": "abc-123-xyz",
-      "caller_ip": "203.0.113.42",
-      "timestamp": "2024-01-15T14:30:00Z"
-    }
-    ```
-    
-    Now you can instantly answer: *"Show me all SQL injections targeting the search-trails tool in the last hour, grouped by source IP."*
-
-### The Three Pillars of Observability
-
-Modern observability rests on three pillars:
-
-<div class="grid cards" markdown>
-
-- :material-format-list-bulleted:{ .lg .middle } __Logs__
-
-    ---
-
-    Discrete events that tell you *what happened*. "User called tool X" or "Injection blocked."
-
-- :material-gauge:{ .lg .middle } __Metrics__
-
-    ---
-
-    Numerical measurements over time. Requests per second, error rates, latency percentiles.
-
-- :material-map-marker-path:{ .lg .middle } __Traces__
-
-    ---
-
-    The path a request takes through your system. Essential for understanding "why was this slow?"
-
-</div>
-
-In this workshop, we focus primarily on **logs** (structured events) while touching on metrics and traces through correlation IDs.
+The difference matters: `WARNING: Injection blocked: sql_injection` tells you something happened. A structured event with `event_type`, `injection_type`, `tool_name`, `correlation_id`, and `caller_ip` tells you *everything*, and lets you query, aggregate, and alert on it automatically.
 
 ---
 
 ## Meet Azure Monitor
 
-### The Azure Monitor Family
+Camp 4 uses four Azure Monitor components:
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Azure Monitor                               │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐  │
-│  │  Log Analytics  │  │   Application   │  │    Azure Monitor    │  │
-│  │    Workspace    │  │    Insights     │  │      Alerts         │  │
-│  │                 │  │                 │  │                     │  │
-│  │  • Store logs   │  │  • Auto-collect │  │  • Threshold rules  │  │
-│  │  • KQL queries  │  │    from apps    │  │  • Email/webhook    │  │
-│  │  • Retention    │  │  • APM features │  │  • Action groups    │  │
-│  └────────┬────────┘  └────────┬────────┘  └──────────┬──────────┘  │
-│           │                    │                      │             │
-│           └──────────────┬─────┴──────────────────────┘             │
-│                          │                                          │
-│              ┌───────────┴───────────┐                              │
-│              │    Azure Workbooks    │                              │
-│              │   (Visualizations)    │                              │
-│              └───────────────────────┘                              │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-**Log Analytics Workspace** is your central log repository. Think of it as a powerful database optimized for time-series log data. You query it using KQL (Kusto Query Language).
-
-**Application Insights** is specifically designed for application monitoring. When you add it to your Azure Function, it automatically captures requests, exceptions, and traces, plus any custom events you log.
-
-**Azure Workbooks** are interactive reports that combine text, KQL queries, and visualizations. They're perfect for security dashboards.
-
-**Azure Monitor Alerts** let you define rules that trigger when conditions are met. "If more than 10 injections in 5 minutes, email the security team."
+| Component | Role |
+|-----------|------|
+| **Log Analytics Workspace** | Central log repository — you query it with KQL |
+| **Application Insights** | App monitoring — auto-captures requests, exceptions, and traces from your Functions |
+| **Azure Workbooks** | Interactive dashboards combining text, KQL queries, and visualizations |
+| **Azure Monitor Alerts** | Rules that trigger notifications when conditions are met |
 
 ### How Logs Flow
 
-Understanding the data flow helps when troubleshooting. Camp 4 has a **two-layer security architecture**:
+Camp 4 has a **two-layer security architecture**. Both layers stream telemetry to the same Log Analytics workspace:
 
-```
-Your MCP Request
-       │
-       ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                    LAYER 1: APIM + Prompt Shields                │
-│  ┌──────────────┐     Diagnostic Settings     ┌───────────────┐  │
-│  │     APIM     │ ──────────────────────────► │ Log Analytics │  │
-│  │   Gateway    │     GatewayLogs             │   Workspace   │  │
-│  │              │     GatewayLlmLogs          │               │  │
-│  │   + Prompt   │     WebSocketConnectionLogs │ ApiMgmt...    │  │
-│  │    Shields   │                             │ tables        │  │
-│  │              │     <trace> policy ────────►│               │  │
-│  │              │     (INJECTION_BLOCKED)     │ AppTraces     │  │
-│  └──────┬───────┘                             └───────────────┘  │
-│         │                                                        │
-│     Blocks: Prompt injection                                     │
-└─────────┼────────────────────────────────────────────────────────┘
-          │ If not blocked at Layer 1
-          ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                    LAYER 2: Security Function                    │
-│  ┌──────────────┐     App Insights SDK        ┌───────────────┐  │
-│  │   Security   │ ──────────────────────────► │  Application  │  │
-│  │   Function   │     Custom events +         │   Insights    │  │
-│  │              │     auto-instrumentation    │               │  │
-│  │              │                             │ AppTraces     │  │
-│  └──────────────┘                             └───────────────┘  │
-│                                                                  │
-│     Blocks: SQL injection, Path traversal, Shell injection       │
-└──────────────────────────────────────────────────────────────────┘
-```
+| Layer | Source | Log Destination | What It Catches |
+|-------|--------|----------------|----------------|
+| **Layer 1** | APIM + Prompt Shields | `ApiManagementGatewayLogs` + `AppTraces` (via `<trace>` policy) | Prompt injection (AI-based) |
+| **Layer 2** | Security Function | `AppTraces` (via App Insights SDK) | SQL injection, path traversal, shell injection, PII, credentials |
 
 !!! info "Two Log Formats for Security Events"
     - **Layer 1 (APIM)**: Logs to `Properties.event_type` directly
@@ -159,30 +56,7 @@ Your MCP Request
 
 ### Unified Telemetry
 
-Camp 4 uses a **single shared Application Insights** instance for all services. This enables:
-
-- **Single pane of glass**: Query logs from APIM, MCP Server, Functions, and Trail API in one place
-- **KQL across services**: Write queries that join telemetry from multiple services
-- **Transaction Search**: Find specific requests by correlation ID and trace them across all services
-- **Consistent alerting**: Create alerts that span the entire system
-
-```
-┌───────────────────────────────────────────────────────────────────────────┐
-│                         Shared Application Insights                       │
-│                                                                           │
-│    ┌─────────┐     ┌─────────────────┐     ┌──────────────────┐           │
-│    │  APIM   │     │  Sherpa MCP     │     │  Trail API       │           │
-│    │ Gateway │     │  Server         │     │  (REST)          │           │
-│    └─────────┘     └─────────────────┘     └──────────────────┘           │
-│                                                                           │
-│                    ┌────────────────┐                                     │
-│                    │  Security      │                                     │
-│                    │  Function      │                                     │
-│                    └────────────────┘                                     │
-│                                                                           │
-│   All services report to the same App Insights for unified queries        │
-└───────────────────────────────────────────────────────────────────────────┘
-```
+All four services (APIM, security function v1/v2, MCP server, trail API) report to a **single shared Application Insights** instance. This gives you a single pane of glass — KQL queries can join telemetry across services, and alerts span the entire system.
 
 !!! tip "Correlation IDs"
     Use the `x-correlation-id` header (based on APIM's RequestId) to trace requests across services in your KQL queries.
@@ -326,6 +200,16 @@ Think of custom dimensions as adding columns to your log database that you can f
 This section is your **cheat sheet**—a collection of queries you'll use regularly for security monitoring.
 
 Each query is designed to answer a specific question. Copy them into Log Analytics and modify as needed.
+
+!!! info "Common Parse Pattern"
+    Most queries below use the same boilerplate to handle both Layer 1 (APIM) and Layer 2 (Function) log formats:
+    ```kusto
+    | extend Props = parse_json(Properties)
+    | extend CustomDims = parse_json(replace_string(replace_string(
+        tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
+    | extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
+    ```
+    See [Working with Custom Dimensions](#working-with-custom-dimensions) for why this is necessary.
 
 !!! tip "Running KQL Queries"
     To run these queries:
@@ -638,29 +522,12 @@ Layer 2 logs are at `Properties.custom_dimensions.event_type`.
 
 ### Log Table Relationships
 
-Here's how the tables connect via CorrelationId, and the two different log formats for security events:
+The tables connect via `CorrelationId`. The key difference between Layer 1 and Layer 2 logs is where properties are stored:
 
-```
-ApiManagementGatewayLogs              AppTraces (Layer 1 - APIM)
-┌────────────────────────┐            ┌──────────────────────────────────┐
-│ CorrelationId: abc-123 │────────────│ Properties.event_type:           │
-│ CallerIpAddress: ...   │            │   INJECTION_BLOCKED              │
-│ ResponseCode: 403      │            │ Properties.category:             │
-│ ApiId: sherpa-mcp      │            │   prompt_injection               │
-│ Method: POST           │            │ Properties.correlation_id:       │
-└────────────────────────┘            │   abc-123                        │
-                                      └──────────────────────────────────┘
+- **Layer 1 (APIM)**: Properties at root level — `Properties.event_type`
+- **Layer 2 (Function)**: Properties nested in `custom_dimensions` as a Python dict string — requires `parse_json(replace_string(...))`
 
-                                      AppTraces (Layer 2 - Function)
-                                      ┌──────────────────────────────────┐
-                                      │ Properties.custom_dimensions:    │
-                                      │   {'event_type': 'INJECTION_..', │
-                                      │    'category': 'sql_injection',  │
-                                      │    'correlation_id': 'def-456'}  │
-                                      └──────────────────────────────────┘
-```
-
-Notice Layer 1 logs have properties at the root level, while Layer 2 logs have them nested in `custom_dimensions` as a Python dict string. This is why queries need `coalesce()` to handle both formats.
+Dashboard queries use `coalesce()` to handle both formats transparently.
 
 ### Outbound Policy Considerations
 
@@ -698,7 +565,7 @@ The sherpa-mcp-server returns **single JSON responses** for its simple tools. Th
 
 Things don't always work the first time. Here are the most common issues and how to fix them.
 
-??? question "My KQL queries return no results"
+???+ question "My KQL queries return no results"
 
     **Don't panic!** This is the #1 issue people hit. Check these things in order:
 
@@ -723,7 +590,7 @@ Things don't always work the first time. Here are the most common issues and how
 
     5. **Generate some events!** Run the exploit scripts to create log entries, then wait a few minutes.
 
-??? question "The dashboard shows 'No data'"
+???+ question "The dashboard shows 'No data'"
 
     **Workbooks need data to display.** If panels are empty:
 
@@ -738,7 +605,7 @@ Things don't always work the first time. Here are the most common issues and how
 
     4. **Check the workspace connection** - Make sure the workbook is querying the right Log Analytics workspace
 
-??? question "Alerts aren't firing even though I see events"
+???+ question "Alerts aren't firing even though I see events"
 
     **Alerts run on a schedule, not in real-time:**
 
@@ -752,7 +619,7 @@ Things don't always work the first time. Here are the most common issues and how
 
     4. **Check action group**: Even if the alert fires, notifications need a properly configured action group with valid email/webhook.
 
-??? question "Properties.event_type returns nothing but I see the data"
+???+ question "Properties.event_type returns nothing but I see the data"
 
     **This depends on which layer emitted the log:**
     
@@ -798,7 +665,7 @@ Things don't always work the first time. Here are the most common issues and how
     {"custom_dimensions": "{'event_type': 'INJECTION_BLOCKED', ...}"}
     ```
 
-??? question "I'm seeing 'Request rate is large' errors"
+???+ question "I'm seeing 'Request rate is large' errors"
 
     **You might be hitting rate limits.** This happens if you:
     
