@@ -38,7 +38,8 @@ AppTraces
 | where EventType == 'INJECTION_BLOCKED'
 | summarize Count = count()
 '''
-          timeAggregation: 'Count'
+          timeAggregation: 'Total'
+          metricMeasureColumn: 'Count'
           operator: 'GreaterThan'
           threshold: 10
           failingPeriods: {
@@ -136,7 +137,8 @@ AppTraces
 | where EventType == 'SECURITY_ERROR'
 | summarize Count = count()
 '''
-          timeAggregation: 'Count'
+          timeAggregation: 'Total'
+          metricMeasureColumn: 'Count'
           operator: 'GreaterThan'
           threshold: 3
           failingPeriods: {
@@ -184,7 +186,8 @@ AppTraces
 | where EventType == 'CREDENTIAL_DETECTED'
 | summarize Count = count()
 '''
-          timeAggregation: 'Count'
+          timeAggregation: 'Total'
+          metricMeasureColumn: 'Count'
           operator: 'GreaterThan'
           threshold: 0
           failingPeriods: {
