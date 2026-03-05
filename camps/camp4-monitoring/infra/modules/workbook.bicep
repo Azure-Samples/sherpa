@@ -75,35 +75,57 @@ var workbookContent = {
       }
       name: 'parameters'
     }
-    // Panel 1: Security Events Over Time
+    // Panel 1: Security Summary Scorecards
     {
       type: 3
       content: {
         version: 'KqlItem/1.0'
         query: '''
-AppTraces
+let data = AppTraces
 | where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}
 | extend Props = parse_json(Properties)
 | extend CustomDims = parse_json(replace_string(replace_string(tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
 | extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
-| where EventType in ('INJECTION_BLOCKED', 'PII_REDACTED', 'CREDENTIAL_DETECTED')
-| summarize Count=count() by bin(TimeGenerated, 5m), EventType
-| render timechart
+| where EventType in ('INJECTION_BLOCKED', 'PII_REDACTED', 'CREDENTIAL_DETECTED', 'SECURITY_ERROR')
+| summarize Count=count() by EventType;
+datatable(EventType:string, SortOrder:int, Label:string)[
+    'INJECTION_BLOCKED', 1, '🛡️ Injections Blocked',
+    'PII_REDACTED', 2, '🔒 PII Redacted',
+    'CREDENTIAL_DETECTED', 3, '⚠️ Credentials Detected',
+    'SECURITY_ERROR', 4, '❌ Security Errors'
+]
+| join kind=leftouter data on EventType
+| project Label, Count = coalesce(Count, 0), SortOrder
+| order by SortOrder asc
 '''
-        size: 0
-        title: 'Security Events Over Time'
+        size: 4
+        title: 'Security Summary'
         queryType: 0
         resourceType: 'microsoft.operationalinsights/workspaces'
-        visualization: 'timechart'
-        chartSettings: {
-          seriesLabelSettings: [
-            { seriesName: 'INJECTION_BLOCKED', color: 'red' }
-            { seriesName: 'PII_REDACTED', color: 'blue' }
-            { seriesName: 'CREDENTIAL_DETECTED', color: 'orange' }
-          ]
+        visualization: 'tiles'
+        tileSettings: {
+          titleContent: {
+            columnMatch: 'Label'
+            formatter: 1
+          }
+          leftContent: {
+            columnMatch: 'Count'
+            formatter: 12
+            formatOptions: {
+              palette: 'auto'
+            }
+            numberFormat: {
+              unit: 17
+              options: {
+                style: 'decimal'
+                maximumFractionDigits: 0
+              }
+            }
+          }
+          showBorder: true
         }
       }
-      name: 'securityEventsTimechart'
+      name: 'securitySummary'
     }
     // Panel 2: Blocked Attacks by Category (Pie Chart)
     {
@@ -127,42 +149,9 @@ AppTraces
         resourceType: 'microsoft.operationalinsights/workspaces'
         visualization: 'piechart'
       }
-      customWidth: '50'
       name: 'attacksByCategory'
     }
-    // Panel 3: PII Redaction Summary (Stat Tiles)
-    {
-      type: 3
-      content: {
-        version: 'KqlItem/1.0'
-        query: '''
-AppTraces
-| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}
-| extend Props = parse_json(Properties)
-| extend CustomDims = parse_json(replace_string(replace_string(tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
-| extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
-| where EventType == 'PII_REDACTED'
-| extend EntityCount = toint(coalesce(Props.entity_count, CustomDims.entity_count))
-| summarize
-    TotalEvents = count(),
-    TotalEntities = sum(EntityCount)
-| project
-    strcat('📊 PII Events: ', TotalEvents),
-    strcat('🔒 Entities Redacted: ', TotalEntities)
-'''
-        size: 3
-        title: 'PII Redaction Summary'
-        queryType: 0
-        resourceType: 'microsoft.operationalinsights/workspaces'
-        visualization: 'tiles'
-        tileSettings: {
-          showBorder: true
-        }
-      }
-      customWidth: '50'
-      name: 'piiSummary'
-    }
-    // Panel 4: Attack Trends by Tool
+    // Panel 3: Attack Trends by Tool
     {
       type: 3
       content: {
@@ -203,7 +192,14 @@ AppTraces
 | extend
     Category = coalesce(tostring(Props.category), tostring(CustomDims.category)),
     CorrelationId = coalesce(tostring(Props.correlation_id), tostring(CustomDims.correlation_id)),
-    Severity = coalesce(tostring(Props.severity), tostring(CustomDims.severity))
+    Severity = case(
+        isnotnull(Props.severity), tostring(Props.severity),
+        isnotnull(CustomDims.severity), tostring(CustomDims.severity),
+        SeverityLevel == 4, 'CRITICAL',
+        SeverityLevel == 3, 'ERROR',
+        SeverityLevel == 2, 'WARNING',
+        'INFO'
+    )
 | project TimeGenerated, EventType, Category, Severity, Message, CorrelationId
 | order by TimeGenerated desc
 | take 50
@@ -235,9 +231,11 @@ AppTraces
               formatOptions: {
                 thresholdsOptions: 'colors'
                 thresholdsGrid: [
+                  { operator: '==', thresholdValue: 'CRITICAL', representation: 'redDark', text: '{0}{1}' }
                   { operator: '==', thresholdValue: 'ERROR', representation: 'red', text: '{0}{1}' }
                   { operator: '==', thresholdValue: 'WARNING', representation: 'orange', text: '{0}{1}' }
-                  { operator: 'Default', representation: 'green', text: '{0}{1}' }
+                  { operator: '==', thresholdValue: 'INFO', representation: 'blue', text: '{0}{1}' }
+                  { operator: 'Default', representation: 'gray', text: '{0}{1}' }
                 ]
               }
             }
@@ -245,34 +243,6 @@ AppTraces
         }
       }
       name: 'recentEvents'
-    }
-    // Panel 6: Error Rate
-    {
-      type: 3
-      content: {
-        version: 'KqlItem/1.0'
-        query: '''
-AppTraces
-| where TimeGenerated >= {TimeRange:start} and TimeGenerated <= {TimeRange:end}
-| extend Props = parse_json(Properties)
-| extend CustomDims = parse_json(replace_string(replace_string(tostring(Props.custom_dimensions), "'", "\""), "None", "null"))
-| extend EventType = coalesce(tostring(Props.event_type), tostring(CustomDims.event_type))
-| where EventType == 'SECURITY_ERROR'
-| summarize ErrorCount=count() by bin(TimeGenerated, 5m)
-| render timechart
-'''
-        size: 0
-        title: 'Security Function Error Rate'
-        queryType: 0
-        resourceType: 'microsoft.operationalinsights/workspaces'
-        visualization: 'timechart'
-        chartSettings: {
-          seriesLabelSettings: [
-            { seriesName: 'ErrorCount', color: 'red' }
-          ]
-        }
-      }
-      name: 'errorRate'
     }
   ]
   isLocked: false

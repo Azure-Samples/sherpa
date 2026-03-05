@@ -84,6 +84,7 @@ nav:
       - Function Observability: camps/camp4-monitoring/section2-function-observability.md
       - Dashboards & Alerts: camps/camp4-monitoring/section3-dashboards-alerts.md
       - Incident Response: camps/camp4-monitoring/section4-incident-response.md
+      - Production Deployment: camps/camp4-monitoring/production-deploy.md
       - Reference: camps/camp4-monitoring/reference.md
     - The Summit: camps/summit.md
   - Resources:

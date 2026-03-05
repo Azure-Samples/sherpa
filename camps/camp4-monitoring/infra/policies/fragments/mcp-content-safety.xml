@@ -74,6 +74,7 @@
             <metadata name="event_type" value="INJECTION_BLOCKED" />
             <metadata name="category" value="prompt_injection" />
             <metadata name="injection_type" value="prompt_injection" />
+            <metadata name="severity" value="WARNING" />
             <metadata name="service" value="apim-content-safety" />
             <metadata name="correlation_id" value="@(context.RequestId.ToString())" />
             <metadata name="tool_name" value="@{

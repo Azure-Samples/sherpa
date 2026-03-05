@@ -26,6 +26,9 @@ param apimClientAppId string = ''
 @description('Unique resource suffix - set by preprovision hook via RESOURCE_SUFFIX env var')
 param resourceSuffix string = ''
 
+@description('Deploy mode: "complete" deploys the fully-configured monitoring stack (v2 active, workbook, alerts). Default deploys the workshop starting state.')
+param deployMode string = ''
+
 // Suffix MUST be provided by preprovision hook to avoid soft-delete conflicts.
 // The fallback using deployment().name is only for manual deployments and may cause issues.
 var effectiveSuffix = !empty(resourceSuffix) ? resourceSuffix : substring(uniqueString(resourceGroup().id, deployment().name), 0, 5)
@@ -248,13 +251,47 @@ module apimDiagnostics 'modules/apim-diagnostics.bicep' = {
   }
 }
 
-// NOTE: Azure Monitor Workbook and Action Group are NOT deployed here - they are created by
-// workshop scripts (3.1-deploy-workbook.sh, 3.2-create-alerts.sh) as part of the 
+// In default (workshop) mode, Workbook and Alerts are NOT deployed here — they are created
+// by workshop scripts (3.1-deploy-workbook.sh, 3.2-create-alerts.sh) as part of the
 // "visible → actionable" learning progression in Section 3.
-// 
-// APIM Diagnostic Settings ARE deployed (apim-diagnostics module above) so that
-// ApiManagementGatewayLogs is available immediately. Section 1 focuses on understanding
-// and querying these logs rather than enabling them.
+//
+// In "complete" mode (DEPLOY_MODE=complete), all monitoring resources are deployed
+// automatically: workbook, action group, and alert rules. This is useful for blog posts,
+// demos, or when you want the fully-configured stack without the step-by-step workshop.
+//
+// APIM Diagnostic Settings ARE deployed in both modes (apim-diagnostics module above).
+
+// --- Complete mode: Workbook, Action Group, Alert Rules ---
+
+module workbook 'modules/workbook.bicep' = if (deployMode == 'complete') {
+  name: 'workbook'
+  params: {
+    name: 'wb-${prefix}'
+    location: location
+    tags: tags
+    logAnalyticsWorkspaceId: logAnalytics.outputs.id
+    appInsightsId: appInsights.outputs.id
+  }
+}
+
+module actionGroup 'modules/action-group.bicep' = if (deployMode == 'complete') {
+  name: 'action-group'
+  params: {
+    name: 'ag-${prefix}'
+    tags: tags
+  }
+}
+
+module alertRules 'modules/alert-rules.bicep' = if (deployMode == 'complete') {
+  name: 'alert-rules'
+  params: {
+    namePrefix: 'alert-${prefix}'
+    location: location
+    tags: tags
+    logAnalyticsWorkspaceId: logAnalytics.outputs.id
+    actionGroupId: actionGroup.outputs.id
+  }
+}
 
 // Outputs for azd and waypoint scripts
 output AZURE_RESOURCE_GROUP string = resourceGroup().name
@@ -285,3 +322,4 @@ output LOG_ANALYTICS_WORKSPACE_NAME string = logAnalytics.outputs.name
 // NOTE: WORKBOOK_ID and ACTION_GROUP_ID removed - created by workshop scripts, not Bicep
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = appInsights.outputs.connectionString
 output APPLICATIONINSIGHTS_NAME string = appInsights.outputs.name
+output DEPLOY_MODE string = deployMode

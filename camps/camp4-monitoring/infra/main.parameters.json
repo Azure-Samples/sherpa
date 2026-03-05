@@ -19,6 +19,9 @@
     },
     "resourceSuffix": {
       "value": "${RESOURCE_SUFFIX=}"
+    },
+    "deployMode": {
+      "value": "${DEPLOY_MODE=}"
     }
   }
 }
