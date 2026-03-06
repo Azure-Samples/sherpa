@@ -182,6 +182,6 @@ az ad app delete --id $APIM_APP_ID
 
 Your gateway now handles identity, rate limiting, content safety, and API governance. Next, you'll turn your attention to the MCP servers themselves and ensure the data flowing in and out is properly validated and sanitized.
 
-[Continue: Camp 3 →](../camp3-io-security.md){ .md-button .md-button--primary }
+[Continue: Camp 3 →](../camp3-io-security/index.md){ .md-button .md-button--primary }
 
-← [Content Safety](section2-content-safety.md) | [Camp 3: I/O Security →](../camp3-io-security.md)
+← [Content Safety](section2-content-safety.md) | [Camp 3: I/O Security →](../camp3-io-security/index.md)

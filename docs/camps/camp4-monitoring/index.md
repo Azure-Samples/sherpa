@@ -116,4 +116,4 @@ Ready? Let's start by exploring what API Management is already logging.
 
 ---
 
-← [Camp 3: I/O Security](../camp3-io-security.md) | [The Summit →](../summit.md)
+← [Camp 3: I/O Security](../camp3-io-security/index.md) | [The Summit →](../summit.md)

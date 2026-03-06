@@ -75,7 +75,7 @@ Your journey follows a proven camp-to-camp progression. Each stage builds on the
     **Navigating I/O Pass** - Protect against prompt injection, PII leakage, and malicious content  
     *OWASP Risks: [MCP06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/), [MCP05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-command-injection/), [MCP03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/)*
 
-    [:octicons-arrow-right-24: Secure your data](camps/camp3-io-security.md)
+    [:octicons-arrow-right-24: Secure your data](camps/camp3-io-security/index.md)
 
 - :material-chart-line:{ .lg .middle } __Camp 4: Monitoring__
 

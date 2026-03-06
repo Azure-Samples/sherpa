@@ -82,7 +82,11 @@ nav:
       - API Governance: camps/camp2-gateway/api-governance.md
       - Content Safety: camps/camp2-gateway/section2-content-safety.md
       - Network Security: camps/camp2-gateway/section3-network-security.md
-    - Camp 3 - I/O Security: camps/camp3-io-security.md
+    - Camp 3 - I/O Security:
+      - "Overview & Deploy": camps/camp3-io-security/index.md
+      - Understand Vulnerabilities: camps/camp3-io-security/section1-vulnerabilities.md
+      - Layer 2 Security: camps/camp3-io-security/section2-layer2-security.md
+      - Validate & Key Learnings: camps/camp3-io-security/section3-validation.md
     - Camp 4 - Monitoring:
       - "Overview & Deploy": camps/camp4-monitoring/index.md
       - Gateway Logging: camps/camp4-monitoring/section1-apim-logging.md
