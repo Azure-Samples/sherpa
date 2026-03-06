@@ -50,7 +50,7 @@ While we finish building the Summit, make sure you've completed all the prerequi
 
 - [Base Camp](base-camp.md) - Understand MCP vulnerabilities
 - [Camp 1: Identity](camp1-identity.md) - Implement OAuth 2.0 authentication
-- [Camp 2: Gateway](camp2-gateway.md) - Deploy APIM protection
+- [Camp 2: Gateway](camp2-gateway/index.md) - Deploy APIM protection
 - [Camp 3: I/O Security](camp3-io-security.md) - Add input/output validation
 - [Camp 4: Monitoring](camp4-monitoring/index.md) - Enable observability and alerting
 

@@ -1419,7 +1419,7 @@ az ad app delete --id $APP_ID
 
 Ready for the next challenge? Proceed to:
 
-**[Camp 2: Gateway & Network Security →](camp2-gateway.md)**
+**[Camp 2: Gateway & Network Security →](camp2-gateway/index.md)**
 
 Learn about:
 
@@ -1488,4 +1488,4 @@ Learn about:
 
 ---
 
-← [Base Camp](base-camp.md) | [Camp 2: Gateway Security](camp2-gateway.md) →
+← [Base Camp](base-camp.md) | [Camp 2: Gateway Security](camp2-gateway/index.md) →

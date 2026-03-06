@@ -1066,4 +1066,4 @@ az ad app delete --id $APIM_APP_ID
 
 ---
 
-← [Camp 2: Gateway](camp2-gateway.md) | [Camp 4: Monitoring](camp4-monitoring/index.md) →
+← [Camp 2: Gateway](camp2-gateway/index.md) | [Camp 4: Monitoring](camp4-monitoring/index.md) →

@@ -66,7 +66,7 @@ Your journey follows a proven camp-to-camp progression. Each stage builds on the
     **Scaling the Gateway Ridge** - Deploy API Management, Private Endpoints, and API Center governance  
     *OWASP Risks: [MCP09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/), [MCP02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/), [MCP07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/)*
 
-    [:octicons-arrow-right-24: Build the gateway](camps/camp2-gateway.md)
+    [:octicons-arrow-right-24: Build the gateway](camps/camp2-gateway/index.md)
 
 - :material-shield-check:{ .lg .middle } __Camp 3: I/O Security__
 

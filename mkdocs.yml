@@ -76,7 +76,12 @@ nav:
   - The Journey:
     - Base Camp: camps/base-camp.md
     - Camp 1 - Identity: camps/camp1-identity.md
-    - Camp 2 - Gateway: camps/camp2-gateway.md
+    - Camp 2 - Gateway:
+      - "Overview & Deploy": camps/camp2-gateway/index.md
+      - Gateway & Authentication: camps/camp2-gateway/section1-gateway-governance.md
+      - API Governance: camps/camp2-gateway/api-governance.md
+      - Content Safety: camps/camp2-gateway/section2-content-safety.md
+      - Network Security: camps/camp2-gateway/section3-network-security.md
     - Camp 3 - I/O Security: camps/camp3-io-security.md
     - Camp 4 - Monitoring:
       - "Overview & Deploy": camps/camp4-monitoring/index.md
