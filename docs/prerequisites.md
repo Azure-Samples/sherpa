@@ -1,6 +1,7 @@
 ---
 hide:
-  - navigation
+    - navigation
+    - toc
 ---
 
 # Prerequisites

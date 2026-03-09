@@ -98,8 +98,6 @@ nav:
     - The Summit: camps/summit.md
   - Resources:
     - Contributing: resources/contributing.md
-    - Infrastructure: resources/infrastructure.md
-    - Scripts: resources/scripts.md
 
 # Plugins
 plugins:
