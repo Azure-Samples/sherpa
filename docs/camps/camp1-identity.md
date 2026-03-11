@@ -831,7 +831,7 @@ Camp 1 follows six waypoints, each building on the previous one. Click each wayp
 
     ---
 
-    ??? example "Option A: Device Code Flow (Understaning OAuth)"
+    ??? example "Option A: Device Code Flow (Understanding OAuth)"
 
         **Best for:** Learning OAuth mechanics, CLI automation, headless environments
 
@@ -1406,85 +1406,7 @@ az ad app delete --id $APP_ID
 
 ---
 
-## Next Steps
-
-### Immediate Actions
-
-- Review your own MCP servers for token exposure
-- Migrate hardcoded secrets to Key Vault
-- Implement OAuth 2.1 for production servers
-- Apply least-privilege RBAC everywhere
-
-### Continue the Journey
-
-Ready for the next challenge? Proceed to:
-
-**[Camp 2: Gateway & Network Security →](camp2-gateway/index.md)**
-
-Learn about:
-
-- Gateway patterns for MCP
-- Rate limiting and throttling
-- Network security controls
-- DDoS protection
-- Traffic monitoring
-
----
-
-## Additional Resources
-
-- [Azure Managed Identity Documentation](https://learn.microsoft.com/azure/active-directory/managed-identities-azure-resources/)
-- [Azure Key Vault Best Practices](https://learn.microsoft.com/azure/key-vault/general/best-practices)
-- [OAuth 2.1 Specification](https://oauth.net/2.1/)
-- [OWASP MCP Azure Security Guide](https://microsoft.github.io/mcp-azure-security-guide/)
-- [FastMCP Authentication Documentation](https://github.com/jlowin/fastmcp)
-
----
-
-## Troubleshooting
-
-??? question "Issue: azd up fails with subscription access error"
-    **Solution:** Ensure you're logged in with correct subscription:
-    ```bash
-    az login
-    az account set --subscription "<your-subscription-id>"
-    azd auth login
-    ```
-
-??? question "Issue: Token acquisition fails"
-    **Solution:** Ensure you're logged in with `az login` and have correct app registration:
-    ```bash
-    az login
-    # Verify tenant
-    az account show --query tenantId -o tsv
-    # Re-run registration if needed
-    ./scripts/register-entra-app.sh
-    ```
-
-??? question "Issue: Key Vault access denied"
-    **Solution:** Verify Managed Identity has "Key Vault Secrets User" role:
-    ```bash
-    ./scripts/enable-managed-identity.sh
-    # Check role assignments
-    azd env get-values | grep AZURE_MANAGED_IDENTITY_PRINCIPAL_ID
-    ```
-
-??? question "Issue: JWT validation fails with 'Invalid audience'"
-    **Solution:** Ensure AZURE_CLIENT_ID matches your Entra ID app:
-    ```bash
-    azd env get-values | grep -E "AZURE_CLIENT_ID|AZURE_TENANT_ID"
-    # Verify these match your app registration in Azure Portal
-    ```
-
-??? question "Issue: Can't find deployed container app URL"
-    **Solution:** Get deployment information:
-    ```bash
-    azd env get-values | grep URL
-    # Or check in Azure Portal:
-    # Resource Group → Container App → Overview → Application Url
-    ```
-
----
+[Continue: Camp 2 Gateway Security →](camp2-gateway/index.md){ .md-button .md-button--primary }
 
 ---
 

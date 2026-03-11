@@ -542,39 +542,20 @@ Start with **Waypoint 1** and work through each waypoint in order. By the end, y
     :material-check: **RBAC** - Role-based access control for fine-grained permissions  
     :material-check: **Audit logging** - Track every access for compliance  
 
-## Summary & Key Takeaways
+## Base Camp Recap
 
-!!! success "What You've Learned"
-    **Vulnerability Demonstrated:** Unauthenticated MCP servers expose all data  
-    **OWASP Risk:** MCP07 - Insufficient Authentication & Authorization  
-    **Fix Applied:** Token-based authentication on every request  
-    **Pattern Learned:** The "vulnerable → exploit → fix → validate" methodology
-
-### What's Next in Camp 1?
-
-Base Camp used simple bearer tokens for demonstration. **Camp 1: Identity & Access Management** will upgrade to production-grade security:
-
-- **OAuth 2.1** with PKCE (S256 method)
-- **Azure Managed Identity** for passwordless authentication
-- **Azure Key Vault** for secrets management
-- **RBAC** for least-privilege access control
-
-Then **Camp 2: Gateway & Network Security** will add centralized API/MCP Gateway protection with Azure API Management.
+| What You Validated | Outcome |
+|--------------------|---------|
+| Vulnerability | Unauthenticated MCP access exposed all user data |
+| OWASP risks | MCP01 (Token Mismanagement), MCP07 (Insufficient Auth) |
+| Security fix | Token-based authentication + per-user authorization |
+| Validation method | Automated exploit and secure tests (`test_vulnerable.py`, `test_secure.py`) |
+| Core pattern | vulnerable → exploit → fix → validate |
 
 ---
 
-## Additional Resources
-
-!!! tip "Learn More"
-    **Source Code:** All code is available in the [GitHub repository](https://github.com/Azure-Samples/sherpa/tree/main/camps/base-camp)
-    
-    **OWASP Guide References:**
-    
-    - [MCP01: Token Mismanagement & Secret Exposure](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token-mismanagement/)
-    - [MCP07: Insufficient Authentication & Authorization](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/)
+[Continue: Camp 1 Identity & Access Management →](camp1-identity.md){ .md-button .md-button--primary }
 
 ---
 
-**Ready to continue the ascent?** Head to [Camp 1: Identity & Access Management](camp1-identity.md) →
-
-*Base Camp complete! You've learned the fundamentals. Now let's climb higher.* 🏔️
+← [Prerequisites](../prerequisites.md) | [Camp 1: Identity & Access Management](camp1-identity.md) →
