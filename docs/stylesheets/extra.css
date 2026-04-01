@@ -165,6 +165,23 @@
   box-shadow: 0 6px 24px rgba(0,0,0,0.25);
 }
 
+.banner-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  height: 140px;
+  margin: 0 auto;
+  background: rgba(255,255,255,0.08);
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+.banner-icon .material-icons {
+  font-size: 4rem;
+  color: rgba(255,255,255,0.7);
+}
+
 @media (max-width: 768px) {
   .camp-banner { padding: 1.5rem 1rem; }
   .camp-banner-content { grid-template-columns: 1fr; text-align: center; }
