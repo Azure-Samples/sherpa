@@ -3,13 +3,18 @@ hide:
   - toc
 ---
 
-# Section 1: Gateway Logging
-
-*Explore pre-configured diagnostics and validate logs flow*
-
-← [Camp 4 Overview](index.md)
-
----
+<div class="camp-banner">
+  <div class="camp-banner-content">
+    <div class="camp-banner-text">
+      <div class="camp-banner-label">Camp 4 · Diagnostics</div>
+      <h1>Gateway Logging</h1>
+      <p>Explore pre-configured diagnostics and validate that APIM logs flow to Log Analytics.</p>
+    </div>
+    <div class="camp-banner-image">
+      <span class="banner-icon"><span class="material-icons">receipt_long</span></span>
+    </div>
+  </div>
+</div>
 
 Every MCP reques, legitimate or malicious, passes through APIM. By default, APIM routes traffic but records nothing. In this workshop, the Bicep infrastructure pre-configures **diagnostic settings** that stream two log categories (`GatewayLogs` and `GatewayLlmLogs`) to your Log Analytics workspace, so you can query traffic immediately after `azd up`.
 

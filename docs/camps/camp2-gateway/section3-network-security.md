@@ -3,7 +3,18 @@ hide:
   - toc
 ---
 
-# Section 3: Network Security
+<div class="camp-banner">
+  <div class="camp-banner-content">
+    <div class="camp-banner-text">
+      <div class="camp-banner-label">Camp 2 · Network Isolation</div>
+      <h1>Network Security</h1>
+      <p>Lock down MCP backends with network isolation so traffic can only flow through the gateway.</p>
+    </div>
+    <div class="camp-banner-image">
+      <span class="banner-icon"><span class="material-icons">lan</span></span>
+    </div>
+  </div>
+</div>
 
 In this final section, you'll learn about network isolation patterns to protect your MCP backends in production.
 

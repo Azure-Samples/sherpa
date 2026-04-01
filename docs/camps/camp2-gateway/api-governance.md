@@ -3,7 +3,18 @@ hide:
   - toc
 ---
 
-# API Governance
+<div class="camp-banner">
+  <div class="camp-banner-content">
+    <div class="camp-banner-text">
+      <div class="camp-banner-label">Camp 2 · Registry</div>
+      <h1>API and MCP Governance</h1>
+      <p>Discover shadow MCP servers, enforce standards, and centralize API governance with Azure API Center.</p>
+    </div>
+    <div class="camp-banner-image">
+      <span class="banner-icon"><span class="material-icons">hub</span></span>
+    </div>
+  </div>
+</div>
 
 ## The Security Challenge: Shadow MCP Servers & API Sprawl
 

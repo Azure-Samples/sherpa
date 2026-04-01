@@ -3,7 +3,18 @@ hide:
   - toc
 ---
 
-# Section 3: Validate & Key Learnings
+<div class="camp-banner">
+  <div class="camp-banner-content">
+    <div class="camp-banner-text">
+      <div class="camp-banner-label">Camp 3 · Validation</div>
+      <h1>Validate & Key Learnings</h1>
+      <p>Confirm both vulnerabilities are fixed and review the defense-in-depth patterns you've built.</p>
+    </div>
+    <div class="camp-banner-image">
+      <span class="banner-icon"><span class="material-icons">check_circle</span></span>
+    </div>
+  </div>
+</div>
 
 Confirm that both vulnerabilities are now fixed by running the same exploits from Section 1.
 

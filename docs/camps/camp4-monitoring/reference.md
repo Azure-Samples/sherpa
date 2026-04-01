@@ -3,13 +3,18 @@ hide:
   - toc
 ---
 
-# Camp 4: Reference
-
-*KQL primer, architecture deep dive, troubleshooting, and query cookbook*
-
-← [Camp 4 Overview](index.md)
-
----
+<div class="camp-banner">
+  <div class="camp-banner-content">
+    <div class="camp-banner-text">
+      <div class="camp-banner-label">Camp 4 · Queries & Logs</div>
+      <h1>Reference</h1>
+      <p>KQL primer, architecture deep dive, troubleshooting, and query cookbook.</p>
+    </div>
+    <div class="camp-banner-image">
+      <span class="banner-icon"><span class="material-icons">menu_book</span></span>
+    </div>
+  </div>
+</div>
 
 ## Understanding Observability
 

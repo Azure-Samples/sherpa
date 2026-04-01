@@ -3,7 +3,18 @@ hide:
   - toc
 ---
 
-# Section 2: Content Safety
+<div class="camp-banner">
+  <div class="camp-banner-content">
+    <div class="camp-banner-text">
+      <div class="camp-banner-label">Camp 2 · Prompt Shields</div>
+      <h1>Content Safety</h1>
+      <p>Detect and block prompt injection attacks at the gateway using Azure AI Content Safety's Prompt Shields.</p>
+    </div>
+    <div class="camp-banner-image">
+      <span class="banner-icon"><span class="material-icons">shield</span></span>
+    </div>
+  </div>
+</div>
 
 In this section, you'll use [Azure AI Content Safety](https://learn.microsoft.com/azure/ai-services/content-safety/overview), specifically its **Prompt Shields** capability, to detect and block prompt injection attacks at the gateway before they reach your MCP servers.
 

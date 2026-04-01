@@ -3,13 +3,18 @@ hide:
   - toc
 ---
 
-# Section 2: Function Observability
-
-*Switch from basic logging to structured telemetry*
-
-← [Gateway Logging](section1-apim-logging.md)
-
----
+<div class="camp-banner">
+  <div class="camp-banner-content">
+    <div class="camp-banner-text">
+      <div class="camp-banner-label">Camp 4 · Observability</div>
+      <h1>Function Observability</h1>
+      <p>Switch from basic logging to structured telemetry so security events become queryable.</p>
+    </div>
+    <div class="camp-banner-image">
+      <span class="banner-icon"><span class="material-icons">monitoring</span></span>
+    </div>
+  </div>
+</div>
 
 APIM logs show HTTP traffic, but the security function's internal operations (what attacks were blocked, what PII was found) are still invisible. This section upgrades from basic logging to structured telemetry.
 

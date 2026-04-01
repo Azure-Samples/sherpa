@@ -3,7 +3,18 @@ hide:
   - toc
 ---
 
-# Section 1: Gateway & Authentication
+<div class="camp-banner">
+  <div class="camp-banner-content">
+    <div class="camp-banner-text">
+      <div class="camp-banner-label">Camp 2 · MCP Gateway</div>
+      <h1>Gateway & Authentication</h1>
+      <p>Deploy MCP servers behind APIM, configure OAuth with automatic discovery, and add rate limiting to protect your backends.</p>
+    </div>
+    <div class="camp-banner-image">
+      <span class="banner-icon"><span class="material-icons">verified_user</span></span>
+    </div>
+  </div>
+</div>
 
 In this section, you'll deploy two MCP servers behind APIM: one native MCP server (Sherpa) and one REST API exported as MCP (Trail API). You'll configure OAuth with automatic discovery using Protected Resource Metadata (RFC 9728) and add rate limiting to protect your backends.
 

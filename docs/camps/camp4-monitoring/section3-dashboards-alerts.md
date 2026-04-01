@@ -3,13 +3,18 @@ hide:
   - toc
 ---
 
-# Section 3: Dashboards & Alerts
-
-*Make security actionable*
-
-← [Function Observability](section2-function-observability.md)
-
----
+<div class="camp-banner">
+  <div class="camp-banner-content">
+    <div class="camp-banner-text">
+      <div class="camp-banner-label">Camp 4 · Azure Monitor</div>
+      <h1>Dashboards & Alerts</h1>
+      <p>Make security actionable with Azure Monitor Workbooks and automated alert rules.</p>
+    </div>
+    <div class="camp-banner-image">
+      <span class="banner-icon"><span class="material-icons">dashboard</span></span>
+    </div>
+  </div>
+</div>
 
 You have structured logs flowing and you can query them with KQL. But nobody has time to run queries all day. This is the final step in the **hidden → visible → actionable** journey: dashboards for at-a-glance status, and alerts that notify you at 3 AM.
 

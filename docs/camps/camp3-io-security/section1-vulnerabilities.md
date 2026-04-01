@@ -3,7 +3,18 @@ hide:
   - toc
 ---
 
-# Section 1: Understand the Vulnerabilities
+<div class="camp-banner">
+  <div class="camp-banner-content">
+    <div class="camp-banner-text">
+      <div class="camp-banner-label">Camp 3 · Vulnerabilities</div>
+      <h1>Understand the Vulnerabilities</h1>
+      <p>Run exploit scripts that reveal critical I/O security gaps hiding behind your Content Safety layer.</p>
+    </div>
+    <div class="camp-banner-image">
+      <span class="banner-icon"><span class="material-icons">bug_report</span></span>
+    </div>
+  </div>
+</div>
 
 You've deployed Camp 3's infrastructure and your MCP servers are running behind APIM with OAuth and Content Safety. Everything looks secure, right?
 

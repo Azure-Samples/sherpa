@@ -3,7 +3,18 @@ hide:
   - toc
 ---
 
-# Section 2: Enable Layer 2 Security
+<div class="camp-banner">
+  <div class="camp-banner-content">
+    <div class="camp-banner-text">
+      <div class="camp-banner-label">Camp 3 · Azure Functions</div>
+      <h1>Enable Layer 2 Security</h1>
+      <p>Wire Azure Functions into APIM for advanced input validation and output sanitization.</p>
+    </div>
+    <div class="camp-banner-image">
+      <span class="banner-icon"><span class="material-icons">filter_alt</span></span>
+    </div>
+  </div>
+</div>
 
 Now that you've seen the vulnerabilities, let's wire the security function into APIM and then look under the hood at how it works.
 

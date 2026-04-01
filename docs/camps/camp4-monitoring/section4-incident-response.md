@@ -3,13 +3,18 @@ hide:
   - toc
 ---
 
-# Section 4: Incident Response
-
-*Test the complete observability system*
-
-← [Dashboards & Alerts](section3-dashboards-alerts.md)
-
----
+<div class="camp-banner">
+  <div class="camp-banner-content">
+    <div class="camp-banner-text">
+      <div class="camp-banner-label">Camp 4 · Attack Simulation</div>
+      <h1>Incident Response</h1>
+      <p>Simulate a multi-vector attack and trace it across your entire observability system.</p>
+    </div>
+    <div class="camp-banner-image">
+      <span class="banner-icon"><span class="material-icons">crisis_alert</span></span>
+    </div>
+  </div>
+</div>
 
 You've built the monitoring system. Now put it under pressure. This section simulates a realistic multi-vector attack so you can watch your dashboard light up, trace the attack across services, and verify your alerts fire.
 

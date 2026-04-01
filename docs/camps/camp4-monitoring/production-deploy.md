@@ -3,13 +3,18 @@ hide:
   - toc
 ---
 
-# Production Deployment
-
-*Deploy the fully-configured stack in one command*
-
-← [Incident Response](section4-incident-response.md)
-
----
+<div class="camp-banner">
+  <div class="camp-banner-content">
+    <div class="camp-banner-text">
+      <div class="camp-banner-label">Camp 4 · Production</div>
+      <h1>Production Deployment</h1>
+      <p>Deploy the fully-configured observability stack in one command.</p>
+    </div>
+    <div class="camp-banner-image">
+      <span class="banner-icon"><span class="material-icons">rocket_launch</span></span>
+    </div>
+  </div>
+</div>
 
 ## Skip the Workshop, Deploy Everything
 
