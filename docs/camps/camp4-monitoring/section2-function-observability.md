@@ -11,7 +11,7 @@ hide:
       <p>Switch from basic logging to structured telemetry so security events become queryable.</p>
     </div>
     <div class="camp-banner-image">
-      <span class="banner-icon"><span class="material-icons">monitoring</span></span>
+      <span class="banner-icon"><span class="material-icons">insights</span></span>
     </div>
   </div>
 </div>
