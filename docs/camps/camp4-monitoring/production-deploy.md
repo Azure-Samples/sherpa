@@ -115,7 +115,7 @@ This single variable controls the full deployment:
 
 This takes ~10-15 minutes. When it finishes, you'll have the complete observability stack running.
 
-???+ info "What Gets Deployed"
+??? info "What Gets Deployed"
     The `azd up` command runs three phases:
 
     **Provision** (Bicep infrastructure):

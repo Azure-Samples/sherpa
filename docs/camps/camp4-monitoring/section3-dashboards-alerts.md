@@ -20,7 +20,7 @@ You have structured logs flowing and you can query them with KQL. But nobody has
 
 ## 3.1 Deploy the Dashboard
 
-???+ abstract "Create Security Workbook"
+??? abstract "Create Security Workbook"
 
     Deploy the Azure Monitor Workbook:
 
@@ -64,7 +64,7 @@ You have structured logs flowing and you can query them with KQL. But nobody has
 
 Dashboards are great when you're looking at them. Alerts watch your logs continuously and notify you when something needs attention.
 
-???+ success "Set Up Automated Notifications"
+??? success "Set Up Automated Notifications"
 
     Create alert rules:
 

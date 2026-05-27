@@ -18,117 +18,115 @@ hide:
 
 In this final section, you'll learn about network isolation patterns to protect your MCP backends in production.
 
-???+ note "Understanding Network Isolation for MCP Servers"
+## The Security Challenge: Direct Backend Access
 
-    ### The Security Challenge: Direct Backend Access
+**OWASP Risk:** [MCP-04 (Software Supply Chain Attacks & Dependency Tampering)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp04-supply-chain/)
 
-    **OWASP Risk:** [MCP-04 (Software Supply Chain Attacks & Dependency Tampering)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp04-supply-chain/)
+Your MCP servers are running in Container Apps with public endpoints. While you've added OAuth, rate limiting, and content safety at the gateway, there's a fundamental problem:
 
-    Your MCP servers are running in Container Apps with public endpoints. While you've added OAuth, rate limiting, and content safety at the gateway, there's a fundamental problem:
+**Anyone who discovers your Container App URL can bypass APIM entirely.**
 
-    **Anyone who discovers your Container App URL can bypass APIM entirely.**
+```
+https://sherpa-mcp-server.xxxxxxx.xxxxx.azurecontainerapps.io
+```
 
+This URL isn't secret—it follows Azure's predictable naming pattern. An attacker who finds it can:
+
+- **Bypass OAuth** — Call the backend directly without authentication
+- **Bypass rate limiting** — Send unlimited requests
+- **Bypass content safety** — Submit malicious prompts without filtering
+- **Avoid detection** — Requests won't appear in your APIM logs
+- **Run up costs** — Direct calls still consume your compute resources
+
+All the security you built in Sections 1 and 2 becomes optional if backends are publicly accessible.
+
+---
+
+## The Solution: Network Isolation
+
+The fix is straightforward in concept: **only allow traffic from APIM to reach your backends**. In practice, there are several ways to achieve this:
+
+??? tip "Option 1: IP Restrictions (Simple but Limited)"
+
+    Container Apps support IP-based access restrictions. You can configure an allow-list that only permits APIM's IP:
+
+    ```bash
+    # Allow only APIM's IP (everything else implicitly denied)
+    az containerapp ingress access-restriction set \
+      --name sherpa-mcp-server \
+      --resource-group $RG \
+      --rule-name "allow-apim" \
+      --ip-address "${APIM_OUTBOUND_IP}/32" \
+      --action Allow
     ```
-    https://sherpa-mcp-server.xxxxxxx.xxxxx.azurecontainerapps.io
+
+    **Limitation:** APIM Basic v2 (used in this workshop) has dynamic outbound IPs that can change during scaling or maintenance. This approach works better with **APIM Standard v2**, which provides static outbound IPs.
+
+??? tip "Option 2: Virtual Network Integration (Recommended for Production)"
+
+    For true network isolation, deploy both APIM and Container Apps inside an Azure Virtual Network. APIM faces the public internet while Container Apps are internal-only with no public IP. Traffic stays within Azure's backbone, and you can add NSGs for defense in depth.
+
+    **Benefits:**
+
+    - Container Apps have no public IP at all
+    - Traffic stays within Azure's backbone
+    - Defense in depth with NSGs
+
+??? tip "Option 3: Private Endpoints"
+
+    Use Azure Private Link to expose your Container Apps only via private endpoints:
+
+    - APIM connects to backends via private IP
+    - No public internet traversal
+    - Can combine with VNet for full isolation
+
+??? tip "Option 4: Header-Based Validation"
+
+    Add a custom header in APIM that backends validate:
+
+    **APIM Policy:**
+    ```xml
+    <set-header name="X-APIM-Gateway-Token" exists-action="override">
+      <value>{{gateway-secret}}</value>
+    </set-header>
     ```
 
-    This URL isn't secret—it follows Azure's predictable naming pattern. An attacker who finds it can:
+    **Backend validation:**
+    ```python
+    if request.headers.get("X-APIM-Gateway-Token") != EXPECTED_TOKEN:
+        return Response("Forbidden", status=403)
+    ```
 
-    - **Bypass OAuth** — Call the backend directly without authentication
-    - **Bypass rate limiting** — Send unlimited requests
-    - **Bypass content safety** — Submit malicious prompts without filtering
-    - **Avoid detection** — Requests won't appear in your APIM logs
-    - **Run up costs** — Direct calls still consume your compute resources
+    This works with dynamic IPs but requires code changes in your MCP server.
 
-    All the security you built in Sections 1 and 2 becomes optional if backends are publicly accessible.
+---
 
-    ---
+## What This Means for Your Deployment
 
-    ### The Solution: Network Isolation
+For this workshop, we've focused on the security controls that run **at the gateway layer**—OAuth, rate limiting, and content safety. These provide significant protection and are the most impactful first steps.
 
-    The fix is straightforward in concept: **only allow traffic from APIM to reach your backends**. In practice, there are several ways to achieve this:
+**Network isolation is the final layer** that ensures attackers can't simply bypass your gateway. When planning your production deployment, choose the approach that fits your requirements:
 
-    ??? tip "Option 1: IP Restrictions (Simple but Limited)"
-        
-        Container Apps support IP-based access restrictions. You can configure an allow-list that only permits APIM's IP:
+| Approach | Complexity | Cost | APIM Tier Required |
+|----------|------------|------|-------------------|
+| IP Restrictions | Low | None | Standard v2+ (static IPs) |
+| VNet Integration | Medium | VNet costs | Standard v2, Premium v2 |
+| Private Endpoints | Medium | Private Link costs | Developer, Basic, Standard, Standard v2, Premium, Premium v2 |
+| Header Validation | Low | None | Any |
 
-        ```bash
-        # Allow only APIM's IP (everything else implicitly denied)
-        az containerapp ingress access-restriction set \
-          --name sherpa-mcp-server \
-          --resource-group $RG \
-          --rule-name "allow-apim" \
-          --ip-address "${APIM_OUTBOUND_IP}/32" \
-          --action Allow
-        ```
+---
 
-        **Limitation:** APIM Basic v2 (used in this workshop) has dynamic outbound IPs that can change during scaling or maintenance. This approach works better with **APIM Standard v2**, which provides static outbound IPs.
+## Network Isolation Best Practices
 
-    ??? tip "Option 2: Virtual Network Integration (Recommended for Production)"
-        
-        For true network isolation, deploy both APIM and Container Apps inside an Azure Virtual Network. APIM faces the public internet while Container Apps are internal-only with no public IP. Traffic stays within Azure's backbone, and you can add NSGs for defense in depth.
+1. **Gateway security is necessary but not sufficient** — Without network isolation, all your APIM policies can be bypassed.
 
-        **Benefits:**
-        
-        - Container Apps have no public IP at all
-        - Traffic stays within Azure's backbone
-        - Defense in depth with NSGs
+2. **Defense in depth matters** — Layer network controls on top of application-level security.
 
-    ??? tip "Option 3: Private Endpoints"
-        
-        Use Azure Private Link to expose your Container Apps only via private endpoints:
+3. **Choose the right approach for your tier** — IP restrictions need static IPs; VNet integration when possible.
 
-        - APIM connects to backends via private IP
-        - No public internet traversal
-        - Can combine with VNet for full isolation
+4. **Monitor for direct access attempts** — Even with restrictions, log and alert on unexpected traffic patterns.
 
-    ??? tip "Option 4: Header-Based Validation"
-        
-        Add a custom header in APIM that backends validate:
-
-        **APIM Policy:**
-        ```xml
-        <set-header name="X-APIM-Gateway-Token" exists-action="override">
-          <value>{{gateway-secret}}</value>
-        </set-header>
-        ```
-
-        **Backend validation:**
-        ```python
-        if request.headers.get("X-APIM-Gateway-Token") != EXPECTED_TOKEN:
-            return Response("Forbidden", status=403)
-        ```
-
-        This works with dynamic IPs but requires code changes in your MCP server.
-
-    ---
-
-    ### What This Means for Your Deployment
-
-    For this workshop, we've focused on the security controls that run **at the gateway layer**—OAuth, rate limiting, and content safety. These provide significant protection and are the most impactful first steps.
-
-    **Network isolation is the final layer** that ensures attackers can't simply bypass your gateway. When planning your production deployment, choose the approach that fits your requirements:
-
-    | Approach | Complexity | Cost | APIM Tier Required |
-    |----------|------------|------|-------------------|
-    | IP Restrictions | Low | None | Standard v2+ (static IPs) |
-    | VNet Integration | Medium | VNet costs | Standard v2, Premium v2 |
-    | Private Endpoints | Medium | Private Link costs | Developer, Basic, Standard, Standard v2, Premium, Premium v2 |
-    | Header Validation | Low | None | Any |
-
-    ---
-
-    ### Key Takeaways
-
-    1. **Gateway security is necessary but not sufficient** — Without network isolation, all your APIM policies can be bypassed.
-
-    2. **Defense in depth matters** — Layer network controls on top of application-level security.
-
-    3. **Choose the right approach for your tier** — IP restrictions need static IPs; VNet integration when possible.
-
-    4. **Monitor for direct access attempts** — Even with restrictions, log and alert on unexpected traffic patterns.
-
-    **OWASP MCP-04 awareness complete!** :material-check:
+**OWASP MCP-04 awareness complete!** :material-check:
 
 ---
 

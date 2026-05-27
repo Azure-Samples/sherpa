@@ -18,191 +18,209 @@ hide:
 
 Now that you've seen the vulnerabilities, let's wire the security function into APIM and then look under the hood at how it works.
 
-## Step 1: Wire the Function to APIM
+![Camp 3 I/O security architecture](../../images/camp3_iosecurity.png){ .center width=720 }
 
-The security function was deployed during provisioning but isn't connected to APIM yet. Let's flip the switch. Run the enable script to wire everything together:
+??? note "Step 1: Wire the Function to APIM"
 
-=== "Bash"
-    ```bash
-    ./scripts/1.2-enable-io-security.sh
+    The security function was deployed during provisioning but isn't connected to APIM yet. Let's flip the switch. Run the enable script to wire everything together:
+
+    === "Bash"
+        ```bash
+        ./scripts/1.2-enable-io-security.sh
+        ```
+
+    === "PowerShell"
+        ```powershell
+        ./scripts/1.2-enable-io-security.ps1
+        ```
+
+    This script connects the security function to both MCP servers in APIM. After it runs, **sherpa-mcp** and **trail-mcp** both get inbound input checking (injection detection + Prompt Shields), and outbound responses are sanitized for PII and credentials before reaching the client.
+
+    Once complete, every request and response flows through the security function:
+
+    ```
+      Client
+        │
+        ▼
+      APIM (inbound) ──▶ /api/input-check
+        │                  • Regex patterns (instant, free)
+        │                  • Prompt Shields AI (if regex passes)
+        │ ✓ allowed        ✗ Block unsafe requests
+        ▼
+      MCP Server
+        │
+        │ response
+        ▼
+      (outbound) ───────▶ /api/sanitize-output
+        │                  • PII redaction (Azure AI Language)
+        │ sanitized        • Credential scanning (regex)
+        ▼
+      Client
     ```
 
-=== "PowerShell"
-    ```powershell
-    ./scripts/1.2-enable-io-security.ps1
-    ```
+    ??? info "What the APIM Policy Looks Like"
 
-This script connects the security function to both MCP servers in APIM. After it runs, **sherpa-mcp** and **trail-mcp** both get inbound input checking (injection detection + Prompt Shields), and outbound responses are sanitized for PII and credentials before reaching the client.
+        **Inbound Policy (Layer 2 Input Check):**
 
-Once complete, every request and response flows through the security function:
+        ```xml
+        <inbound>
+            <!-- Layer 1: Prompt Shields via Policy Fragment -->
+            <include-fragment fragment-id="mcp-content-safety" />
 
-```
-  Client
-    │
-    ▼
-  APIM (inbound) ──▶ /api/input-check
-    │                  • Regex patterns (instant, free)
-    │                  • Prompt Shields AI (if regex passes)
-    │ ✓ allowed        ✗ Block unsafe requests
-    ▼
-  MCP Server
-    │
-    │ response
-    ▼
-  (outbound) ───────▶ /api/sanitize-output
-    │                  • PII redaction (Azure AI Language)
-    │ sanitized        • Credential scanning (regex)
-    ▼
-  Client
-```
+            <!-- Layer 2: Advanced Input Check (NEW) -->
+            <send-request mode="new" response-variable-name="inputCheck">
+                <set-url>{{function-app-url}}/api/input-check</set-url>
+                <set-method>POST</set-method>
+                <set-body>@(context.Request.Body.As<string>())</set-body>
+            </send-request>
+            <choose>
+                <when condition="@(!((JObject)inputCheck.Body.As<JObject>())["allowed"].Value<bool>())">
+                    <return-response>
+                        <set-status code="400" reason="Security Check Failed" />
+                        <set-body>@{
+                            var result = inputCheck.Body.As<JObject>();
+                            return new JObject(
+                                new JProperty("error", "Request blocked by security filter"),
+                                new JProperty("reason", result["reason"]),
+                                new JProperty("category", result["category"])
+                            ).ToString();
+                        }</set-body>
+                    </return-response>
+                </when>
+            </choose>
+        </inbound>
+        ```
 
-??? info "What the APIM Policy Looks Like"
+        **Outbound Policy (for trail-api only):**
 
-    **Inbound Policy (Layer 2 Input Check):**
+        This policy is applied to `trail-api` (REST backend for synthesized MCP). It sanitizes PII in REST responses before APIM wraps them in SSE events:
 
-    ```xml
-    <inbound>
-        <!-- Layer 1: Prompt Shields via Policy Fragment -->
-        <include-fragment fragment-id="mcp-content-safety" />
+        ```xml
+        <outbound>
+            <!-- Layer 2: PII Redaction -->
+            <send-request mode="new" response-variable-name="sanitized" timeout="10" ignore-error="true">
+                <set-url>{{function-app-url}}/api/sanitize-output</set-url>
+                <set-method>POST</set-method>
+                <set-body>@(context.Response.Body.As<string>(preserveContent: true))</set-body>
+            </send-request>
+            <choose>
+                <when condition="@(context.Variables.ContainsKey(\"sanitized\") && ((IResponse)context.Variables[\"sanitized\"]).StatusCode == 200)">
+                    <set-body>@(((IResponse)context.Variables["sanitized"]).Body.As<string>())</set-body>
+                </when>
+                <!-- On failure, pass through original (fail open) -->
+            </choose>
+        </outbound>
+        ```
 
-        <!-- Layer 2: Advanced Input Check (NEW) -->
-        <send-request mode="new" response-variable-name="inputCheck">
-            <set-url>{{function-app-url}}/api/input-check</set-url>
-            <set-method>POST</set-method>
-            <set-body>@(context.Request.Body.As<string>())</set-body>
-        </send-request>
-        <choose>
-            <when condition="@(!((JObject)inputCheck.Body.As<JObject>())["allowed"].Value<bool>())">
-                <return-response>
-                    <set-status code="400" reason="Security Check Failed" />
-                    <set-body>@{
-                        var result = inputCheck.Body.As<JObject>();
-                        return new JObject(
-                            new JProperty("error", "Request blocked by security filter"),
-                            new JProperty("reason", result["reason"]),
-                            new JProperty("category", result["category"])
-                        ).ToString();
-                    }</set-body>
-                </return-response>
-            </when>
-        </choose>
-    </inbound>
-    ```
+        ??? info "sherpa-mcp uses Server-Side Sanitization"
+            For `sherpa-mcp` (native MCP server), output sanitization happens **inside the server**, not in APIM. The `get_guide_contact` tool calls the sanitize-output Azure Function directly before returning data.
+            
+            This approach is necessary because FastMCP's Streamable HTTP transport always uses `Content-Type: text/event-stream`, making APIM outbound policies unreliable.
 
-    **Outbound Policy (for trail-api only):**
+        ??? warning "trail-mcp has NO outbound policy"
+            For `trail-mcp` (synthesized MCP), there is no outbound sanitization policy. APIM controls the SSE stream lifecycle, causing `Body.As<string>()` to block indefinitely.
+            
+            Instead, output sanitization is applied to `trail-api`, which processes the REST response *before* APIM wraps it in SSE events.
 
-    This policy is applied to `trail-api` (REST backend for synthesized MCP). It sanitizes PII in REST responses before APIM wraps them in SSE events:
 
-    ```xml
-    <outbound>
-        <!-- Layer 2: PII Redaction -->
-        <send-request mode="new" response-variable-name="sanitized" timeout="10" ignore-error="true">
-            <set-url>{{function-app-url}}/api/sanitize-output</set-url>
-            <set-method>POST</set-method>
-            <set-body>@(context.Response.Body.As<string>(preserveContent: true))</set-body>
-        </send-request>
-        <choose>
-            <when condition="@(context.Variables.ContainsKey(\"sanitized\") && ((IResponse)context.Variables[\"sanitized\"]).StatusCode == 200)">
-                <set-body>@(((IResponse)context.Variables["sanitized"]).Body.As<string>())</set-body>
-            </when>
-            <!-- On failure, pass through original (fail open) -->
-        </choose>
-    </outbound>
-    ```
+??? note "Step 2: Under the Hood -- How the Security Function Works"
 
-    ??? info "sherpa-mcp uses Server-Side Sanitization"
-        For `sherpa-mcp` (native MCP server), output sanitization happens **inside the server**, not in APIM. The `get_guide_contact` tool calls the sanitize-output Azure Function directly before returning data.
-        
-        This approach is necessary because FastMCP's Streamable HTTP transport always uses `Content-Type: text/event-stream`, making APIM outbound policies unreliable.
+    The security function is now wired up, and you'll validate it in the next section. But if you're curious about *how* it actually detects attacks and redacts PII, this is the deep dive.
 
-    ??? warning "trail-mcp has NO outbound policy"
-        For `trail-mcp` (synthesized MCP), there is no outbound sanitization policy. APIM controls the SSE stream lifecycle, causing `Body.As<string>()` to block indefinitely.
-        
-        Instead, output sanitization is applied to `trail-api`, which processes the REST response *before* APIM wraps it in SSE events.
+    **Function location:** `camps/camp3-io-security/security-function/`
 
----
+    ### Input Check (`/api/input-check`)
 
-## Step 2: Under the Hood -- How the Security Function Works
+    The input check function uses a **hybrid detection approach**. Why hybrid? Because no single technique covers everything:
 
-The security function is now wired up, and you'll validate it in the next section. But if you're curious about *how* it actually detects attacks and redacts PII, this is the deep dive.
+    | Approach | Strength | Weakness |
+    |----------|----------|----------|
+    | Regex alone | Fast (~1ms), free | Misses creative attacks |
+    | AI alone (Prompt Shields) | Catches sophisticated semantic attacks | Costs per call, adds latency (~50ms) |
+    | **Hybrid (this function)** | **Fast for known patterns, smart for novel ones** | **Best of both** |
 
-**Function location:** `camps/camp3-io-security/security-function/`
+    The function checks regex patterns *first*. If no known attack patterns are found, *then* it calls Prompt Shields for deeper analysis.
 
-### Input Check (`/api/input-check`)
+    ??? note "Two-phase detection flow"
+        ```python
+        # Phase 1: Fast regex check (instant, free)
+        result = check_patterns(text)
+        if not result.is_safe:
+            return result  # Known attack pattern - block immediately
 
-The input check function uses a **hybrid detection approach**. Why hybrid? Because no single technique covers everything:
+        # Phase 2: AI-powered check (only if regex passed)
+        result = await check_with_prompt_shields(texts)
+        if not result.is_safe:
+            return result  # Sophisticated attack detected by AI
+        ```
 
-| Approach | Strength | Weakness |
-|----------|----------|----------|
-| Regex alone | Fast (~1ms), free | Misses creative attacks |
-| AI alone (Prompt Shields) | Catches sophisticated semantic attacks | Costs per call, adds latency (~50ms) |
-| **Hybrid (this function)** | **Fast for known patterns, smart for novel ones** | **Best of both** |
+    ??? note "Injection pattern categories"
+        The regex patterns are organized by OWASP MCP risk category:
 
-The function checks regex patterns *first*. If no known attack patterns are found, *then* it calls Prompt Shields for deeper analysis.
+        ```python
+        INJECTION_PATTERNS: dict[str, list[tuple[str, str]]] = {
+            # MCP-05: Shell Injection - stops "summit; cat /etc/passwd"
+            "shell_injection": [
+                (r"[;&|`]", "Shell metacharacter detected"),
+                (r"\$\([^)]+\)", "Command substitution pattern detected"),
+                # ...
+            ],
 
-??? note "Two-phase detection flow"
-    ```python
-    # Phase 1: Fast regex check (instant, free)
-    result = check_patterns(text)
-    if not result.is_safe:
-        return result  # Known attack pattern - block immediately
+            # MCP-05: SQL Injection - stops "' OR '1'='1"
+            "sql_injection": [
+                (r"'\s*(OR|AND)\s+['\d]", "SQL boolean injection detected"),
+                (r"UNION\s+(ALL\s+)?SELECT", "UNION-based SQL injection"),
+                # ...
+            ],
 
-    # Phase 2: AI-powered check (only if regex passed)
-    result = await check_with_prompt_shields(texts)
-    if not result.is_safe:
-        return result  # Sophisticated attack detected by AI
-    ```
+            # MCP-05: Path Traversal - stops "../../etc/passwd"
+            "path_traversal": [
+                (r"\.\./", "Directory traversal (../) detected"),
+                (r"%2e%2e[%2f/\\]", "URL-encoded directory traversal"),
+                # ...
+            ],
+        }
+        ```
 
-??? note "Injection pattern categories"
-    The regex patterns are organized by OWASP MCP risk category:
+    Notice there's no `prompt_injection` category in the regex patterns. That's intentional! Prompt injection attacks are too creative for regex. They're handled entirely by Prompt Shields, which uses AI to understand *intent*, not just patterns.
 
-    ```python
-    INJECTION_PATTERNS: dict[str, list[tuple[str, str]]] = {
-        # MCP-05: Shell Injection - stops "summit; cat /etc/passwd"
-        "shell_injection": [
-            (r"[;&|`]", "Shell metacharacter detected"),
-            (r"\$\([^)]+\)", "Command substitution pattern detected"),
-            # ...
-        ],
+    **Prompt Shields** calls the Azure AI Content Safety API to detect jailbreak attempts:
 
-        # MCP-05: SQL Injection - stops "' OR '1'='1"
-        "sql_injection": [
-            (r"'\s*(OR|AND)\s+['\d]", "SQL boolean injection detected"),
-            (r"UNION\s+(ALL\s+)?SELECT", "UNION-based SQL injection"),
-            # ...
-        ],
+    ??? note "Prompt Shields API call"
+        ```python
+        # From check_with_prompt_shields() - calls the REST API
+        request_body = {
+            "userPrompt": user_prompt,  # The text to analyze
+            "documents": []              # Could include RAG context too
+        }
+        # Returns: { "userPromptAnalysis": { "attackDetected": true/false } }
+        ```
 
-        # MCP-05: Path Traversal - stops "../../etc/passwd"
-        "path_traversal": [
-            (r"\.\./", "Directory traversal (../) detected"),
-            (r"%2e%2e[%2f/\\]", "URL-encoded directory traversal"),
-            # ...
-        ],
-    }
-    ```
+    The function recursively extracts all string values from the MCP request body (tool arguments, resource URIs, prompt content) and returns:
 
-Notice there's no `prompt_injection` category in the regex patterns. That's intentional! Prompt injection attacks are too creative for regex. They're handled entirely by Prompt Shields, which uses AI to understand *intent*, not just patterns.
+    - `{"allowed": true}` -- Safe to proceed
+    - `{"allowed": false, "reason": "...", "category": "..."}` -- Block with explanation
 
-**Prompt Shields** calls the Azure AI Content Safety API to detect jailbreak attempts:
+    ??? tip "Explore the Full Implementation"
+        ```bash
+        # View the main function app
+        security-function/function_app.py
 
-??? note "Prompt Shields API call"
-    ```python
-    # From check_with_prompt_shields() - calls the REST API
-    request_body = {
-        "userPrompt": user_prompt,  # The text to analyze
-        "documents": []              # Could include RAG context too
-    }
-    # Returns: { "userPromptAnalysis": { "attackDetected": true/false } }
-    ```
+        # View the hybrid detection logic
+        security-function/shared/injection_patterns.py
 
-The function recursively extracts all string values from the MCP request body (tool arguments, resource URIs, prompt content) and returns:
+        # View PII detection with Azure AI Language
+        security-function/shared/pii_detector.py
 
-- `{"allowed": true}` -- Safe to proceed
-- `{"allowed": false, "reason": "...", "category": "..."}` -- Block with explanation
+        # View credential pattern scanning
+        security-function/shared/credential_scanner.py
+        ```
 
-### Output Sanitization (`/api/sanitize-output`)
+## Output Sanitization (`/api/sanitize-output`)
 
 While input checking stops attacks coming *in*, output sanitization protects sensitive data going *out*. This function chains two complementary techniques:
+
+![Camp 3 output sanitization with PII redaction](../../images/camp3_pii.png){ .center width=720 }
 
 **PII Detection via Azure AI Language** -- Azure AI Language uses machine learning models trained on millions of documents to recognize PII in context. It knows that "John Smith" in "Dear John Smith" is a name, but "John Smith" in "John Smith & Sons Hardware" is probably a business.
 
@@ -240,21 +258,6 @@ While input checking stops attacks coming *in*, output sanitization protects sen
     ```
 
 The two techniques complement each other: AI finds human-readable PII, regex finds machine-generated secrets.
-
-??? tip "Explore the Full Implementation"
-    ```bash
-    # View the main function app
-    security-function/function_app.py
-
-    # View the hybrid detection logic
-    security-function/shared/injection_patterns.py
-
-    # View PII detection with Azure AI Language
-    security-function/shared/pii_detector.py
-
-    # View credential pattern scanning
-    security-function/shared/credential_scanner.py
-    ```
 
 ---
 

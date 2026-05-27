@@ -25,6 +25,28 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
     ```
     **Windows users:** Each `.sh` script has a `.ps1` equivalent. Use `./scripts/X.ps1` instead of `./scripts/X.sh`.
 
+??? info "What is PRM (Protected Resource Metadata)?"
+    ![Protected Resource Metadata discovery flow](../../images/camp2_PRM.png){ .center width=720 }
+
+    **RFC 9728** defines PRM as a standard for OAuth autodiscovery. Instead of manually configuring:
+
+    - Authorization server URL
+    - Token endpoint
+    - Required scopes
+    - Audience values
+
+    Clients can query `/.well-known/oauth-protected-resource` and **discover everything automatically**.
+
+    **VS Code's MCP client supports PRM**, which means:
+
+    1. You configure just the MCP server URL
+    2. VS Code queries the PRM endpoint
+    3. VS Code automatically initiates OAuth flow with correct parameters
+    4. User signs in once
+    5. VS Code uses the token for all subsequent requests
+
+    **No manual configuration required!** This is the modern OAuth experience.
+
 ## Waypoint 1.1: Expose MCP Server via Gateway (No Auth → OAuth)
 
 **What you'll learn:** How to use [Azure API Management's MCP passthrough](https://learn.microsoft.com/en-us/azure/api-management/expose-existing-mcp-server) feature to expose and govern an existing MCP server. APIM acts as a transparent gateway that forwards MCP protocol messages while adding enterprise security controls (authentication, rate limiting, monitoring) without modifying the upstream MCP server.
@@ -49,7 +71,7 @@ Without authentication, your MCP server is completely open to the internet. For 
 
 ---
 
-???+ note "Step 1: Deploy Vulnerable Server"
+??? note "Step 1: Deploy Vulnerable Server"
 
     Let's start by deploying the Sherpa MCP Server with no authentication at all:
 
@@ -100,7 +122,7 @@ Without authentication, your MCP server is completely open to the internet. For 
       3. Then run: ./scripts/1.1-fix.sh
     ```
 
-???+ danger "Step 2: Exploit - Anyone Can Access"
+??? danger "Step 2: Exploit - Anyone Can Access"
 
     Test the vulnerability by connecting from VS Code:
 
@@ -177,7 +199,7 @@ Without authentication, your MCP server is completely open to the internet. For 
         
         This is **MCP-07: Insufficient Authentication & Authorization** - the system can't identify users or enforce authorization.
 
-???+ success "Step 3: Fix - Add OAuth with PRM Discovery"
+??? success "Step 3: Fix - Add OAuth with PRM Discovery"
 
     Apply OAuth validation and enable automatic discovery:
 
@@ -279,27 +301,7 @@ Without authentication, your MCP server is completely open to the internet. For 
     !!! note "APIM Native MCP Behavior"
         When using APIM's native MCP type (`apiType: mcp`), APIM automatically prepends the API path to `resource_metadata` URLs in WWW-Authenticate headers. Your policy should omit the API path from the header value -- APIM adds it for you.
 
-    ??? info "What is Protected Resource Metadata (RFC 9728)?"
-        **RFC 9728** defines PRM as a standard for OAuth autodiscovery. Instead of manually configuring:
-        
-        - Authorization server URL
-        - Token endpoint
-        - Required scopes
-        - Audience values
-        
-        Clients can query `/.well-known/oauth-protected-resource` and **discover everything automatically**.
-        
-        **VS Code's MCP client supports PRM**, which means:
-        
-        1. You configure just the MCP server URL
-        2. VS Code queries the PRM endpoint
-        3. VS Code automatically initiates OAuth flow with correct parameters
-        4. User signs in once
-        5. VS Code uses the token for all subsequent requests
-        
-        **No manual configuration required!** This is the modern OAuth experience.
-
-???+ note "Step 4: Validate - Confirm OAuth Works"
+??? note "Step 4: Validate - Confirm OAuth Works"
 
     Test that OAuth is enforcing authentication:
 
@@ -399,6 +401,8 @@ Without authentication, your MCP server is completely open to the internet. For 
 
 ## Waypoint 1.2: REST API → MCP Server with OAuth
 
+![REST API to MCP synthesis flow at the gateway](../../images/camp2_waypoint1.2.png){ .center width=720 }
+
 **What you'll learn:** How to use [Azure API Management's REST-to-MCP](https://learn.microsoft.com/en-us/azure/api-management/export-rest-mcp-server) feature to expose an existing REST API as an MCP server. APIM automatically transforms OpenAPI operations into MCP tools, enabling AI agents to discover and call your existing APIs without any code changes.
 
 | Component | Protocol | Role |
@@ -421,7 +425,20 @@ Subscription keys are useful for **tracking and billing**, but they are NOT auth
 
 ---
 
-???+ note "Step 1: Deploy Trail API as MCP Server"
+??? note "Step 1: Deploy Trail API as MCP Server"
+
+    ??? info "What is the Trail API?"
+        **Trail API** is a REST API that provides trail permit management:
+
+        | Operation | Method | Path | Description |
+        |-----------|--------|------|-------------|
+        | `list_trails` | GET | `/trails` | List all available hiking trails |
+        | `get_trail` | GET | `/trails/{id}` | Get details for a specific trail |
+        | `check_conditions` | GET | `/trails/{id}/conditions` | Current trail conditions and hazards |
+        | `get_permit` | GET | `/permits/{id}` | Retrieve a trail permit |
+        | `request_permit` | POST | `/permits` | Request a new trail permit |
+
+        The API has a complete **OpenAPI 3.0 specification** that describes each operation's parameters, request/response schemas, and documentation.
 
     Deploy the Trail API and expose it as an MCP server through APIM:
 
@@ -434,19 +451,6 @@ Subscription keys are useful for **tracking and billing**, but they are NOT auth
         ```powershell
         ./scripts/1.2-deploy.ps1
         ```
-
-    ??? info "What is the Trail API?"
-        **Trail API** is a REST API that provides trail permit management:
-        
-        | Operation | Method | Path | Description |
-        |-----------|--------|------|-------------|
-        | `list_trails` | GET | `/trails` | List all available hiking trails |
-        | `get_trail` | GET | `/trails/{id}` | Get details for a specific trail |
-        | `check_conditions` | GET | `/trails/{id}/conditions` | Current trail conditions and hazards |
-        | `get_permit` | GET | `/permits/{id}` | Retrieve a trail permit |
-        | `request_permit` | POST | `/permits` | Request a new trail permit |
-        
-        The API has a complete **OpenAPI 3.0 specification** that describes each operation's parameters, request/response schemas, and documentation.
 
     ??? info "How does REST-to-MCP export work?"
         When you export a REST API as an MCP server, APIM:
@@ -519,7 +523,7 @@ Subscription keys are useful for **tracking and billing**, but they are NOT auth
     Current security: Subscription key only (no authentication!)
     ```
 
-???+ danger "Step 2: Exploit - Subscription Keys Are Not Authentication"
+??? danger "Step 2: Exploit - Subscription Keys Are Not Authentication"
 
     Test the MCP server with subscription keys and see why they're insufficient for auth:
 
@@ -602,7 +606,7 @@ Subscription keys are useful for **tracking and billing**, but they are NOT auth
         
         **This is MCP-07: Insufficient Authentication & Authorization** - subscription keys ≠ authentication.
 
-???+ success "Step 3: Fix - Add OAuth for Authentication (Keep Subscription Key for Tracking)"
+??? success "Step 3: Fix - Add OAuth for Authentication (Keep Subscription Key for Tracking)"
 
     Add OAuth validation while keeping subscription keys for tracking/billing:
 
@@ -705,7 +709,7 @@ Subscription keys are useful for **tracking and billing**, but they are NOT auth
         }
         ```
 
-???+ note "Step 4: Validate - Confirm Both Credentials Required"
+??? note "Step 4: Validate - Confirm Both Credentials Required"
 
     Test that both subscription key AND OAuth are enforced:
 
@@ -838,178 +842,172 @@ You need **rate limiting** to protect your infrastructure and ensure fair resour
 
 ---
 
-### Step 1: Current State
+??? note "Step 1: Current State"
 
-Your APIs are deployed with OAuth but no rate limiting. Users can send unlimited requests.
+    Your APIs are deployed with OAuth but no rate limiting. Users can send unlimited requests.
 
----
+??? danger "Step 2: Exploit - Unlimited Request Attack"
 
-### Step 2: Exploit - Unlimited Request Attack
+    See how a user can overwhelm the system:
 
-See how a user can overwhelm the system:
+    === "Bash"
+        ```bash
+        ./scripts/1.3-exploit.sh
+        ```
 
-=== "Bash"
-    ```bash
-    ./scripts/1.3-exploit.sh
+    === "PowerShell"
+        ```powershell
+        ./scripts/1.3-exploit.ps1
+        ```
+
+    This script sends 20 rapid requests using the same subscription key.
+
+    **Expected output:**
+
+    ```
+    ==========================================
+    Waypoint 1.3: No Rate Limiting
+    ==========================================
+
+    The Problem: Unlimited Requests
+    --------------------------------
+
+    Even with authentication, a single user (or compromised account)
+    can overwhelm your backend with unlimited requests.
+
+    Sending 20 rapid requests to Trail API...
+      Request 1: 200 (not rate limited)
+      Request 2: 200 (not rate limited)
+      ...
+      Request 20: 200 (not rate limited)
+
+    Results:
+      Requests that reached backend: 20
+
+    Issues identified:
+      ❌ All 20 requests reached the backend
+      ❌ No throttling protection
+      ❌ Single user can monopolize resources
+      ❌ Cost explosion risk (every request = $$)
+      ❌ No protection against runaway loops
     ```
 
-=== "PowerShell"
-    ```powershell
-    ./scripts/1.3-exploit.ps1
+    The script demonstrates how without rate limiting, a single runaway client can send unlimited requests.
+
+    **This is MCP-02: Privilege Escalation via Scope Creep** - the system can't prevent resource exhaustion.
+
+??? success "Step 3: Fix - Apply Rate Limiting"
+
+    Apply rate limiting to the Trail REST API:
+
+    === "Bash"
+        ```bash
+        ./scripts/1.3-fix.sh
+        ```
+
+    === "PowerShell"
+        ```powershell
+        ./scripts/1.3-fix.ps1
+        ```
+
+    ??? info "What This Script Deploys"
+        The script applies rate limiting to the Trail REST API:
+        
+        | API | Path | Policy |
+        |-----|------|--------|
+        | **trail-api** | `/trailapi/*` | Rate limiting by subscription key |
+        
+        **Why only Trail API?** The Sherpa MCP API uses OAuth tokens (from Waypoint 1.1), not subscription keys. Rate limiting by subscription key only makes sense for APIs that require subscriptions—which is why we added one in Waypoint 1.2!
+        
+        The Trail API now enforces:
+        
+        - **10 requests per minute** per subscription key
+        - **429 Too Many Requests** when quota exceeded
+        - **Retry-After header** indicating when to retry
+
+    This applies the policy:
+
+    ```xml
+    <rate-limit-by-key 
+      calls="10" 
+      renewal-period="60"
+      counter-key="@(context.Subscription.Id)" />
     ```
 
-This script sends 20 rapid requests using the same subscription key.
+    **What this means:**
 
-**Expected output:**
-
-```
-==========================================
-Waypoint 1.3: No Rate Limiting
-==========================================
-
-The Problem: Unlimited Requests
---------------------------------
-
-Even with authentication, a single user (or compromised account)
-can overwhelm your backend with unlimited requests.
-
-Sending 20 rapid requests to Trail API...
-  Request 1: 200 (not rate limited)
-  Request 2: 200 (not rate limited)
-  ...
-  Request 20: 200 (not rate limited)
-
-Results:
-  Requests that reached backend: 20
-
-Issues identified:
-  ❌ All 20 requests reached the backend
-  ❌ No throttling protection
-  ❌ Single user can monopolize resources
-  ❌ Cost explosion risk (every request = $$)
-  ❌ No protection against runaway loops
-```
-
-The script demonstrates how without rate limiting, a single runaway client can send unlimited requests.
-
-**This is MCP-02: Privilege Escalation via Scope Creep** - the system can't prevent resource exhaustion.
-
----
-
-### Step 3: Fix - Apply Rate Limiting
-
-Apply rate limiting to the Trail REST API:
-
-=== "Bash"
-    ```bash
-    ./scripts/1.3-fix.sh
-    ```
-
-=== "PowerShell"
-    ```powershell
-    ./scripts/1.3-fix.ps1
-    ```
-
-??? info "What This Script Deploys"
-    The script applies rate limiting to the Trail REST API:
-    
-    | API | Path | Policy |
-    |-----|------|--------|
-    | **trail-api** | `/trailapi/*` | Rate limiting by subscription key |
-    
-    **Why only Trail API?** The Sherpa MCP API uses OAuth tokens (from Waypoint 1.1), not subscription keys. Rate limiting by subscription key only makes sense for APIs that require subscriptions—which is why we added one in Waypoint 1.2!
-    
-    The Trail API now enforces:
-    
     - **10 requests per minute** per subscription key
-    - **429 Too Many Requests** when quota exceeded
-    - **Retry-After header** indicating when to retry
+    - **Teams are isolated** - Engineering team's quota doesn't affect Platform team's quota
+    - **Automatic reset** - Counter resets every 60 seconds
+    - **Tiered limits** - Different subscriptions can have different quotas
 
-This applies the policy:
+    ??? tip "Why Rate Limit by Subscription Key?"
+        In Waypoint 1.2, you learned that subscription keys provide **tracking and billing**. They're also perfect for rate limiting because:
+        
+        :material-check: **Per-team quotas** - Each team/app gets its own rate limit  
+        :material-check: **Tiered products** - Premium subscriptions can have higher limits  
+        :material-check: **Billing alignment** - Rate limits match billing tiers  
+        :material-check: **Easy to manage** - Revoke or adjust limits per subscription  
+        :material-check: **Already required** - No additional configuration needed on clients
+        
+        Combined with OAuth (which identifies the *user*), subscription keys let you implement both:
+        
+        - **Per-user limits** (via JWT claims if needed)
+        - **Per-team/app limits** (via subscription key)
 
-```xml
-<rate-limit-by-key 
-  calls="10" 
-  renewal-period="60"
-  counter-key="@(context.Subscription.Id)" />
-```
+??? note "Step 4: Validate - Confirm Rate Limiting Works"
 
-**What this means:**
+    Test the rate limiting:
 
-- **10 requests per minute** per subscription key
-- **Teams are isolated** - Engineering team's quota doesn't affect Platform team's quota
-- **Automatic reset** - Counter resets every 60 seconds
-- **Tiered limits** - Different subscriptions can have different quotas
+    === "Bash"
+        ```bash
+        ./scripts/1.3-validate.sh
+        ```
 
-??? tip "Why Rate Limit by Subscription Key?"
-    In Waypoint 1.2, you learned that subscription keys provide **tracking and billing**. They're also perfect for rate limiting because:
-    
-    :material-check: **Per-team quotas** - Each team/app gets its own rate limit  
-    :material-check: **Tiered products** - Premium subscriptions can have higher limits  
-    :material-check: **Billing alignment** - Rate limits match billing tiers  
-    :material-check: **Easy to manage** - Revoke or adjust limits per subscription  
-    :material-check: **Already required** - No additional configuration needed on clients
-    
-    Combined with OAuth (which identifies the *user*), subscription keys let you implement both:
-    
-    - **Per-user limits** (via JWT claims if needed)
-    - **Per-team/app limits** (via subscription key)
+    === "PowerShell"
+        ```powershell
+        ./scripts/1.3-validate.ps1
+        ```
 
----
+    The script sends 15 requests with the same subscription key. After 10 requests, additional requests should be rate limited.
 
-### Step 4: Validate - Confirm Rate Limiting Works
+    **Expected output:**
 
-Test the rate limiting:
+    ```
+    ==========================================
+    Waypoint 1.3: Validate Rate Limiting
+    ==========================================
 
-=== "Bash"
-    ```bash
-    ./scripts/1.3-validate.sh
+    Testing rate limiting by subscription key...
+    Limit: 10 requests per minute per subscription
+
+    Sending 15 rapid requests...
+
+      Request 1: 200 OK
+      Request 2: 200 OK
+      ...
+      Request 10: 200 OK
+      Request 11: 429 Too Many Requests (rate limited)
+      Request 12: 429 Too Many Requests (rate limited)
+      ...
+      Request 15: 429 Too Many Requests (rate limited)
+
+    Results:
+      Requests that passed rate limit: 10
+      Requests rate limited (429): 5
+
+    ✅ Rate limiting is working!
+
+    Different subscription keys get separate quotas.
+    This enables per-team/per-app rate limiting.
+
+    ==========================================
+    ✅ Waypoint 1.3 Complete
+    ==========================================
     ```
 
-=== "PowerShell"
-    ```powershell
-    ./scripts/1.3-validate.ps1
-    ```
-
-The script sends 15 requests with the same subscription key. After 10 requests, additional requests should be rate limited.
-
-**Expected output:**
-
-```
-==========================================
-Waypoint 1.3: Validate Rate Limiting
-==========================================
-
-Testing rate limiting by subscription key...
-Limit: 10 requests per minute per subscription
-
-Sending 15 rapid requests...
-
-  Request 1: 200 OK
-  Request 2: 200 OK
-  ...
-  Request 10: 200 OK
-  Request 11: 429 Too Many Requests (rate limited)
-  Request 12: 429 Too Many Requests (rate limited)
-  ...
-  Request 15: 429 Too Many Requests (rate limited)
-
-Results:
-  Requests that passed rate limit: 10
-  Requests rate limited (429): 5
-
-✅ Rate limiting is working!
-
-Different subscription keys get separate quotas.
-This enables per-team/per-app rate limiting.
-
-==========================================
-✅ Waypoint 1.3 Complete
-==========================================
-```
-
-!!! note "Distributed Rate Limiting"
-    You may see slightly more than 10 requests pass (e.g., 11-12). This is expected behavior with APIM's distributed rate limiting—multiple gateway instances sync their counters periodically, so rapid requests may slightly exceed the limit before synchronization catches up. This is a minor edge case that doesn't affect the security benefit.
+    !!! note "Distributed Rate Limiting"
+        You may see slightly more than 10 requests pass (e.g., 11-12). This is expected behavior with APIM's distributed rate limiting—multiple gateway instances sync their counters periodically, so rapid requests may slightly exceed the limit before synchronization catches up. This is a minor edge case that doesn't affect the security benefit.
 
 ---
 

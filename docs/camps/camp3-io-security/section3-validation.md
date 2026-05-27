@@ -18,167 +18,138 @@ hide:
 
 Confirm that both vulnerabilities are now fixed by running the same exploits from Section 1.
 
-## Validate 1: Injection Attacks Blocked
-
-Run the same injection attacks from Section 1. This time, they should be blocked:
-
-=== "Bash"
-    ```bash
-    ./scripts/1.3-validate-injection.sh sherpa
-    ```
-
-=== "PowerShell"
-    ```powershell
-    ./scripts/1.3-validate-injection.ps1 sherpa
-    ```
-
-**Expected results:**
-
-**Test 1: Shell Injection**
-```
-Status: 400 Bad Request
-Response: {
-  "error": "Request blocked by security filter",
-  "reason": "Shell metacharacter detected",
-  "category": "shell_injection"
-}
-```
-
-**Test 2: Path Traversal**
-```
-Status: 400 Bad Request
-Response: {
-  "error": "Request blocked by security filter",
-  "reason": "Directory traversal (../) detected",
-  "category": "path_traversal"
-}
-```
-
-**Test 3: SQL Injection**
-```
-Status: 400 Bad Request
-Response: {
-  "error": "Request blocked by security filter",
-  "reason": "SQL boolean injection detected",
-  "category": "sql_injection"
-}
-```
-
-**Test 4: Safe Request (should pass)**
-```
-Status: 200 OK
-```
-
-Now validate the Trail MCP server too:
-
-=== "Bash"
-    ```bash
-    ./scripts/1.3-validate-injection.sh trails
-    ```
-
-=== "PowerShell"
-    ```powershell
-    ./scripts/1.3-validate-injection.ps1 trails
-    ```
-
-Layer 2 is successfully detecting and blocking injection attacks!
-
-## Validate 2: PII Redacted in Responses
-
-The validation script tests PII redaction on both MCP servers. Run it to confirm sensitive data is now masked:
-
-=== "Bash"
-    ```bash
-    ./scripts/1.3-validate-pii.sh
-    ```
-
-=== "PowerShell"
-    ```powershell
-    ./scripts/1.3-validate-pii.ps1
-    ```
-
-**Test 1: Trail API (trail-mcp → trail-api sanitization)**
-```json
-{
-  "permit_id": "TRAIL-2024-001",
-  "holder_name": "[REDACTED-PersonName]",
-  "email": "[REDACTED-Email]",
-  "phone": "[REDACTED-PhoneNumber]",
-  "ssn": "[REDACTED-USSocialSecurityNumber]",
-  "address": "[REDACTED-Address]"
-}
-```
-
-**Test 2: Sherpa MCP (direct outbound sanitization)**
-```json
-{
-  "guide_id": "guide-002",
-  "name": "[REDACTED-PersonName]",
-  "email": "[REDACTED-Email]",
-  "phone": "[REDACTED-PhoneNumber]",
-  "ssn": "[REDACTED-USSocialSecurityNumber]",
-  "address": "[REDACTED-Address]"
-}
-```
-
-Both responses have the same structure, but all PII is redacted! This validates that:
-
-- **sherpa-mcp**: Output sanitization works in the MCP policy (real MCP proxy)
-- **trail-mcp**: Output sanitization works via trail-api (synthesized MCP)
-
-??? tip "How PII Detection Works"
-    Azure AI Language's PII detection identifies:
-
-    | Category | Examples |
-    |----------|----------|
-    | PersonName | John Smith, Jane Doe |
-    | Email | john@example.com |
-    | PhoneNumber | 555-123-4567, (555) 123-4567 |
-    | USSocialSecurityNumber | 123-45-6789 |
-    | Address | 123 Main St, Denver, CO 80202 |
-    | CreditCardNumber | 4111-1111-1111-1111 |
-    | And many more... | DateOfBirth, IPAddress, etc. |
-
-    The `sanitize_output` function calls Azure AI Language, then replaces each detected entity with `[REDACTED-Category]`.
-
----
-
 ## What You Built
 
 You've implemented defense-in-depth I/O security for MCP servers with a **split architecture** that handles both real and synthesized MCP patterns:
 
-```
-                   Request Flow
-                        │
-        ┌───────────────┴───────────────┐
-        ▼                               ▼
-┌───────────────────┐           ┌───────────────────┐
-│   sherpa-mcp      │           │   trail-mcp       │
-│ (real MCP proxy)  │           │ (synthesized)     │
-├───────────────────┤           ├───────────────────┤
-│ INBOUND:          │           │ INBOUND:          │
-│  • Content Safety │           │  • Content Safety │
-│  • input_check    │           │  • input_check    │
-├───────────────────┤           ├───────────────────┤
-│ SERVER-SIDE:      │           │ OUTBOUND:         │
-│  • sanitize_output│           │  (none)           │
-│   (SANITIZE_      │           │                   │
-│    ENABLED=true)  │           │                   │
-└─────────┬─────────┘           └─────────┬─────────┘
-          │                               │
-          │                     ┌─────────┴─────────┐
-          │                     │   trail-api       │
-          │                     │ (REST backend)    │
-          │                     ├───────────────────┤
-          │                     │ OUTBOUND:         │
-          │                     │  • sanitize_output│
-          │                     │   (APIM policy)   │
-          │                     └─────────┬─────────┘
-          ▼                               ▼
-    Container App                   Container App
-```
+![Camp 3 split-architecture I/O security end state](../../images/camp3_whatyoubuilt.png){ .center width=720 }
 
 **Key Insight**: Native MCP servers using Streamable HTTP (like sherpa-mcp with FastMCP) always return `Content-Type: text/event-stream`, making APIM outbound policies unreliable. The solution is **server-side sanitization**, where the MCP server calls the sanitize-output Function directly before returning data, controlled by the `SANITIZE_ENABLED` environment variable. For REST APIs (like trail-api), APIM outbound policies work normally because the response is `application/json`.
+
+---
+
+??? note "Validate 1: Injection Attacks Blocked"
+
+    Run the same injection attacks from Section 1. This time, they should be blocked:
+
+    === "Bash"
+        ```bash
+        ./scripts/1.3-validate-injection.sh sherpa
+        ```
+
+    === "PowerShell"
+        ```powershell
+        ./scripts/1.3-validate-injection.ps1 sherpa
+        ```
+
+    **Expected results:**
+
+    **Test 1: Shell Injection**
+    ```
+    Status: 400 Bad Request
+    Response: {
+      "error": "Request blocked by security filter",
+      "reason": "Shell metacharacter detected",
+      "category": "shell_injection"
+    }
+    ```
+
+    **Test 2: Path Traversal**
+    ```
+    Status: 400 Bad Request
+    Response: {
+      "error": "Request blocked by security filter",
+      "reason": "Directory traversal (../) detected",
+      "category": "path_traversal"
+    }
+    ```
+
+    **Test 3: SQL Injection**
+    ```
+    Status: 400 Bad Request
+    Response: {
+      "error": "Request blocked by security filter",
+      "reason": "SQL boolean injection detected",
+      "category": "sql_injection"
+    }
+    ```
+
+    **Test 4: Safe Request (should pass)**
+    ```
+    Status: 200 OK
+    ```
+
+    Now validate the Trail MCP server too:
+
+    === "Bash"
+        ```bash
+        ./scripts/1.3-validate-injection.sh trails
+        ```
+
+    === "PowerShell"
+        ```powershell
+        ./scripts/1.3-validate-injection.ps1 trails
+        ```
+
+    Layer 2 is successfully detecting and blocking injection attacks!
+
+??? note "Validate 2: PII Redacted in Responses"
+
+    ??? info "What is PII redaction?"
+        Azure AI Language's PII detection identifies:
+
+        | Category | Examples |
+        |----------|----------|
+        | PersonName | John Smith, Jane Doe |
+        | Email | john@example.com |
+        | PhoneNumber | 555-123-4567, (555) 123-4567 |
+        | USSocialSecurityNumber | 123-45-6789 |
+        | Address | 123 Main St, Denver, CO 80202 |
+        | CreditCardNumber | 4111-1111-1111-1111 |
+        | And many more... | DateOfBirth, IPAddress, etc. |
+
+        The `sanitize_output` function calls Azure AI Language, then replaces each detected entity with `[REDACTED-Category]`.
+
+    The validation script tests PII redaction on both MCP servers. Run it to confirm sensitive data is now masked:
+
+    === "Bash"
+        ```bash
+        ./scripts/1.3-validate-pii.sh
+        ```
+
+    === "PowerShell"
+        ```powershell
+        ./scripts/1.3-validate-pii.ps1
+        ```
+
+    **Test 1: Trail API (trail-mcp → trail-api sanitization)**
+    ```json
+    {
+      "permit_id": "TRAIL-2024-001",
+      "holder_name": "[REDACTED-PersonName]",
+      "email": "[REDACTED-Email]",
+      "phone": "[REDACTED-PhoneNumber]",
+      "ssn": "[REDACTED-USSocialSecurityNumber]",
+      "address": "[REDACTED-Address]"
+    }
+    ```
+
+    **Test 2: Sherpa MCP (direct outbound sanitization)**
+    ```json
+    {
+      "guide_id": "guide-002",
+      "name": "[REDACTED-PersonName]",
+      "email": "[REDACTED-Email]",
+      "phone": "[REDACTED-PhoneNumber]",
+      "ssn": "[REDACTED-USSocialSecurityNumber]",
+      "address": "[REDACTED-Address]"
+    }
+    ```
+
+    Both responses have the same structure, but all PII is redacted! This validates that:
+
+    - **sherpa-mcp**: Output sanitization works in the MCP policy (real MCP proxy)
+    - **trail-mcp**: Output sanitization works via trail-api (synthesized MCP)
 
 ---
 
@@ -279,7 +250,7 @@ You've implemented defense-in-depth I/O security for MCP servers with a **split 
 
 ---
 
-## Server-Side Validation (Layer 3)
+## Server-Side Validation (Layer 3) — Optional
 
 The MCP servers in Camp 3 include Pydantic validation as the last line of defense:
 

@@ -20,6 +20,22 @@ You've deployed Camp 3's infrastructure and your MCP servers are running behind 
 
 Not quite. In this section, you'll run two exploit scripts that reveal critical I/O security gaps hiding in plain sight -- attacks that Layer 1 (Content Safety) was never designed to catch.
 
+??? info "Why Content Safety misses these attacks"
+    ![Why Content Safety misses technical injections](../../images/camp3_section1.png){ .center width=720 }
+
+    Azure AI Content Safety has two detection capabilities:
+
+    - **Category Detection** (hate, violence, sexual, self-harm) catches harmful content directed at humans.
+    - **Prompt Shields** (jailbreak, prompt injection) catches AI manipulation attempts.
+
+    What it doesn't catch:
+
+    - **Shell injection** -- `; cat /etc/passwd` isn't trying to manipulate an AI
+    - **SQL injection** -- `' OR '1'='1` is a database attack, not a prompt attack
+    - **Path traversal** -- `../../etc/passwd` is a file system attack
+
+    These are **traditional injection attacks** targeting backend systems, not AI models. They require **pattern-based detection** with regex and heuristics, which is exactly what Layer 2 provides.
+
 !!! tip "Working Directory"
     All commands should be run from the `camps/camp3-io-security` directory:
     ```bash
@@ -59,20 +75,6 @@ The script sends three technical injection attacks against the MCP servers. Ever
 | SQL injection | `' OR '1'='1` | :material-alert: **200 OK** -- not detected |
 
 All attacks succeed on both servers. Content Safety isn't stopping them.
-
-??? info "Why Content Safety misses these"
-    Azure AI Content Safety has two detection capabilities:
-
-    - **Category Detection** (hate, violence, sexual, self-harm) catches harmful content directed at humans.
-    - **Prompt Shields** (jailbreak, prompt injection) catches AI manipulation attempts.
-
-    What it doesn't catch:
-
-    - **Shell injection** -- `; cat /etc/passwd` isn't trying to manipulate an AI
-    - **SQL injection** -- `' OR '1'='1` is a database attack, not a prompt attack
-    - **Path traversal** -- `../../etc/passwd` is a file system attack
-
-    These are **traditional injection attacks** targeting backend systems, not AI models. They require **pattern-based detection** with regex and heuristics, which is exactly what Layer 2 provides.
 
 ## Exploit 2: PII Leakage in Responses
 

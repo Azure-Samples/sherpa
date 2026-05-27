@@ -18,6 +18,9 @@ hide:
 
 APIM logs show HTTP traffic, but the security function's internal operations (what attacks were blocked, what PII was found) are still invisible. This section upgrades from basic logging to structured telemetry.
 
+??? info "What are Custom Dimensions?"
+    When you log with Azure Monitor/Application Insights, you can attach **custom dimensions**—arbitrary key-value pairs that become queryable fields. Think of them as adding columns to your log database that you can filter, group, and aggregate. See the [Reference](reference.md#custom-dimensions) for the full list.
+
 ## Two-Layer Blocking Architecture
 
 Attacks are blocked at two layers, and each logs to a different property path. KQL queries need to check **both** locations to capture all attack types:
@@ -52,7 +55,7 @@ The solution is **structured logging**: emitting events as key-value pairs (dime
 
 ## 2.1 See Basic Logging Limitations
 
-???+ abstract "Experience Unstructured Logs"
+??? abstract "Experience Unstructured Logs"
 
     Run the script to trigger security events:
 
@@ -79,7 +82,7 @@ The solution is **structured logging**: emitting events as key-value pairs (dime
 
 ## 2.2 Deploy Structured Logging
 
-???+ success "Switch to v2 with Custom Dimensions"
+??? success "Switch to v2 with Custom Dimensions"
 
     Switch APIM to use the pre-deployed v2 function and send test attacks:
 
@@ -120,9 +123,6 @@ The solution is **structured logging**: emitting events as key-value pairs (dime
     | `correlation_id` | `abc-123-xyz` | Trace across APIM + Function |
     | `tool_name` | `search-trails` | Identify targeted tools |
 
-    !!! info "What Are Custom Dimensions?"
-        When you log with Azure Monitor/Application Insights, you can attach **custom dimensions**—arbitrary key-value pairs that become queryable fields. Think of them as adding columns to your log database that you can filter, group, and aggregate. See the [Reference](reference.md#custom-dimensions) for the full list.
-
     !!! info "How Correlation IDs Flow Through the System"
         When a request arrives at APIM, it's assigned a unique `RequestId` (accessible via `context.RequestId` in policies). This ID appears as `CorrelationId` in APIM's gateway logs.
 
@@ -138,7 +138,7 @@ The solution is **structured logging**: emitting events as key-value pairs (dime
 
 ## 2.3 Validate Structured Logs
 
-???+ success "Query Security Events"
+??? success "Query Security Events"
 
     !!! warning "Wait for Log Ingestion"
         The test attacks from step 2.2 need 2-5 minutes to appear in Log Analytics. If you see "No structured logs found yet," wait a few minutes and try again.
