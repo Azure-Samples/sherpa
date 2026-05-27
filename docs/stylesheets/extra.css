@@ -266,6 +266,12 @@
   margin: 1rem auto 0;
 }
 
+/* ── Centered figure images ──────────────────────────── */
+.md-typeset img.center {
+  display: block;
+  margin: 1rem auto;
+}
+
 /* Enhance code blocks */
 .highlight pre {
   border-radius: 8px;

@@ -26,10 +26,13 @@ Camp 3 adds **Layer 2 security**: Azure Functions that perform advanced input va
 
 This camp follows the same **"vulnerable → exploit → fix → validate"** methodology, but focuses on the data flowing through your MCP servers rather than access control.
 
-**Tech Stack:** Python, MCP, Azure Functions, Azure AI Services (Language), Azure API Management  
-**Primary Risks:** [MCP-05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-command-injection/) (Command Injection), [MCP-06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/) (Prompt Injection), [MCP-03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/) (Tool Poisoning), [MCP-10](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp10-context-oversharing/) (Context Over-Sharing)
+!!! info "Camp Details"
+    **Tech Stack:** Python, MCP, Azure Functions, Azure AI Services (Language), Azure API Management  
+    **Primary Risks:** [MCP-05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-command-injection/) (Command Injection & Execution), [MCP-06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/) (Intent Flow Subversion), [MCP-03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/) (Tool Poisoning), [MCP-10](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp10-context-oversharing/) (Context Injection & Over-Sharing)
 
 ## What You'll Learn
+
+![Camp 3 I/O security overview](../../images/camp3_overview.png){ .center width=720 }
 
 Building on Camp 2's gateway foundation, you'll master I/O security for MCP servers:
 
@@ -96,7 +99,7 @@ cd camps/camp3-io-security
 
 Before climbing through the waypoints, deploy all Azure infrastructure and application code.
 
-???+ note "Full Deployment (Infrastructure + Code)"
+??? note "Full Deployment (Infrastructure + Code)"
 
     This creates all the infrastructure and deploys the application code for Camp 3:
 
@@ -192,6 +195,8 @@ Optional deep-dive content for those who want to understand the architecture and
     Together, these layers provide comprehensive protection for MCP I/O operations.
 
 ??? info "Architecture"
+
+    ![Camp 3 layered I/O security architecture](../../images/camp3_iosecurity.png){ .center width=720 }
 
     Camp 3 deploys a layered security architecture where APIM orchestrates inbound security checks, while output sanitization strategy varies by backend type.
 

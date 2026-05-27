@@ -16,6 +16,19 @@ hide:
   </div>
 </div>
 
+??? info "What is API Center?"
+    **API Center** provides a centralized catalog for all your APIs and MCP servers:
+
+    - **Native MCP Support** - API Center recognizes MCP as a first-class API type alongside REST, GraphQL, and gRPC
+    - **Shadow Server Prevention** - Require all MCP servers to register before deployment
+    - **Discovery** - Search for MCP servers across your organization
+    - **Documentation** - Links to MCP tool definitions and usage guides
+    - **Versioning** - Track MCP server versions and deprecation schedules
+    - **Ownership** - See who owns each MCP server and how to contact them
+    - **Compliance** - Tag MCP servers with compliance requirements (HIPAA, PCI, etc.)
+
+    Think of it like a library catalog, but for APIs and MCP servers. If it's not in API Center, it shouldn't be deployed.
+
 ## The Security Challenge: Shadow MCP Servers & API Sprawl
 
 **OWASP Risk:** [MCP-09 (Shadow MCP Servers)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/)
@@ -31,6 +44,8 @@ As your organization grows, teams independently deploy MCP servers, creating dan
 - **Unvetted access** - Shadow servers may expose sensitive data without proper controls
 
 You need **centralized API governance** to discover all MCP servers and prevent shadow deployments.
+
+![API Center governance overview](../../images/camp2_section2.png){ .center width=720 }
 
 ---
 
@@ -52,19 +67,6 @@ This registers:
 
 - **Sherpa MCP Server** - Weather, trails, and gear recommendations
 - **Trails MCP Server** - Trail information and permit management
-
-??? info "What is Azure API Center?"
-    **API Center** provides a centralized catalog for all your APIs and MCP servers:
-    
-    - **Native MCP Support** - API Center recognizes MCP as a first-class API type alongside REST, GraphQL, and gRPC
-    - **Shadow Server Prevention** - Require all MCP servers to register before deployment
-    - **Discovery** - Search for MCP servers across your organization
-    - **Documentation** - Links to MCP tool definitions and usage guides
-    - **Versioning** - Track MCP server versions and deprecation schedules
-    - **Ownership** - See who owns each MCP server and how to contact them
-    - **Compliance** - Tag MCP servers with compliance requirements (HIPAA, PCI, etc.)
-    
-    Think of it like a library catalog, but for APIs and MCP servers. If it's not in API Center, it shouldn't be deployed.
 
 **View your registered MCP servers:**
 

@@ -16,10 +16,6 @@ hide:
   </div>
 </div>
 
-!!! info "Camp Details"
-    **Tech Stack:** Log Analytics, Application Insights, Azure Monitor, Workbooks, API Management, Container Apps, Functions, MCP  
-    **Primary Risks:** [MCP08](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp08-telemetry/) (Lack of Audit and Telemetry)
-
 ### Welcome to Observation Peak!
 
 You've made it to Camp 4, the last skill-building camp before the Summit! Throughout your journey, you've locked down authentication, put a gateway in front of your MCP servers, and added input validation and output sanitization. Your servers are now protected by multiple layers of defense.
@@ -33,6 +29,10 @@ This is where **observability** comes in, and it's just as important as the secu
 !!! quote "The Key Insight"
     Security controls without observability are like locks without security cameras. You might stop the intruder, but you'll never know they tried to get in.
 
+!!! info "Camp Details"
+    **Tech Stack:** Log Analytics, Application Insights, Azure Monitor, Workbooks, API Management, Container Apps, Functions, MCP  
+    **Primary Risks:** [MCP08](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp08-telemetry/) (Lack of Audit and Telemetry)
+
 ---
 
 ## What You'll Build
@@ -40,46 +40,49 @@ This is where **observability** comes in, and it's just as important as the secu
 By the end of Camp 4, every request will be logged, visualized, and alertable. Here's the complete architecture:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         MCP Client                              │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │ HTTPS Request
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     API Management (APIM)                       │
-│                                                                 │
-│   ┌─────────────────────────────────────────────────────────┐   │
-│   │ LAYER 1: Prompt Shields (AI Content Safety)             │   │
-│   │   • Scans for prompt injection attacks                  │   │
-│   │   • Blocks jailbreak/manipulation attempts              │   │
-│   │   • Logs via <trace> policy → AppTraces                 │   │
-│   │     └── Properties.event_type (direct)                  │   │
-│   └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│   • Receives all MCP traffic                                    │
-│   • Applies policies (auth, rate limiting)                      │
-│   • Generates CorrelationId for tracing                         │
-│   • Routes clean requests to security function                  │
-│                                                                 │
-│   Diagnostic Settings → Log Analytics                           │
-│   └── GatewayLogs (HTTP details)                                │
-│   └── GatewayLlmLogs (LLM usage)                                │
-│   └── WebSocketConnectionLogs (WebSocket events)                │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │ (if not blocked by Layer 1)
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Security Function (Layer 2)                  │
-│   • Receives forwarded request + CorrelationId                  │
-│   • Regex checks for SQL, path traversal, shell injection       │
-│   • Scans for PII/credentials in responses                      │
-│   • Logs structured events with custom dimensions               │
-│                                                                 │
-│   Application Insights SDK → AppTraces table                    │
-│   └── Properties.custom_dimensions.event_type                   │
-│   └── Properties.custom_dimensions.injection_type               │
-│   └── Properties.custom_dimensions.correlation_id               │
-└─────────────────────────────────────────────────────────────────┘
+                      +---------------------+
+                      |      MCP Client     |
+                      +----------+----------+
+                                 |
+                                 | HTTPS Request
+                                 v
++--------------------------------+-----------------------------+
+|                API Management (APIM Gateway)                 |
+|                                                              |
+|  +--------------------------------------------------------+  |
+|  | Layer 1: Prompt Shields (AI Content Safety)            |  |
+|  |   - Scans for prompt injection attacks                 |  |
+|  |   - Blocks jailbreak / manipulation attempts           |  |
+|  |   - Logs via <trace> policy --> AppTraces              |  |
+|  |       +- Properties.event_type (direct)                |  |
+|  +--------------------------------------------------------+  |
+|                                                              |
+|  - Receives all MCP traffic                                  |
+|  - Applies policies (auth, rate limiting)                    |
+|  - Generates CorrelationId for distributed tracing           |
+|  - Routes clean requests to security function                |
+|                                                              |
+|         Diagnostic Settings --> Log Analytics                |
+|           +- GatewayLogs                (HTTP details)       |
+|           +- GatewayLlmLogs             (LLM usage)          |
+|           +- WebSocketConnectionLogs    (WebSocket events)   |
++--------------------------------+-----------------------------+
+                                 |
+                                 | (if not blocked by Layer 1)
+                                 v
++--------------------------------+-----------------------------+
+|                  Security Function (Layer 2)                 |
+|                                                              |
+|   - Receives forwarded request + CorrelationId               |
+|   - Regex checks: SQL / path traversal / shell injection     |
+|   - Scans responses for PII and credentials                  |
+|   - Emits structured events with custom dimensions           |
+|                                                              |
+|         Application Insights SDK --> AppTraces table         |
+|           +- Properties.custom_dimensions.event_type         |
+|           +- Properties.custom_dimensions.injection_type     |
+|           +- Properties.custom_dimensions.correlation_id     |
++--------------------------------------------------------------+
 ```
 
 You'll wire up structured logging, build a security dashboard with Azure Workbooks, create alert rules that fire when attacks spike, and learn KQL to investigate incidents across services.

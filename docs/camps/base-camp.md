@@ -29,6 +29,8 @@ The **Model Context Protocol (MCP)** is an open standard for connecting AI appli
 
 **Why does this matter for security?** Because MCP servers often expose sensitive operations, such as reading user data, executing commands, and accessing internal systems. If these servers lack proper authentication and authorization, anyone who can connect to them can access everything they expose.
 
+![MCP API surface — tools, resources, and prompts exposed to clients](../images/mcp_api.png){ .center width=720 }
+
 !!! info "Learn More"
     - [Introduction to MCP](https://modelcontextprotocol.io/docs/getting-started/intro) — Official MCP documentation
     - [MCP Security Guidance](https://microsoft.github.io/mcp-azure-security-guide/) — OWASP MCP Azure Security Guide
@@ -37,27 +39,13 @@ The **Model Context Protocol (MCP)** is an open standard for connecting AI appli
 
 At its core, MCP connects AI applications (like VS Code or Claude Desktop) to data sources and tools (like databases, APIs, and file systems). The protocol sits in the middle, enabling bidirectional communication so AI applications can discover capabilities and invoke them on demand.
 
-```
-┌─────────────────────┐                              ┌─────────────────────┐
-│                     │                              │                     │
-│  AI Applications    │        ┌─────────────┐       │  Data Sources       │
-│                     │        │             │       │  and Tools          │
-│  • Claude Desktop   │◄──────►│     MCP     │◄─────►│                     │
-│  • VS Code          │        │             │       │  • Databases        │
-│  • Custom AI Agents │        │ Standardized│       │  • APIs             │
-│  • ChatGPT          │        │  Protocol   │       │  • File Systems     │
-│                     │        │             │       │  • Dev Tools        │
-│                     │        └─────────────┘       │                     │
-└─────────────────────┘                              └─────────────────────┘
-     (Hosts/Clients)          Bidirectional                (MCP Servers)
-                               Data Flow
-```
+![MCP host-protocol-server architecture](../images/mcp_architecture.png){ .center width=720 }
 
-In this workshop, you'll work with both sides of this architecture to understand where security risks emerge and how to address them.
+In this workshop, you'll work with both the **AI applications** that consume MCP and the **MCP servers** that expose data and tools — learning where security risks emerge at each layer and how to address them.
 
-- **Left side (AI Applications):** VS Code, and other applications, act as the MCP client, connecting to MCP servers
-- **Right side (MCP Servers):** We'll run both vulnerable and secure servers that expose user data
-- **The Risk:** If the MCP server (right side) has no authentication, any client can connect and access all data
+- **AI Applications:** VS Code, and other clients, connect to MCP servers to discover and invoke capabilities
+- **MCP Servers:** We'll run both vulnerable and secure servers that expose user data
+- **The Risk:** If the MCP server has no authentication, any client can connect and access all data
 
 ---
 
@@ -117,6 +105,8 @@ cd sherpa
 ---
 
 ## The Ascent
+
+![Base Camp journey — vulnerable, exploit, fix, validate](../images/basecamp_journey.png){ .center width=960 }
 
 Now it's time to begin your climb. Each waypoint below builds on the previous one, guiding you from vulnerability discovery to validated security fixes. You'll experience MCP security vulnerabilities firsthand, understand their impact, implement fixes, and verify your solutions work.
 
@@ -311,6 +301,8 @@ Start with **Waypoint 1** and work through each waypoint in order. By the end, y
 
 ??? warning "Waypoint 3: Understand the Risk"
 
+    ![Base Camp architecture before the security fix — no auth, full data exposure](../images/basecamp_beforefix.png){ .center width=720 }
+
     ### What Just Happened?
 
     You successfully exploited **OWASP MCP07 (Insufficient Authentication & Authorization)** and **MCP01 (Token Mismanagement & Secret Exposure)**.
@@ -359,6 +351,8 @@ Start with **Waypoint 1** and work through each waypoint in order. By the end, y
     ```
 
 ??? success "Waypoint 4: Implement Security"
+
+    ![Base Camp architecture after applying bearer-token authentication and per-user authorization](../images/basecamp_afterfix.png){ .center width=720 }
 
     ### Switch to Secure Server
 
@@ -580,8 +574,8 @@ Start with **Waypoint 1** and work through each waypoint in order. By the end, y
 
 ---
 
-[Continue: Camp 1 Identity & Access Management →](camp1-identity.md){ .md-button .md-button--primary }
+[Continue: Camp 1 Identity & Access Management →](camp1-identity/index.md){ .md-button .md-button--primary }
 
 ---
 
-← [Prerequisites](../prerequisites.md) | [Camp 1: Identity & Access Management](camp1-identity.md) →
+← [Prerequisites](../prerequisites.md) | [Camp 1: Identity & Access Management](camp1-identity/index.md) →

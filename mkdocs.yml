@@ -75,7 +75,13 @@ nav:
   - Prerequisites: prerequisites.md
   - The Journey:
     - Base Camp: camps/base-camp.md
-    - Camp 1 - Identity: camps/camp1-identity.md
+    - Camp 1 - Identity:
+      - "Overview & Deploy": camps/camp1-identity/index.md
+      - Cloud Exploits: camps/camp1-identity/section1-cloud-exploits.md
+      - Managed Identity: camps/camp1-identity/section2-managed-identity.md
+      - Key Vault: camps/camp1-identity/section3-key-vault.md
+      - OAuth & JWT: camps/camp1-identity/section4-oauth-jwt.md
+      - Validate Security: camps/camp1-identity/section5-validate.md
     - Camp 2 - Gateway:
       - "Overview & Deploy": camps/camp2-gateway/index.md
       - Gateway & Authentication: camps/camp2-gateway/section1-gateway-governance.md

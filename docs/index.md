@@ -49,6 +49,8 @@ hide:
 
 ## The Expedition Route
 
+![Sherpa MCP Workshop expedition route map](images/sherpa-mcp-workshop-map.png){ .center width=700 }
+
 Each camp builds on the last — from unauthenticated MCP servers to enterprise-grade defense-in-depth.
 
 <div class="camp-cards">

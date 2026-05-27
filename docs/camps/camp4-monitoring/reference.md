@@ -570,7 +570,7 @@ The sherpa-mcp-server returns **single JSON responses** for its simple tools. Th
 
 Things don't always work the first time. Here are the most common issues and how to fix them.
 
-???+ question "My KQL queries return no results"
+??? question "My KQL queries return no results"
 
     **Don't panic!** This is the #1 issue people hit. Check these things in order:
 
@@ -614,7 +614,7 @@ Things don't always work the first time. Here are the most common issues and how
 
     5. **Generate some events!** Run the exploit scripts to create log entries, then wait a few minutes.
 
-???+ question "The dashboard shows 'No data'"
+??? question "The dashboard shows 'No data'"
 
     **Workbooks need data to display.** If panels are empty:
 
@@ -636,7 +636,7 @@ Things don't always work the first time. Here are the most common issues and how
 
     4. **Check the workspace connection** - Make sure the workbook is querying the right Log Analytics workspace
 
-???+ question "Alerts aren't firing even though I see events"
+??? question "Alerts aren't firing even though I see events"
 
     **Alerts run on a schedule, not in real-time:**
 
@@ -650,7 +650,7 @@ Things don't always work the first time. Here are the most common issues and how
 
     4. **Check action group**: Even if the alert fires, notifications need a properly configured action group with valid email/webhook.
 
-???+ question "Properties.event_type returns nothing but I see the data"
+??? question "Properties.event_type returns nothing but I see the data"
 
     **This depends on which layer emitted the log:**
     
@@ -696,7 +696,7 @@ Things don't always work the first time. Here are the most common issues and how
     {"custom_dimensions": "{'event_type': 'INJECTION_BLOCKED', ...}"}
     ```
 
-???+ question "I'm seeing 'Request rate is large' errors"
+??? question "I'm seeing 'Request rate is large' errors"
 
     **You might be hitting rate limits.** This happens if you:
     

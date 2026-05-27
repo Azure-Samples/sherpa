@@ -16,10 +16,6 @@ hide:
   </div>
 </div>
 
-!!! info "Camp Details"
-    **Tech Stack:** Python, MCP, Azure API Management, Container Apps, Content Safety, API Center, Entra ID  
-    **Primary Risks:** [MCP-02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/) (Privilege Escalation), [MCP-06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/) (Prompt Injection), [MCP-07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) (Insufficient Auth), [MCP-09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/) (Shadow Servers)
-
 ### Welcome to Gateway Ridge!
 
 In Camp 1, you secured a single MCP server with OAuth and Managed Identity. Now imagine you have dozens of MCP servers (weather, trails, gear, permits, guides), each needing consistent security. Securing them individually means duplicating authentication logic, rate limiting, and monitoring across every server.
@@ -27,6 +23,24 @@ In Camp 1, you secured a single MCP server with OAuth and Managed Identity. Now 
 **Azure API Management (APIM)** solves this as a centralized MCP gateway: a single, hardened layer where all MCP traffic flows through. Instead of securing each server individually, the gateway validates, rate-limits, and filters every request before it reaches your backends.
 
 This camp follows the same **"vulnerable → exploit → fix → validate"** pattern from previous camps, but now at scale with multiple MCP servers and comprehensive gateway controls.
+
+!!! info "Camp Details"
+    **Tech Stack:** Python, MCP, Azure API Management, Container Apps, Content Safety, API Center, Entra ID  
+    **Primary Risks:** [MCP-02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/) (Privilege Escalation via Scope Creep), [MCP-06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/) (Intent Flow Subversion), [MCP-07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) (Insufficient Authentication & Authorization), [MCP-09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/) (Shadow MCP Servers)
+
+## What You'll Learn
+
+![Camp 2 gateway architecture overview](../../images/camp2_overview.png){ .center width=720 }
+
+Building on Camp 1's identity foundation, you'll master gateway security at scale for multiple MCP servers:
+
+!!! info "Learning Objectives"
+    - Expose MCP servers through Azure API Management as a centralized, hardened gateway
+    - Convert existing REST APIs to MCP at the gateway with subscription-key authentication
+    - Apply rate-limiting policies to protect backends from abuse and runaway clients
+    - Detect and block prompt injection attacks with Azure AI Content Safety Prompt Shields
+    - Govern MCP servers with Azure API Center to prevent shadow deployments and API sprawl
+    - Apply defense-in-depth gateway policies consistently across multiple MCP backends
 
 ---
 
@@ -56,6 +70,8 @@ This camp follows the same **"vulnerable → exploit → fix → validate"** pat
 
 ## Getting Started
 
+![Camp 2 journey through the four gateway waypoints](../../images/camp2_journey.png){ .center width=720 }
+
 ```bash
 # Clone the repo (skip if you already have it)
 git clone https://github.com/Azure-Samples/sherpa.git
@@ -72,7 +88,7 @@ azd provision
 
 When prompted, choose an environment name (e.g., `camp2-dev`), select your Azure subscription, and pick a region (e.g., `westus2`).
 
-???+ note "What happens during provisioning?"
+??? note "What happens during provisioning?"
     `azd provision` executes three phases:
 
     **Phase 1: Pre-Provision Hook** — Creates Entra ID applications for OAuth:
@@ -117,4 +133,4 @@ Ready? Let's start by exposing your MCP server through the gateway.
 
 ---
 
-← [Camp 1: Identity](../camp1-identity.md) | [Gateway & Authentication →](section1-gateway-governance.md)
+← [Camp 1: Identity](../camp1-identity/index.md) | [Gateway & Authentication →](section1-gateway-governance.md)

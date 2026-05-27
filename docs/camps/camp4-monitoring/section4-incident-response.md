@@ -20,7 +20,7 @@ You've built the monitoring system. Now put it under pressure. This section simu
 
 ## 4.1 Simulate Multi-Vector Attack
 
-???+ warning "Attack Simulation"
+??? warning "Attack Simulation"
 
     Run the attack simulation:
 

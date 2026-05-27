@@ -7,7 +7,7 @@ hide:
 
 *Reaching the Peak*
 
-![Summit](../images/sherpa-summit.png)
+![Summit](../images/sherpa-summit.png){ .center width=400 }
 
 !!! info "Summit Details"
     **Tech Stack:** All previous camps combined - Entra ID, APIM, Azure Functions, Container Apps, Log Analytics, Application Insights  
@@ -49,7 +49,7 @@ The Summit will include:
 While we finish building the Summit, make sure you've completed all the prerequisite camps:
 
 - [Base Camp](base-camp.md) - Understand MCP vulnerabilities
-- [Camp 1: Identity](camp1-identity.md) - Implement OAuth 2.0 authentication
+- [Camp 1: Identity](camp1-identity/index.md) - Implement OAuth 2.0 authentication
 - [Camp 2: Gateway](camp2-gateway/index.md) - Deploy APIM protection
 - [Camp 3: I/O Security](camp3-io-security/index.md) - Add input/output validation
 - [Camp 4: Monitoring](camp4-monitoring/index.md) - Enable observability and alerting

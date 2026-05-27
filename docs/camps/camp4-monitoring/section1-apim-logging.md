@@ -26,7 +26,7 @@ Every MCP reques, legitimate or malicious, passes through APIM. By default, APIM
 
 ## 1.1 Explore APIM Gateway Logging
 
-???+ abstract "Send Traffic and See Logs Flow"
+??? abstract "Send Traffic and See Logs Flow"
 
     Run the script to send traffic through APIM and verify logging:
 
@@ -61,7 +61,7 @@ Every MCP reques, legitimate or malicious, passes through APIM. By default, APIM
 
 ## 1.2 Verify Diagnostic Configuration
 
-???+ success "Understand What's Configured"
+??? success "Understand What's Configured"
 
     Examine the diagnostic settings:
 
@@ -85,7 +85,7 @@ Every MCP reques, legitimate or malicious, passes through APIM. By default, APIM
 !!! warning "Wait for Log Ingestion"
     For new deployments, logs need 2-5 minutes to appear in Log Analytics. If you run this immediately after `azd up`, you may see "No HTTP logs found yet." Wait a few minutes and try again.
 
-???+ success "Query APIM Logs"
+??? success "Query APIM Logs"
 
     Verify logs are flowing:
 
