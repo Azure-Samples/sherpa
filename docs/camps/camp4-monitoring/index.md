@@ -88,7 +88,7 @@ By the end of Camp 4, every request will be logged, visualized, and alertable. H
 You'll wire up structured logging, build a security dashboard with Azure Workbooks, create alert rules that fire when attacks spike, and learn KQL to investigate incidents across services.
 
 !!! info "Supply Chain Coverage (MCP04)"
-    Camp 4's telemetry is the third leg of this workshop's defense against **[MCP04: Software Supply Chain Attacks & Dependency Tampering](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp04-supply-chain/)**:
+    Camp 4's telemetry is the watchtower over this workshop's defense against **[MCP04: Software Supply Chain Attacks & Dependency Tampering](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp04-supply-chain/)**:
 
     - **Image versioning & signing** via Azure Container Registry (deployed in every camp's infrastructure) — every MCP server image is tagged, immutable, and pulled by digest.
     - **Sandboxed execution** behind APIM and Container Apps — compromised dependencies can't reach beyond the workload boundary.
