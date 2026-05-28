@@ -65,7 +65,7 @@ In this section, you'll deploy two MCP servers behind APIM: one native MCP serve
 - **Enterprise governance** - Monitor, audit, and control MCP traffic
 - **Transparent forwarding** - Upstream server receives authentic MCP protocol messages
 
-**OWASP Risk:** [MCP-07 (Insufficient Authentication & Authorization)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/)
+**OWASP Risk:** [MCP07 (Insufficient Authentication & Authorization)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/)
 
 Without authentication, your MCP server is completely open to the internet. For production MCP servers, you need **user-level authentication with OAuth**.
 
@@ -197,7 +197,7 @@ Without authentication, your MCP server is completely open to the internet. For 
         - No way to stop them without taking the service offline
         - No way to implement rate limiting per user
         
-        This is **MCP-07: Insufficient Authentication & Authorization** - the system can't identify users or enforce authorization.
+        This is **MCP07: Insufficient Authentication & Authorization** - the system can't identify users or enforce authorization.
 
 ??? success "Step 3: Fix - Add OAuth with PRM Discovery"
 
@@ -392,7 +392,7 @@ Without authentication, your MCP server is completely open to the internet. For 
 :material-check: Tokens expire automatically (short-lived)  
 :material-check: VS Code authenticates automatically via PRM discovery  
 
-**OWASP MCP-07** mitigated at the gateway!   
+**OWASP MCP07** mitigated at the gateway!   
 
 !!! warning "Backend Still Exposed"
     OAuth is now enforced at the APIM gateway, but the Container App running Sherpa is still publicly accessible. Anyone who discovers the direct Container App URL can bypass APIM entirely (as shown in Step 2's `sherpa-direct` test).
@@ -419,7 +419,7 @@ Without authentication, your MCP server is completely open to the internet. For 
 - **Incremental adoption** - Expose legacy REST APIs to AI agents without rewriting them
 - **Consistent governance** - All MCP servers (native or exported) flow through the same gateway
 
-**OWASP Risk:** [MCP-07 (Insufficient Authentication & Authorization)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/)
+**OWASP Risk:** [MCP07 (Insufficient Authentication & Authorization)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/)
 
 Subscription keys are useful for **tracking and billing**, but they are NOT authentication. For AI agent access, you need OAuth with user identity.
 
@@ -604,7 +604,7 @@ Subscription keys are useful for **tracking and billing**, but they are NOT auth
         
         Who accessed the permit data? Alice, Bob, Charlie, or Miranda? You can't tell - they all share the same key.
         
-        **This is MCP-07: Insufficient Authentication & Authorization** - subscription keys ≠ authentication.
+        **This is MCP07: Insufficient Authentication & Authorization** - subscription keys ≠ authentication.
 
 ??? success "Step 3: Fix - Add OAuth for Authentication (Keep Subscription Key for Tracking)"
 
@@ -823,13 +823,13 @@ Subscription keys are useful for **tracking and billing**, but they are NOT auth
 | Per-user Permissions | :material-close: | :material-check: |
 | Emergency Revocation | :material-check: (app level) | :material-check: (user level) |
 
-**OWASP MCP-07** mitigated! :material-check:
+**OWASP MCP07** mitigated! :material-check:
 
 ## Waypoint 1.3: Rate Limiting by Subscription Key
 
 ### The Security Challenge: Unlimited Requests
 
-**OWASP Risk:** [MCP-02 (Privilege Escalation via Scope Creep)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/)
+**OWASP Risk:** [MCP02 (Privilege Escalation via Scope Creep)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/)
 
 Even with OAuth, a single user (or compromised account) can overwhelm your MCP servers by sending unlimited requests. This leads to:
 
@@ -894,7 +894,7 @@ You need **rate limiting** to protect your infrastructure and ensure fair resour
 
     The script demonstrates how without rate limiting, a single runaway client can send unlimited requests.
 
-    **This is MCP-02: Privilege Escalation via Scope Creep** - the system can't prevent resource exhaustion.
+    **This is MCP02: Privilege Escalation via Scope Creep** - the system can't prevent resource exhaustion.
 
 ??? success "Step 3: Fix - Apply Rate Limiting"
 
@@ -1029,7 +1029,7 @@ You need **rate limiting** to protect your infrastructure and ensure fair resour
 - Predictable costs
 - Tiered limits possible (different quotas per subscription tier)
 
-**OWASP MCP-02 mitigation complete!** :material-check:
+**OWASP MCP02 mitigation complete!** :material-check:
 
 
 ---

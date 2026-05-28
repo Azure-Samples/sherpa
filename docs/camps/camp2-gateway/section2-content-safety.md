@@ -80,7 +80,7 @@ In this section, you'll use [Azure AI Content Safety](https://learn.microsoft.co
 - **Low latency** - Adds ~50ms, blocks before MCP processing
 - **Reusable fragment** - Apply to new MCP APIs with a single `include-fragment` directive
 
-**OWASP Risk:** [MCP-06 (Intent Flow Subversion)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/)
+**OWASP Risk:** [MCP06 (Intent Flow Subversion)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/)
 
 ---
 
@@ -286,7 +286,7 @@ In this section, you'll use [Azure AI Content Safety](https://learn.microsoft.co
 - MCP server only receives clean requests
 - Attack attempts logged for security review
 
-**OWASP MCP-06 mitigation complete!** :material-check:
+**OWASP MCP06 mitigation complete!** :material-check:
 
 ---
 

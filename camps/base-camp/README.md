@@ -25,9 +25,8 @@ Experience the risk of unauthenticated MCP servers firsthand. Deploy a vulnerabl
 
 | Risk | Description | Base Camp Solution |
 |------|-------------|-------------------|
-| [MCP-07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) | Insufficient Auth | Bearer token validation |
-| [MCP-01](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token-mismanagement/) | Token Exposure | Environment variables |
-| [MCP-02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/) | Privilege Escalation | Authorization checks |
+| [MCP07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) | Insufficient Authentication & Authorization | Bearer token validation + per-user authorization checks |
+| [MCP01](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token-mismanagement/) | Token Mismanagement & Secret Exposure | Token loaded from environment (vs. hardcoded) |
 
 ## Quick Start
 

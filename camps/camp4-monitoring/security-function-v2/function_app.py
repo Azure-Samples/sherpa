@@ -129,8 +129,8 @@ def sanitize_output(req: func.HttpRequest) -> func.HttpResponse:
     Sanitize MCP response by redacting PII and credentials.
 
     Performs:
-    - PII detection using Azure AI Language (MCP-03)
-    - Credential pattern scanning (MCP-03)
+    - PII detection using Azure AI Language (MCP10)
+    - Credential pattern scanning (MCP01)
 
     Returns:
         The sanitized response body with sensitive data redacted

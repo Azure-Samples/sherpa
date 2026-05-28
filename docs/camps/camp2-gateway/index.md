@@ -26,7 +26,7 @@ This camp follows the same **"vulnerable → exploit → fix → validate"** pat
 
 !!! info "Camp Details"
     **Tech Stack:** Python, MCP, Azure API Management, Container Apps, Content Safety, API Center, Entra ID  
-    **Primary Risks:** [MCP-02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/) (Privilege Escalation via Scope Creep), [MCP-06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/) (Intent Flow Subversion), [MCP-07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) (Insufficient Authentication & Authorization), [MCP-09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/) (Shadow MCP Servers)
+    **Primary Risks:** [MCP02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/) (Privilege Escalation via Scope Creep), [MCP06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/) (Intent Flow Subversion), [MCP07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) (Insufficient Authentication & Authorization), [MCP09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/) (Shadow MCP Servers)
 
 ## What You'll Learn
 

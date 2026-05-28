@@ -202,7 +202,7 @@ if [ $TESTS_FAILED -eq 0 ] && [ $TESTS_PASSED -gt 0 ]; then
     echo "  - Detecting email addresses"
     echo "  - Detecting phone numbers"
     echo ""
-    echo "OWASP MCP-03 (Tool Poisoning) MITIGATED"
+    echo "OWASP MCP10 (Context Injection & Over-Sharing) MITIGATED"
     echo ""
     echo "=========================================="
     echo "Camp 3 Complete!"

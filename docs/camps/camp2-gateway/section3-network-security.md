@@ -20,7 +20,7 @@ In this final section, you'll learn about network isolation patterns to protect 
 
 ## The Security Challenge: Direct Backend Access
 
-**OWASP Risk:** [MCP-04 (Software Supply Chain Attacks & Dependency Tampering)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp04-supply-chain/)
+**OWASP Risks:** [MCP07 (Insufficient Authentication & Authorization)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) at the backend tier, with secondary exposure to [MCP09 (Shadow MCP Servers)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/) — a bypassable direct URL is effectively a shadow path that escapes gateway governance.
 
 Your MCP servers are running in Container Apps with public endpoints. While you've added OAuth, rate limiting, and content safety at the gateway, there's a fundamental problem:
 
@@ -126,7 +126,7 @@ For this workshop, we've focused on the security controls that run **at the gate
 
 4. **Monitor for direct access attempts** — Even with restrictions, log and alert on unexpected traffic patterns.
 
-**OWASP MCP-04 awareness complete!** :material-check:
+**Network isolation defense-in-depth complete!** :material-check: (closes the MCP07 backend-auth gap and removes the MCP09 shadow-path bypass)
 
 ---
 
@@ -136,11 +136,11 @@ You've deployed a production-grade API gateway for MCP servers. Here's what you 
 
 | Control | OWASP Risk | Page |
 |---------|------------|------|
-| OAuth + PRM (RFC 9728) | MCP-07: Insufficient Authentication | [Gateway & Authentication](section1-gateway-governance.md) |
-| Rate Limiting | MCP-02: Privilege Escalation via Scope Creep | [Gateway & Authentication](section1-gateway-governance.md) |
-| Prompt Shields | MCP-06: Prompt Injection | [Content Safety](section2-content-safety.md) |
-| API Center | MCP-09: Shadow MCP Servers | [API Governance](api-governance.md) |
-| Network Isolation | MCP-04: Supply Chain Attacks | [Network Security](#) (this page) |
+| OAuth + PRM (RFC 9728) | MCP07: Insufficient Authentication & Authorization | [Gateway & Authentication](section1-gateway-governance.md) |
+| Rate Limiting | MCP02: Privilege Escalation via Scope Creep | [Gateway & Authentication](section1-gateway-governance.md) |
+| Prompt Shields | MCP06: Intent Flow Subversion | [Content Safety](section2-content-safety.md) |
+| API Center | MCP09 (Shadow MCP Servers) + MCP03 (Tool Poisoning, secondary via registry gating) | [API Governance](api-governance.md) |
+| Network Isolation | MCP07 (backend auth) + MCP09 (shadow path bypass) | [Network Security](#) (this page) |
 
 ### Key Takeaways
 

@@ -28,7 +28,7 @@ This camp follows the same **"vulnerable → exploit → fix → validate"** met
 
 !!! info "Camp Details"
     **Tech Stack:** Python, MCP, Azure Functions, Azure AI Services (Language), Azure API Management  
-    **Primary Risks:** [MCP-05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-command-injection/) (Command Injection & Execution), [MCP-06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/) (Intent Flow Subversion), [MCP-03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/) (Tool Poisoning), [MCP-10](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp10-context-oversharing/) (Context Injection & Over-Sharing)
+    **Primary Risks:** [MCP05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-command-injection/) (Command Injection & Execution), [MCP06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/) (Intent Flow Subversion), [MCP03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/) (Tool Poisoning), [MCP10](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp10-context-oversharing/) (Context Injection & Over-Sharing)
 
 ## What You'll Learn
 

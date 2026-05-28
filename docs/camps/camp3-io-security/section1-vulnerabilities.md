@@ -121,7 +121,7 @@ Let's see what happens when you request this data. Run the PII exploit against b
 
     SSNs, email addresses, phone numbers, and physical addresses, all returned directly to the client with no redaction.
 
-This is **MCP-03: Tool Poisoning (Data Exfiltration)**. Without output sanitization, PII passes directly to the client.
+This is **MCP10: Context Injection & Over-Sharing**. Without output sanitization, sensitive context (PII) flows from the tool's data store directly to the client without scope-aware filtering.
 
 ??? warning "Compliance implications"
     Exposing PII violates:

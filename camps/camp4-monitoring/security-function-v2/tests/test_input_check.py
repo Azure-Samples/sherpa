@@ -23,7 +23,7 @@ from shared.injection_patterns import check_patterns, check_mcp_request, Detecti
 
 
 class TestShellInjection:
-    """Test MCP-05: Shell Injection detection."""
+    """Test MCP05: Shell Injection detection."""
     
     def test_semicolon(self):
         """Detect shell command separator."""
@@ -56,7 +56,7 @@ class TestShellInjection:
 
 
 class TestSQLInjection:
-    """Test MCP-05: SQL Injection detection."""
+    """Test MCP05: SQL Injection detection."""
     
     def test_or_injection(self):
         """Detect OR-based SQL injection."""
@@ -79,7 +79,7 @@ class TestSQLInjection:
 
 
 class TestPathTraversal:
-    """Test MCP-05: Path Traversal detection."""
+    """Test MCP05: Path Traversal detection."""
     
     def test_dot_dot_slash(self):
         """Detect ../ traversal."""

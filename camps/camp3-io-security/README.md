@@ -26,9 +26,11 @@ Implement defense-in-depth I/O security for MCP servers using Azure Functions an
 
 | Risk | Description | Camp 3 Solution |
 |------|-------------|-----------------|
-| [MCP-05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-command-injection/) | Command Injection | `input_check` function detects shell/SQL/path traversal |
-| [MCP-03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/) | Tool Poisoning | `sanitize_output` function redacts PII and credentials |
-| [MCP-10](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp10-context-oversharing/) | Context Over-Sharing | Output sanitization prevents data leakage |
+| [MCP05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-command-injection/) | Command Injection & Execution | `input_check` function detects shell/SQL/path traversal |
+| [MCP06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/) | Intent Flow Subversion | Prompt-injection pattern detection in `input_check` |
+| [MCP10](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp10-context-oversharing/) | Context Injection & Over-Sharing | `sanitize_output` function redacts PII before responses leave the boundary |
+| [MCP01](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token-mismanagement/) | Token Mismanagement & Secret Exposure | `sanitize_output` credential pattern scanning (defense-in-depth) |
+| [MCP03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/) | Tool Poisoning (secondary) | `input_check` is loose defense-in-depth against poisoned tool payloads |
 
 ## Quick Start
 
