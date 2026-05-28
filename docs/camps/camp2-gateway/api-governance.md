@@ -31,7 +31,7 @@ hide:
 
 ## The Security Challenge: Shadow MCP Servers & API Sprawl
 
-**OWASP Risk:** [MCP-09 (Shadow MCP Servers)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/)
+**OWASP Risks:** [MCP09 (Shadow MCP Servers)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/) (primary), with secondary mitigation of [MCP03 (Tool Poisoning)](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/) — a curated registry blocks unknown or poisoned tools from being discovered and invoked.
 
 As your organization grows, teams independently deploy MCP servers, creating dangerous blind spots:
 
@@ -100,7 +100,7 @@ After running the script, open the Azure Portal and navigate to your API Center.
 - Track compliance requirements per server
 - Security review before deployment
 
-**OWASP MCP-09 (Shadow MCP Servers)** mitigation complete! :material-check:
+**OWASP MCP09 (Shadow MCP Servers)** mitigation complete, with secondary defense against **MCP03 (Tool Poisoning)** via registry-gated tool discovery! :material-check:
 
 ---
 

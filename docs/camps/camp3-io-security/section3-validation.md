@@ -157,10 +157,10 @@ You've implemented defense-in-depth I/O security for MCP servers with a **split 
 
 | Control | What It Does | Applied To | OWASP Risk Mitigated |
 |---------|--------------|------------|----------------------|
-| **OAuth (mcp.access scope)** | Token validation with scope check | All APIs | MCP-01 (Authentication) |
-| **Content Safety (L1)** | Harmful content detection | All APIs | MCP-06 (partial) |
-| **input_check (L2)** | Prompt/shell/SQL/path injection | All APIs | MCP-05, MCP-06 |
-| **sanitize_output (L2)** | PII redaction, credential scanning | sherpa-mcp (server-side), trail-api (APIM) | MCP-03, MCP-10 |
+| **OAuth (mcp.access scope)** | Token validation with scope check | All APIs | MCP07 (Insufficient Authentication & Authorization) |
+| **Content Safety (L1)** | Harmful content detection | All APIs | MCP06 (partial) |
+| **input_check (L2)** | Prompt/shell/SQL/path injection | All APIs | MCP05, MCP06, MCP03 (defense-in-depth against poisoned tool payloads) |
+| **sanitize_output (L2)** | PII redaction, credential scanning | sherpa-mcp (server-side), trail-api (APIM) | MCP01 (credential scanning), MCP10 (PII over-sharing) |
 | **Server validation (L3)** | Pydantic schemas, regex patterns | MCP servers | Defense in depth |
 
 ---

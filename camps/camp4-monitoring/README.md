@@ -27,7 +27,8 @@ Implement security monitoring for MCP servers using Azure Monitor, structured lo
 
 | Risk | Description | Camp 4 Solution |
 |------|-------------|-----------------|
-| [MCP-08](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp08-logging/) | Lack of Audit and Telemetry | Structured logging + dashboards + alerts |
+| [MCP08](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp08-telemetry/) | Lack of Audit and Telemetry | Structured logging + Workbook dashboards + alert rules |
+| [MCP04](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp04-supply-chain/) | Software Supply Chain Attacks & Dependency Tampering | ACR image versioning + APIM-sandboxed execution + audit telemetry for anomalous dependency behavior |
 
 ## Quick Start
 

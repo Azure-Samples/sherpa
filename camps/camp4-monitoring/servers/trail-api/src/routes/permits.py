@@ -1,8 +1,8 @@
 """
 Permit endpoints - including PII-leaking endpoint for Camp 4 demo.
 
-This module demonstrates MCP-03 (Tool Poisoning) vulnerability where
-an API returns sensitive PII that should be redacted before being
+This module demonstrates MCP10 (Context Injection & Over-Sharing) vulnerability
+where an API returns sensitive PII that should be redacted before being
 exposed through the MCP gateway.
 """
 

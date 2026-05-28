@@ -26,9 +26,9 @@ Learn how to secure an MCP server deployed to Azure using Managed Identity, Key 
 
 | Risk | Description | Camp 1 Solution |
 |------|-------------|-----------------|
-| [MCP-01](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token-mismanagement/) | Token Mismanagement | OAuth 2.1 with short-lived JWTs |
-| [MCP-07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) | Insufficient Authentication | Entra ID + JWT validation |
-| [MCP-02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/) | Privilege Escalation | Managed Identity + Key Vault RBAC |
+| [MCP01](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token-mismanagement/) | Token Mismanagement & Secret Exposure | OAuth 2.1 with short-lived JWTs + Key Vault |
+| [MCP07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) | Insufficient Authentication & Authorization | Entra ID + JWT validation with audience check |
+| [MCP02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/) | Privilege Escalation via Scope Creep | Managed Identity + least-privilege RBAC |
 
 ## Quick Start
 

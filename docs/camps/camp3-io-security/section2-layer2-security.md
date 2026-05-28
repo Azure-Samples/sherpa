@@ -159,21 +159,21 @@ Now that you've seen the vulnerabilities, let's wire the security function into 
 
         ```python
         INJECTION_PATTERNS: dict[str, list[tuple[str, str]]] = {
-            # MCP-05: Shell Injection - stops "summit; cat /etc/passwd"
+            # MCP05: Shell Injection - stops "summit; cat /etc/passwd"
             "shell_injection": [
                 (r"[;&|`]", "Shell metacharacter detected"),
                 (r"\$\([^)]+\)", "Command substitution pattern detected"),
                 # ...
             ],
 
-            # MCP-05: SQL Injection - stops "' OR '1'='1"
+            # MCP05: SQL Injection - stops "' OR '1'='1"
             "sql_injection": [
                 (r"'\s*(OR|AND)\s+['\d]", "SQL boolean injection detected"),
                 (r"UNION\s+(ALL\s+)?SELECT", "UNION-based SQL injection"),
                 # ...
             ],
 
-            # MCP-05: Path Traversal - stops "../../etc/passwd"
+            # MCP05: Path Traversal - stops "../../etc/passwd"
             "path_traversal": [
                 (r"\.\./", "Directory traversal (../) detected"),
                 (r"%2e%2e[%2f/\\]", "URL-encoded directory traversal"),

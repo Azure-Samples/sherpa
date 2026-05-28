@@ -26,11 +26,11 @@ Establish enterprise-grade API gateway security for MCP servers using Azure API 
 
 | Risk | Description | Camp 2 Solution |
 |------|-------------|-----------------|
-| [MCP-07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) | Insufficient Auth | OAuth + PRM at gateway |
-| [MCP-02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/) | Privilege Escalation | Rate limiting |
-| [MCP-06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/) | Prompt Injection | Content Safety filtering |
-| [MCP-09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/) | Shadow MCP Servers | API Center governance |
-| [MCP-04](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp04-tool-invocation/) | Tool Invocation | IP restrictions on backends |
+| [MCP07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/) | Insufficient Authentication & Authorization | OAuth + PRM at gateway; network isolation closes backend-auth bypass |
+| [MCP02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/) | Privilege Escalation via Scope Creep | Rate limiting (defense-in-depth against resource exhaustion) |
+| [MCP06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/) | Intent Flow Subversion | Content Safety Prompt Shields filtering |
+| [MCP09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/) | Shadow MCP Servers | API Center governance + network isolation removes shadow-path bypass |
+| [MCP03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/) | Tool Poisoning (secondary) | API Center registry gates unknown/poisoned tool discovery |
 
 ## Quick Start
 

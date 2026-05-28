@@ -215,7 +215,7 @@ if ($TESTS_FAILED -eq 0 -and $TESTS_PASSED -gt 0) {
     Write-Host "  - Detecting email addresses"
     Write-Host "  - Detecting phone numbers"
     Write-Host ""
-    Write-Host "OWASP MCP-03 (Tool Poisoning) MITIGATED"
+    Write-Host "OWASP MCP10 (Context Injection & Over-Sharing) MITIGATED"
     Write-Host ""
     Write-Host "=========================================="
     Write-Host "Camp 3 Complete!"

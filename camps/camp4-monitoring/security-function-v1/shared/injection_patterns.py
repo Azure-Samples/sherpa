@@ -28,7 +28,7 @@ class DetectionResult(NamedTuple):
 
 # Organized by OWASP MCP risk category
 INJECTION_PATTERNS: dict[str, list[tuple[str, str]]] = {
-    # MCP-05: Command Injection - Shell/OS command execution
+    # MCP05: Command Injection - Shell/OS command execution
     "shell_injection": [
         (r"[;&|`]",
          "Shell metacharacter detected"),
@@ -48,7 +48,7 @@ INJECTION_PATTERNS: dict[str, list[tuple[str, str]]] = {
          "Hex-encoded shell character detected"),
     ],
     
-    # MCP-05: SQL Injection - Database query manipulation
+    # MCP05: SQL Injection - Database query manipulation
     "sql_injection": [
         (r"'\s*(OR|AND)\s+['\d]",
          "SQL boolean injection detected"),
@@ -70,7 +70,7 @@ INJECTION_PATTERNS: dict[str, list[tuple[str, str]]] = {
          "SQL file write attempt detected"),
     ],
     
-    # MCP-05: Path Traversal - File system access
+    # MCP05: Path Traversal - File system access
     "path_traversal": [
         (r"\.\./",
          "Directory traversal (../) detected"),
