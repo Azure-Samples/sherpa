@@ -60,6 +60,8 @@ You have structured logs flowing and you can query them with KQL. But nobody has
     !!! info "Why Workbooks?"
         Azure has both **Workbooks** and **Dashboards**. Workbooks are interactive, document-like reports that query live data — no ETL pipelines, no staleness. For security monitoring, they're the better choice because you need analytical depth, not just pinned tiles.
 
+![MCP Security Dashboard workbook in Azure Monitor](../../images/camp4_dashboard.png){ .center width=720 }
+
 ## 3.2 Create Alert Rules
 
 Dashboards are great when you're looking at them. Alerts watch your logs continuously and notify you when something needs attention.
@@ -101,6 +103,8 @@ Dashboards are great when you're looking at them. Alerts watch your logs continu
     1. Navigate to **Monitor** → **Alerts**
     2. Click **Alert rules** to see your configured rules
     3. After running the attack simulation in Section 4, wait 5-10 minutes and check for fired alerts
+
+![Configured alert rules and action group in Azure Monitor](../../images/camp4_alerts.png){ .center width=720 }
 
 ---
 
