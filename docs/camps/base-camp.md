@@ -167,12 +167,12 @@ Start with **Waypoint 1** and work through each waypoint in order. By the end, y
 
         This automated script uses **FastMCP Client** to perform 6 comprehensive exploit tests:
 
-        1. :white_check_mark: **Enumerate Tools** - Connect without authentication and list available tools
-        2. :warning: **Attempt Resource Enumeration** - Try to list resources (server doesn't expose list, but resources ARE accessible)
-        3. :fire: **EXPLOIT** - Access user_001 (Alice Johnson) data without authentication
-        4. :fire: **EXPLOIT** - Access user_002 (Bob Smith) data without authorization
-        5. :fire: **EXPLOIT** - Access user_003 (Carol Williams) data without authorization
-        6. :fire: **EXPLOIT** - Read resources directly via user:// URIs
+        1. +mdi:check+ **Enumerate Tools** - Connect without authentication and list available tools
+        2. +mdi:alert+ **Attempt Resource Enumeration** - Try to list resources (server doesn't expose list, but resources ARE accessible)
+        3. +mdi:fire+ **EXPLOIT** - Access user_001 (Alice Johnson) data without authentication
+        4. +mdi:fire+ **EXPLOIT** - Access user_002 (Bob Smith) data without authorization
+        5. +mdi:fire+ **EXPLOIT** - Access user_003 (Carol Williams) data without authorization
+        6. +mdi:fire+ **EXPLOIT** - Read resources directly via user:// URIs
 
         ??? danger "Security Impact"
             The script demonstrates:
