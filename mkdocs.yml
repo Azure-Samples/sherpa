@@ -16,7 +16,7 @@ theme:
   favicon: sherpa-icon.png
   language: en
   show_title: true
-  show_stargazers: true
+  show_stargazers: false
   topbar_sections: true
   show_datetime: true
   accent: "oklch(62.3% 0.214 259.815)"
