@@ -24,6 +24,8 @@ Every MCP reques, legitimate or malicious, passes through APIM. By default, APIM
 | No record of who called, what failed, or how long it took | Every request logged with caller IP, timing, response code, correlation ID |
 | Incidents are invisible | Queryable via KQL → dashboards → alerts |
 
+![APIM diagnostic logs flowing to Log Analytics](../../images/camp4_apimlogs.png){ .center width=720 }
+
 ## 1.1 Explore APIM Gateway Logging
 
 ??? abstract "Send Traffic and See Logs Flow"

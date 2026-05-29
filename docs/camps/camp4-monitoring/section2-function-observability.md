@@ -21,6 +21,8 @@ APIM logs show HTTP traffic, but the security function's internal operations (wh
 ??? info "What are Custom Dimensions?"
     When you log with Azure Monitor/Application Insights, you can attach **custom dimensions**—arbitrary key-value pairs that become queryable fields. Think of them as adding columns to your log database that you can filter, group, and aggregate. See the [Reference](reference.md#custom-dimensions) for the full list.
 
+![Structured security telemetry from the function app](../../images/camp4_securitylogs.png){ .center width=720 }
+
 ## Two-Layer Blocking Architecture
 
 Attacks are blocked at two layers, and each logs to a different property path. KQL queries need to check **both** locations to capture all attack types:

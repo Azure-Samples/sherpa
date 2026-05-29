@@ -20,6 +20,8 @@ hide:
 
 Throughout Camp 4, you built observability step by step: enabling diagnostics, switching to structured logging, deploying a dashboard, and creating alert rules. That's great for learning — but what if you just want the end result?
 
+![Camp 4 all-in-one production deployment](../../images/camp4_allinone.png){ .center width=720 }
+
 The **complete deployment mode** deploys the entire Camp 4 stack in a single `azd up`, including:
 
 | Component | Workshop Mode (default) | Complete Mode |
