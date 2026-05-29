@@ -12,7 +12,7 @@ This workshop takes you on an expedition from Base Camp to the Summit, where you
 
 MCP is an open protocol that lets AI applications connect to external tools and data sources. It's becoming the standard way to extend AI capabilities—and that means security is critical. This workshop teaches you practical, hands-on security techniques you can apply immediately.
 
-**Aligned with:** MCP Specification 2025-11-25 | OWASP MCP Top 10
+**Aligned with:** [MCP Specification 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25) | [OWASP MCP Top 10 2025](https://owasp.org/www-project-mcp-top-10/)
 
 ## The Journey
 
@@ -34,7 +34,7 @@ Our expedition follows a proven path where each camp builds on the last, creatin
 Comprehensive security guidance is available at:  
 **[microsoft.github.io/mcp-azure-security-guide](https://microsoft.github.io/mcp-azure-security-guide/)**
 
-Throughout the workshop, we reference specific sections for deeper dives on each OWASP MCP Top 10 risk.
+Throughout the workshop, we reference specific sections for deeper dives on each OWASP MCP Top 10 2025 risk.
 
 ## Prerequisites
 
@@ -42,7 +42,7 @@ Throughout the workshop, we reference specific sections for deeper dives on each
 - **VS Code** with GitHub Copilot or MCP extension
 - **Azure CLI** installed and authenticated
 - **Python 3.10+** installed
-- **node.js 22>** installed
+- **Node.js 22+** installed
 - Basic familiarity with Azure Portal
 - No prior MCP or security expertise required
 
@@ -72,20 +72,22 @@ Each camp follows our proven pattern:
 4. **Validate** — Re-attempt exploits to confirm protection
 5. **Summary & Teaching Points** — Connect to OWASP risks and guide references
 
-## OWASP MCP Top 10 Coverage
+## OWASP MCP Top 10 2025 Coverage
+
+Category names below follow the current OWASP MCP Top 10 2025 list. Links point to Azure-specific implementation guidance in the companion security guide.
 
 | Risk | Name | Camp |
 |:----:|------|:----:|
-| **[MCP01](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token-mismanagement/)** | Token Mismanagement & Secret Exposure | Base Camp, Camp 1 |
-| **[MCP02](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/)** | Privilege Escalation via Scope Creep | Camp 1, Camp 2 |
-| **[MCP03](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/)** | Tool Poisoning | Camp 3 |
-| **[MCP04](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp04-supply-chain/)** | Supply Chain Attacks | Awareness |
-| **[MCP05](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-command-injection/)** | Command Injection & Execution | Camp 3 |
-| **[MCP06](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/)** | Prompt Injection via Contextual Payloads | Camp 2, Camp 3 |
-| **[MCP07](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/)** | Insufficient Authentication & Authorization | Base Camp, Camp 1, Camp 2 |
-| **[MCP08](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp08-telemetry/)** | Lack of Audit and Telemetry | Camp 4 |
-| **[MCP09](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/)** | Shadow MCP Servers | Camp 2 |
-| **[MCP10](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp10-context-oversharing/)** | Context Injection & Over-Sharing | Camp 3 |
+| **[MCP01:2025](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp01-token-mismanagement/)** | Token Mismanagement & Secret Exposure | Base Camp, Camp 1, Camp 3 |
+| **[MCP02:2025](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp02-privilege-escalation/)** | Privilege Escalation via Scope Creep | Camp 1, Camp 2 |
+| **[MCP03:2025](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp03-tool-poisoning/)** | Tool Poisoning | Camp 2, Camp 3 |
+| **[MCP04:2025](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp04-supply-chain/)** | Software Supply Chain Attacks & Dependency Tampering | Camp 4 |
+| **[MCP05:2025](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp05-command-injection/)** | Command Injection & Execution | Camp 3 |
+| **[MCP06:2025](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp06-prompt-injection/)** | Intent Flow Subversion | Camp 2, Camp 3 |
+| **[MCP07:2025](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp07-authz/)** | Insufficient Authentication & Authorization | Base Camp, Camp 1, Camp 2 |
+| **[MCP08:2025](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp08-telemetry/)** | Lack of Audit and Telemetry | Camp 4 |
+| **[MCP09:2025](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp09-shadow-servers/)** | Shadow MCP Servers | Camp 2 |
+| **[MCP10:2025](https://microsoft.github.io/mcp-azure-security-guide/mcp/mcp10-context-oversharing/)** | Context Injection & Over-Sharing | Camp 3 |
 
 ## Contributing
 
@@ -93,14 +95,15 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 ## Resources
 
-- **OWASP MCP Azure Guide:** [microsoft.github.io/mcp-azure-security-guide](https://microsoft.github.io/mcp-azure-security-guide/)
+- **OWASP MCP Top 10 2025:** [owasp.org/www-project-mcp-top-10](https://owasp.org/www-project-mcp-top-10/)
+- **OWASP MCP Azure Security Guide:** [microsoft.github.io/mcp-azure-security-guide](https://microsoft.github.io/mcp-azure-security-guide/)
 - **MCP Specification:** [modelcontextprotocol.io/specification/2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25)
-- **Security Best Practices:** [modelcontextprotocol.io/.../security_best_practices](https://modelcontextprotocol.io/.../basic/security_best_practices)
+- **Security Best Practices:** [modelcontextprotocol.io/specification/2025-11-25/basic/security_best_practices](https://modelcontextprotocol.io/specification/2025-11-25/basic/security_best_practices)
 - **Azure API Management:** [learn.microsoft.com/azure/api-management](https://learn.microsoft.com/azure/api-management/)
 - **Azure API Center:** [learn.microsoft.com/azure/api-center](https://learn.microsoft.com/azure/api-center/)
 - **Azure Key Vault:** [learn.microsoft.com/azure/key-vault](https://learn.microsoft.com/azure/key-vault/)
 - **Azure Managed Identity:** [learn.microsoft.com/entra/identity/managed-identities-azure-resources](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/)
-- **Microsoft Foundry:** [learn.microsoft.com/azure/ai-foundry/what-is-azure-ai-foundry](https://learn.microsoft.com/azure/ai-foundry/what-is-azure-ai-foundry?view=foundry)
+- **Azure AI Foundry:** [learn.microsoft.com/azure/ai-foundry/what-is-azure-ai-foundry](https://learn.microsoft.com/azure/ai-foundry/what-is-azure-ai-foundry?view=foundry)
 - **Azure AI Content Safety:** [learn.microsoft.com/azure/ai-services/content-safety](https://learn.microsoft.com/azure/ai-services/content-safety/)
 
 ---
