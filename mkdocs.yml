@@ -10,42 +10,19 @@ edit_uri: edit/main/
 copyright: Copyright &copy; 2025 Microsoft Corporation
 
 theme:
-  name: material
+  name: shadcn
   custom_dir: docs/overrides
-  logo: sherpa-icon.png
+  icon: sherpa-icon.png
   favicon: sherpa-icon.png
   language: en
-  palette:
-    # Light mode
-    - scheme: default
-      primary: blue-grey
-      accent: blue-grey
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-    # Dark mode
-    - scheme: slate
-      primary: blue-grey
-      accent: blue-grey
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
-  font:
-    text: Roboto
-    code: Roboto Mono
-  features:
-    - navigation.instant
-    - navigation.tracking
-    - navigation.tabs
-    - navigation.top
-    - navigation.footer
-    - search.suggest
-    - search.highlight
-    - content.code.copy
-    - content.code.annotate
-    - content.tabs.link
-  icon:
-    repo: fontawesome/brands/github
+  show_title: true
+  show_stargazers: true
+  topbar_sections: true
+  show_datetime: true
+  accent: "oklch(62.3% 0.214 259.815)"
+  pygments_style:
+    light: shadcn-light
+    dark: github-dark
 
 # Extensions
 markdown_extensions:
@@ -53,16 +30,25 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.superfences
   - pymdownx.tabbed:
-      alternate_style: true
+      # The shadcn theme styles the legacy (interleaved input+label+content)
+      # tab structure. alternate_style emits a grouped structure the theme's
+      # CSS doesn't target, leaving tab content hidden. Keep this off.
+      alternate_style: false
+  - codehilite
   - pymdownx.highlight:
+      # The shadcn theme styles code blocks via the `.codehilite` wrapper
+      # (rounded card, copy button, line numbers). pymdownx defaults to the
+      # `highlight` class, which the theme doesn't target — leaving code
+      # blocks unstyled. Keep pymdownx emitting `codehilite` for superfences,
+      # while the codehilite extension above makes shadcn load Pygments CSS.
+      css_class: codehilite
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
+  - pymdownx.progressbar
   - pymdownx.snippets
-  - pymdownx.emoji:
-      emoji_index: !!python/name:material.extensions.emoji.twemoji
-      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - shadcn.extensions.iconify
   - attr_list
   - md_in_html
   - tables
@@ -108,33 +94,26 @@ nav:
 # Plugins
 plugins:
   - search
-  - glightbox
-  - git-revision-date-localized:
-      enable_creation_date: true
 
 # Extra
 extra:
+  # Consumed by docs/overrides/templates/extra_head.html
+  analytics_property: G-4X6V7HSB1J
+  default_image: https://azure-samples.github.io/sherpa/images/sherpa-mcp-workshop.png
   social:
-    - icon: fontawesome/brands/github
+    - name: GitHub
+      icon: mdi:github
       link: https://github.com/Azure-Samples/sherpa
-    - icon: fontawesome/brands/microsoft
+    - name: Microsoft Azure
+      icon: mdi:microsoft
       link: https://azure.microsoft.com
-  analytics:
-    provider: google
-    property: G-4X6V7HSB1J
-    feedback:
-      title: Was this page helpful?
-      ratings:
-        - icon: material/emoticon-happy-outline
-          name: This page was helpful
-          data: 1
-          note: >-
-            Thanks for your feedback!
-        - icon: material/emoticon-sad-outline
-          name: This page could be improved
-          data: 0
-          note: >-
-            Thanks for your feedback! Help us improve by opening an issue.
 
 extra_css:
+  - stylesheets/glightbox.min.css
   - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/glightbox.min.js
+  - "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"
+  - "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollToPlugin.min.js"
+  - javascripts/extra.js

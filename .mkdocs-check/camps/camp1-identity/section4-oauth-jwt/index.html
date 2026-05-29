@@ -1,0 +1,2209 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<script>
+        const base_url = "https://azure-samples.github.io/sherpa/"; /* for search plugin notably */
+    </script>
+    <script integrity="sha384-m6cZ+Whl1ci89lidlu8DH4C+sZLNOYBvImtjUIhUK+iaNffXhqtbYgBVuuPfRsa0" src="../../../js/dark.js"></script>
+<script>
+  if (!localStorage.getItem("html-layout")) {
+    document.documentElement.classList.remove("layout-fixed");
+    document.documentElement.classList.add("layout-full");
+  }
+</script>
+    
+
+
+    <meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+
+    
+
+
+<title>OAuth & JWT</title>
+
+
+
+
+
+
+
+<meta name="author" content="Microsoft Azure Samples">
+
+
+
+<link rel="canonical" href="https://azure-samples.github.io/sherpa/camps/camp1-identity/section4-oauth-jwt/">
+
+
+<!-- Open Graph (Facebook, LinkedIn) -->
+
+<meta property="og:title" content="OAuth & JWT">
+
+
+
+
+
+<meta property="og:url" content="https://azure-samples.github.io/sherpa/camps/camp1-identity/section4-oauth-jwt/">
+
+
+
+
+
+
+<!-- Twitter Card -->
+
+<meta name="twitter:title" content="OAuth & JWT">
+
+
+
+
+
+
+<!-- JSON-LD Structured Data -->
+
+
+
+    <link href="../../../sherpa-icon.png" rel="icon"/>
+
+    <link href="../../../css/base.css" rel="stylesheet"/>
+<link href="../../../css/geist.css" rel="stylesheet"/>
+
+    
+    
+
+<link id="pygments-light" rel="stylesheet"
+    href="../../../css/pygments/shadcn-light.css">
+<link id="pygments-dark" rel="stylesheet"
+    href="../../../css/pygments/github-dark.css"
+    media="(prefers-color-scheme: dark)">
+
+
+    
+
+    <style>
+        :root {
+            --theme-accent: oklch(62.3% 0.214 259.815);
+        }
+    </style>
+    <link href="../../../stylesheets/glightbox.min.css" rel="stylesheet"/>
+    <link href="../../../stylesheets/extra.css" rel="stylesheet"/>
+
+    
+
+    <script integrity="sha384-V2jkXRy811qODUbfkLlkVJYBbf4h6XHAEjcU6ReASBPrJvTrlYh4GrI4t6GCju6n" src="../../../js/callbacks.js"></script>
+
+    
+
+    
+
+    
+
+    
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll("a.headerlink").forEach(function (link) {
+            link.addEventListener("click", function (e) {
+                e.preventDefault();
+
+                // Build the full URL with the anchor fragment
+                const url = window.location.origin + window.location.pathname + this.getAttribute("href");
+
+                navigator.clipboard.writeText(url).then(function () {
+                    // Optional: brief visual feedback
+                });
+            });
+        });
+    });
+</script>
+    
+
+    
+    
+
+
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+
+<meta name="theme-color" content="#0f2027" />
+
+
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta property="og:image" content="https://azure-samples.github.io/sherpa/images/sherpa-mcp-workshop.png" />
+<meta name="twitter:image" content="https://azure-samples.github.io/sherpa/images/sherpa-mcp-workshop.png" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4X6V7HSB1J"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', 'G-4X6V7HSB1J');
+</script>
+</head>
+<body class="text-foreground group/body overscroll-none font-sans antialiased [--footer-height:calc(var(--spacing)*14)] [--header-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)] theme-default">
+<div class="bg-background relative z-10 flex min-h-svh flex-col" id="inner-body">
+        
+<header class="bg-background sticky top-0 z-50 w-full" view-transition-name="header">
+    <div class="container-wrapper 3xl:fixed:px-0 px-6">
+        <div class="3xl:fixed:container flex h-(--header-height) items-center gap-2 **:data-[slot=separator]:!h-4">
+            <button id="menu-button" data-slot="popover-trigger" onclick="onMobileMenuButtonClick(event)"
+                class="group whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:text-accent-foreground px-4 py-2 has-[&gt;svg]:px-3 extend-touch-target h-8 touch-manipulation items-center justify-start gap-2.5 !p-0 hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 active:bg-transparent dark:hover:bg-transparent flex lg:hidden"
+                type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="bottom-sidebar"
+                data-state="closed">
+                <div class="relative flex h-8 w-4 items-center justify-center">
+                    <div class="relative size-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="0" x2="16" y1="5" y2="5"
+                                class="group-data-[state=open]:translate-y-[2.25px] group-data-[state=open]:-translate-x-[2.25px] group-data-[state=open]:rotate-45 transition-all duration-300 origin-center" />
+                            <line x1="0" x2="16" y1="11" y2="11"
+                                class="group-data-[state=open]:-translate-y-[2.25px] group-data-[state=open]:-translate-x-[2.25px] group-data-[state=open]:-rotate-45 transition-all duration-300 origin-center" />
+                        </svg>
+                    </div>
+                    <span class="sr-only">Toggle Menu</span>
+                </div>
+                <span class="flex h-8 items-center text-lg leading-none font-medium">Menu</span>
+            </button>
+            <a data-slot="button"
+                class="items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-5 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 hidden h-8 lg:flex"
+                href="https://azure-samples.github.io/sherpa/">
+                <span class="size-8 flex flex-row justify-center items-center">
+                    
+
+<img class="size-5" src="../../../sherpa-icon.png" alt="icon">
+
+
+                </span>
+
+                
+                <h1 class="pr-2">MCP Security Summit Workshop</h1>
+                
+            </a>
+            
+            <nav class="items-center gap-0.5 hidden lg:flex">
+    
+    
+    
+    
+    
+    
+    
+    
+    <a class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5"
+        data-slot="button" href="../../base-camp/">
+        The Journey
+    </a>
+    
+    
+    
+    
+    
+    <a class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5"
+        data-slot="button" href="../../../prerequisites/">
+        Prerequisites
+    </a>
+    
+    
+    
+    
+    
+    
+    <a class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5"
+        data-slot="button" href="../../../resources/contributing/">
+        Resources
+    </a>
+    
+    
+    
+</nav>
+            
+            <div class="ml-auto flex items-center gap-2 md:flex-1 md:justify-end">
+                <div class="hidden w-full flex-1 md:flex md:w-auto md:flex-none">
+                    <div class="hidden w-full flex-1 md:flex md:w-auto md:flex-none">
+    <button onclick="onSearchBarClick(event)" data-slot="dialog-trigger" data-variant="outline" data-size="default" class="inline-flex shrink-0 items-center gap-2 text-sm whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg:not([class*='size-'])]:size-4 border bg-background hover:text-accent-foreground dark:border-input dark:hover:bg-input/50 px-4 py-2 has-[&gt;svg]:px-3 relative h-8 w-full justify-start rounded-lg pl-3 font-normal text-foreground shadow-none hover:bg-muted/50 sm:pr-12 md:w-48 lg:w-56 xl:w-64 dark:bg-card" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="radix-_r_1_" data-state="closed">
+        <span class="hidden lg:inline-flex">Search documentation...</span>
+        <span class="inline-flex lg:hidden">Search...</span>
+    </button>
+</div>
+<dialog id="search-dialog" onclick="onSearchDialogClick(event)"
+    class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background rounded-lg shadow-lg border overflow-hidden p-0">
+    <div class="w-lg gap-4">
+        <div class="flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground">
+            <div data-slot="command-input-wrapper" class="flex h-9 items-center gap-2 border-b px-3"><svg
+                    xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-search size-4 shrink-0 opacity-50">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.3-4.3"></path>
+                </svg>
+                <input data-slot="command-input"
+                    class="placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Search documentation..." cmdk-input="" autocomplete="off" autocorrect="off"
+                    spellcheck="false" aria-autocomplete="list" role="combobox" aria-expanded="true"
+                    aria-controls="radix-«r1t6»" aria-labelledby="radix-«r1t7»" id="radix-«r1t8»" type="text" value=""
+                    aria-activedescendant="radix-«r1th»" oninput="onInputHandler(event)">
+            </div>
+        </div>
+        <div id="mkdocs-search-results">
+            <!-- search results go there -->
+        </div>
+    </div>
+</dialog>
+<script>
+    document.removeEventListener("keydown", searchShortcutHandler);
+    document.addEventListener("keydown", searchShortcutHandler);
+</script>
+                </div>
+                
+                <div data-orientation="vertical" role="none" data-slot="separator"
+                    class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px ml-2 hidden lg:block">
+                </div>
+                <a target="_blank" rel="noreferrer" data-slot="button" title="GitHub repository stars"
+                    class="github-stars-link inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 h-8 shadow-none"
+                    href="https://github.com/Azure-Samples/sherpa">
+                    <svg viewBox="0 0 438.549 438.549" class="github-stars-link__github" aria-hidden="true">
+                        <path fill="currentColor"
+                            d="M409.132 114.573c-19.608-33.596-46.205-60.194-79.798-79.8-33.598-19.607-70.277-29.408-110.063-29.408-39.781 0-76.472 9.804-110.063 29.408-33.596 19.605-60.192 46.204-79.8 79.8C9.803 148.168 0 184.854 0 224.63c0 47.78 13.94 90.745 41.827 128.906 27.884 38.164 63.906 64.572 108.063 79.227 5.14.954 8.945.283 11.419-1.996 2.475-2.282 3.711-5.14 3.711-8.562 0-.571-.049-5.708-.144-15.417a2549.81 2549.81 0 01-.144-25.406l-6.567 1.136c-4.187.767-9.469 1.092-15.846 1-6.374-.089-12.991-.757-19.842-1.999-6.854-1.231-13.229-4.086-19.13-8.559-5.898-4.473-10.085-10.328-12.56-17.556l-2.855-6.57c-1.903-4.374-4.899-9.233-8.992-14.559-4.093-5.331-8.232-8.945-12.419-10.848l-1.999-1.431c-1.332-.951-2.568-2.098-3.711-3.429-1.142-1.331-1.997-2.663-2.568-3.997-.572-1.335-.098-2.43 1.427-3.289 1.525-.859 4.281-1.276 8.28-1.276l5.708.853c3.807.763 8.516 3.042 14.133 6.851 5.614 3.806 10.229 8.754 13.846 14.842 4.38 7.806 9.657 13.754 15.846 17.847 6.184 4.093 12.419 6.136 18.699 6.136 6.28 0 11.704-.476 16.274-1.423 4.565-.952 8.848-2.383 12.847-4.285 1.713-12.758 6.377-22.559 13.988-29.41-10.848-1.14-20.601-2.857-29.264-5.14-8.658-2.286-17.605-5.996-26.835-11.14-9.235-5.137-16.896-11.516-22.985-19.126-6.09-7.614-11.088-17.61-14.987-29.979-3.901-12.374-5.852-26.648-5.852-42.826 0-23.035 7.52-42.637 22.557-58.817-7.044-17.318-6.379-36.732 1.997-58.24 5.52-1.715 13.706-.428 24.554 3.853 10.85 4.283 18.794 7.952 23.84 10.994 5.046 3.041 9.089 5.618 12.135 7.708 17.705-4.947 35.976-7.421 54.818-7.421s37.117 2.474 54.823 7.421l10.849-6.849c7.419-4.57 16.18-8.758 26.262-12.565 10.088-3.805 17.802-4.853 23.134-3.138 8.562 21.509 9.325 40.922 2.279 58.24 15.036 16.18 22.559 35.787 22.559 58.817 0 16.178-1.958 30.497-5.853 42.966-3.9 12.471-8.941 22.457-15.125 29.979-6.191 7.521-13.901 13.85-23.131 18.986-9.232 5.14-18.182 8.85-26.84 11.136-8.662 2.286-18.415 4.004-29.263 5.146 9.894 8.562 14.842 22.077 14.842 40.539v60.237c0 3.422 1.19 6.279 3.572 8.562 2.379 2.279 6.136 2.95 11.276 1.995 44.163-14.653 80.185-41.062 108.068-79.226 27.88-38.161 41.825-81.126 41.825-128.906-.01-39.771-9.818-76.454-29.414-110.049z">
+                        </path>
+                    </svg>
+                    
+                    <svg viewBox="0 0 24 24" class="github-stars-link__star size-3.5" aria-hidden="true">
+                        <path fill="currentColor" d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.785 1.401 8.168L12 19.307l-7.335 3.856 1.401-8.168L.132 9.21l8.2-1.192z" />
+                    </svg>
+                    <span id="stargazers" class="github-stars-link__count text-xs tabular-nums" data-fallback="21">21</span>
+                    
+                </a>
+                
+                <div data-orientation="vertical" role="none" data-slot="separator"
+                    class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px 3xl:flex hidden">
+                </div>
+                <button data-slot="button"
+                    class="items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-8 3xl:flex hidden"
+                    title="Toggle layout" onclick="toggleLayout(event)">
+                    <span class="sr-only">Toggle layout</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-gallery-horizontal">
+                        <path d="M2 3v18"></path>
+                        <rect width="12" height="18" x="6" y="3" rx="2"></rect>
+                        <path d="M22 3v18"></path>
+                    </svg>
+                </button>
+                
+                <div data-orientation="vertical" role="none" data-slot="separator"
+                    class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px">
+                </div>
+                <button data-slot="button" data-sherpa-theme-toggle
+                    class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 group/toggle extend-touch-target size-8"
+                    title="Toggle theme" onclick="onThemeSwitch(event)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="size-4.5">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
+                        <path d="M12 3l0 18"></path>
+                        <path d="M12 9l4.65 -4.65"></path>
+                        <path d="M12 14.3l7.37 -7.37"></path>
+                        <path d="M12 19.6l8.85 -8.85"></path>
+                    </svg>
+                    <span class="sr-only">Toggle theme</span>
+                </button>
+                
+            </div>
+        </div>
+    </div>
+</header>
+
+        <main class="flex flex-1 flex-col">
+<div class="container-wrapper flex flex-1 flex-col px-2">
+<div class="group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex w-full 3xl:fixed:container 3xl:fixed:px-3 min-h-min flex-1 items-start px-0 [--sidebar-width:220px] [--top-spacing:0] lg:grid lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)] lg:[--sidebar-width:240px] lg:[--top-spacing:calc(var(--spacing)*4)]" data-slot="sidebar-wrapper" style="--sidebar-width:calc(var(--spacing) * 72);--sidebar-width-icon:3rem;">
+<div class="w-(--sidebar-width) flex-col text-sidebar-foreground sticky top-[calc(var(--header-height)+0.6rem)] z-30 hidden h-[calc(100svh-10rem)] overscroll-none bg-transparent [--sidebar-menu-width:--spacing(56)] lg:flex" data-slot="sidebar">
+<div class="h-9"></div>
+<div class="absolute top-8 z-10 h-8 w-(--sidebar-menu-width) shrink-0 bg-gradient-to-b from-background via-background/80 to-background/50 blur-xs">
+</div>
+<div class="absolute top-12 right-2 bottom-0 hidden h-full w-px bg-gradient-to-b from-transparent via-border to-transparent lg:flex">
+</div>
+<div class="flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden mx-auto no-scrollbar w-(--sidebar-menu-width) overflow-x-hidden px-2" data-sidebar="content" data-slot="sidebar-content" view-transition-name="sidebar">
+                            
+
+
+
+
+
+
+
+
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2 pt-6">
+    <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../base-camp/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Base Camp
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative mt-1">
+                <button data-slot="collapsible-trigger" data-sidebar="menu-button" data-size="default"
+                    class="peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-[0.8rem] font-medium text-muted-foreground"
+                    type="button"
+                    data-state="open"
+                    aria-expanded="true"
+                    onclick="var open = this.getAttribute('data-state') === 'closed'; this.setAttribute('data-state', open ? 'open' : 'closed'); this.setAttribute('aria-expanded', open ? 'true' : 'false')">
+                    <span>Camp 1 - Identity</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true"
+                        class="lucide lucide-chevron-right ml-auto transition-[stroke,rotate] duration-200 group-data-[state=open]/menu-button:rotate-90 group-data-[state=closed]/menu-button:stroke-muted-foreground">
+                        <path d="m9 18 6-6-6-6"></path>
+                    </svg>
+                </button>
+                <div data-slot="collapsible-content"
+                    class="grid grid-rows-[0fr] transition-[grid-template-rows] peer-data-[state=open]/menu-button:grid-rows-[1fr] py-0.5">
+                    <ul data-slot="sidebar-menu-sub" data-sidebar="menu-sub"
+                        class="overflow-hidden ml-3.5 flex flex-col gap-0.5 border-l border-sidebar-border pl-2.5">
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Overview & Deploy
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../section1-cloud-exploits/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Cloud Exploits
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../section2-managed-identity/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Managed Identity
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../section3-key-vault/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Key Vault
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="true" data-sidebar="menu-button"
+        data-size="default" href="./"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        OAuth & JWT
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../section5-validate/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Validate Security
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                    </ul>
+                </div>
+            </li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative mt-1">
+                <button data-slot="collapsible-trigger" data-sidebar="menu-button" data-size="default"
+                    class="peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-[0.8rem] font-medium text-muted-foreground"
+                    type="button"
+                    data-state="closed"
+                    aria-expanded="false"
+                    onclick="var open = this.getAttribute('data-state') === 'closed'; this.setAttribute('data-state', open ? 'open' : 'closed'); this.setAttribute('aria-expanded', open ? 'true' : 'false')">
+                    <span>Camp 2 - Gateway</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true"
+                        class="lucide lucide-chevron-right ml-auto transition-[stroke,rotate] duration-200 group-data-[state=open]/menu-button:rotate-90 group-data-[state=closed]/menu-button:stroke-muted-foreground">
+                        <path d="m9 18 6-6-6-6"></path>
+                    </svg>
+                </button>
+                <div data-slot="collapsible-content"
+                    class="grid grid-rows-[0fr] transition-[grid-template-rows] peer-data-[state=open]/menu-button:grid-rows-[1fr] py-0.5">
+                    <ul data-slot="sidebar-menu-sub" data-sidebar="menu-sub"
+                        class="overflow-hidden ml-3.5 flex flex-col gap-0.5 border-l border-sidebar-border pl-2.5">
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../camp2-gateway/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Overview & Deploy
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../camp2-gateway/section1-gateway-governance/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Gateway & Authentication
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../camp2-gateway/api-governance/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        API Governance
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../camp2-gateway/section2-content-safety/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Content Safety
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../camp2-gateway/section3-network-security/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Network Security
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                    </ul>
+                </div>
+            </li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative mt-1">
+                <button data-slot="collapsible-trigger" data-sidebar="menu-button" data-size="default"
+                    class="peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-[0.8rem] font-medium text-muted-foreground"
+                    type="button"
+                    data-state="closed"
+                    aria-expanded="false"
+                    onclick="var open = this.getAttribute('data-state') === 'closed'; this.setAttribute('data-state', open ? 'open' : 'closed'); this.setAttribute('aria-expanded', open ? 'true' : 'false')">
+                    <span>Camp 3 - I/O Security</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true"
+                        class="lucide lucide-chevron-right ml-auto transition-[stroke,rotate] duration-200 group-data-[state=open]/menu-button:rotate-90 group-data-[state=closed]/menu-button:stroke-muted-foreground">
+                        <path d="m9 18 6-6-6-6"></path>
+                    </svg>
+                </button>
+                <div data-slot="collapsible-content"
+                    class="grid grid-rows-[0fr] transition-[grid-template-rows] peer-data-[state=open]/menu-button:grid-rows-[1fr] py-0.5">
+                    <ul data-slot="sidebar-menu-sub" data-sidebar="menu-sub"
+                        class="overflow-hidden ml-3.5 flex flex-col gap-0.5 border-l border-sidebar-border pl-2.5">
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../camp3-io-security/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Overview & Deploy
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../camp3-io-security/section1-vulnerabilities/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Understand Vulnerabilities
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../camp3-io-security/section2-layer2-security/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Layer 2 Security
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../camp3-io-security/section3-validation/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Validate & Key Learnings
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                    </ul>
+                </div>
+            </li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative mt-1">
+                <button data-slot="collapsible-trigger" data-sidebar="menu-button" data-size="default"
+                    class="peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-[0.8rem] font-medium text-muted-foreground"
+                    type="button"
+                    data-state="closed"
+                    aria-expanded="false"
+                    onclick="var open = this.getAttribute('data-state') === 'closed'; this.setAttribute('data-state', open ? 'open' : 'closed'); this.setAttribute('aria-expanded', open ? 'true' : 'false')">
+                    <span>Camp 4 - Monitoring</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true"
+                        class="lucide lucide-chevron-right ml-auto transition-[stroke,rotate] duration-200 group-data-[state=open]/menu-button:rotate-90 group-data-[state=closed]/menu-button:stroke-muted-foreground">
+                        <path d="m9 18 6-6-6-6"></path>
+                    </svg>
+                </button>
+                <div data-slot="collapsible-content"
+                    class="grid grid-rows-[0fr] transition-[grid-template-rows] peer-data-[state=open]/menu-button:grid-rows-[1fr] py-0.5">
+                    <ul data-slot="sidebar-menu-sub" data-sidebar="menu-sub"
+                        class="overflow-hidden ml-3.5 flex flex-col gap-0.5 border-l border-sidebar-border pl-2.5">
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../camp4-monitoring/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Overview & Deploy
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../camp4-monitoring/section1-apim-logging/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Gateway Logging
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../camp4-monitoring/section2-function-observability/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Function Observability
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../camp4-monitoring/section3-dashboards-alerts/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Dashboards & Alerts
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../camp4-monitoring/section4-incident-response/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Incident Response
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../camp4-monitoring/production-deploy/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Production Deployment
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                        
+                        
+                        <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../camp4-monitoring/reference/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Reference
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                        
+                        
+                        
+                    </ul>
+                </div>
+            </li>
+            
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../summit/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        The Summit
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+        </ul>
+    </div>
+</div>
+<div
+    class="sticky -bottom-1 z-10 h-16 shrink-0 bg-gradient-to-t from-background via-background/80 to-background/50 blur-xs">
+</div>
+
+                        </div>
+</div>
+<div class="h-full w-full">
+
+<div class="flex items-stretch text-[1.05rem] sm:text-[15px] xl:w-full" data-slot="docs">
+<div class="flex min-w-0 flex-1 flex-col">
+<div class="h-(--top-spacing) shrink-0"></div>
+                                <article class="w-full" view-transition-name="page">
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-2">
+      <div id="page-header" class="flex items-start justify-between">
+        <h1 class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl">
+          OAuth & JWT
+        </h1>
+
+        <div class="flex items-center gap-2 pt-1.5">
+          <button
+    onclick="fetch(`https://azure-samples.github.io/sherpa/camps/camp1-identity/section4-oauth-jwt.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))"
+    data-slot="button" class="secondary cursor-pointer">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
+        <path
+            d="M7 7m0 2.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z">
+        </path>
+        <path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1"></path>
+    </svg>
+    <span class="max-md:hidden">Copy Page</span>
+</button>
+          
+          <a data-slot="button" id="previous-button"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
+            href="../section3-key-vault/">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              class="tabler-icon tabler-icon-arrow-left">
+              <path d="M5 12l14 0"></path>
+              <path d="M5 12l6 6"></path>
+              <path d="M5 12l6 -6"></path>
+            </svg>
+            <span class="sr-only">Previous</span>
+          </a>
+          
+          
+          <a data-slot="button" id="next-button"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
+            href="../section5-validate/">
+            <span class="sr-only">Next</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              class="tabler-icon tabler-icon-arrow-right">
+              <path d="M5 12l14 0"></path>
+              <path d="M13 18l6 -6"></path>
+              <path d="M13 6l6 6"></path>
+            </svg>
+          </a>
+          
+        </div>
+      </div>
+      
+      <p id="page-summary" class="text-muted-foreground text-[1.05rem] text-balance sm:text-base">
+        Identity, secrets, and OAuth patterns for production MCP servers in Azure.
+      </p>
+      
+    </div>
+    <div class="flex justify-end items-center">
+      
+      
+      <div class="grow text-muted-foreground pt-4 flex flex-row justify-end items-center">
+    <span id="updated_at" class="text-sm opacity-50 hover:opacity-100 transition-opacity duration-200"
+        title="last update (local time)"></span>
+</div>
+
+<script>
+    const updatedAt = document.getElementById("updated_at");
+    if (updatedAt) {
+        const date = new Date('2026-05-29T17:45:46+05:30');
+        updatedAt.textContent = date.toLocaleDateString();
+    }
+</script>
+
+      
+    </div>
+  </div>
+  
+  <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
+    <div class="camp-banner">
+  <div class="camp-banner-content">
+    <div class="camp-banner-text">
+      <div class="camp-banner-label">Camp 1 · OAuth & JWT</div>
+      <h1>Upgrade to OAuth 2.1 with JWT Validation</h1>
+      <p>Issue real OAuth tokens from Entra ID, validate JWT audience + signature, and pick between Device Code and Authorization Code + PKCE.</p>
+    </div>
+    <div class="camp-banner-image">
+      <span class="banner-icon"><span class="material-icons">token</span></span>
+    </div>
+  </div>
+</div>
+
+<p>Static tokens served us well in Waypoint 4, but they have a fatal flaw: they never expire. If someone gets hold of <code>camp1_demo_token_INSECURE</code>, they have permanent access—and there's no way to revoke it. Time to upgrade to OAuth 2.1 with Microsoft Entra ID.</p>
+<p>In this waypoint, you'll replace static token authentication with cryptographically-signed JWT tokens (RFC 7519) that expire after an hour. Your secure server will validate every token's signature, audience, issuer, and expiration - eliminating the risks of hardcoded credentials. You'll test two OAuth flows: Device Code Flow (perfect for CLI tools) and Authorization Code + PKCE (the production-ready browser flow).</p>
+<p>As a bonus, you'll implement Protected Resource Metadata (RFC 9728)—a standard that lets OAuth clients automatically discover your server's authentication requirements. No more manual configuration. Just give a client your URL, and PRM handles the rest. This is how modern MCP clients like VS Code, Claude Desktop, and GitHub Copilot will connect to your server in the future.</p>
+<details class="info">
+<summary>What is OAuth 2.1?</summary>
+<p><strong>OAuth 2.1</strong> is the modern authentication standard that fixes the security issues of static tokens:</p>
+<ul>
+<li><strong>Tokens expire</strong> - Short-lived tokens reduce breach impact</li>
+<li><strong>PKCE (Proof Key for Code Exchange)</strong> - Prevents token interception</li>
+<li><strong>Audience validation</strong> - Tokens are tied to specific services</li>
+<li><strong>JWT (JSON Web Tokens)</strong> - Cryptographically signed, tamper-proof</li>
+<li><strong>Integration with Entra ID</strong> - Enterprise identity provider</li>
+</ul>
+<p><strong>How it works:</strong></p>
+<ol>
+<li>Client authenticates with Entra ID (Microsoft's identity platform)</li>
+<li>Entra ID issues a JWT token (valid for ~1 hour)</li>
+<li>Client sends JWT to MCP server</li>
+<li>Server validates: signature, issuer, audience, expiration</li>
+<li>If valid, server processes request</li>
+</ol>
+<p><strong>OAuth Flows (Grant Types)</strong></p>
+<p>OAuth defines several "flows" (also called grant types) for different scenarios. Each flow is optimized for a specific use case:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Flow</th>
+<th>Best For</th>
+<th>How It Works</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Authorization Code + PKCE</strong></td>
+<td>Web apps, SPAs, mobile apps</td>
+<td>User logs in via browser, app receives authorization code, exchanges it for tokens</td>
+</tr>
+<tr>
+<td><strong>Device Code</strong></td>
+<td>CLI tools, IoT devices, TVs</td>
+<td>User enters a code on another device, app polls for token completion</td>
+</tr>
+<tr>
+<td><strong>Client Credentials</strong></td>
+<td>Server-to-server (no user)</td>
+<td>App authenticates with its own identity, no user involved</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>In this camp, you'll use two flows:</strong></p>
+<ul>
+<li>
+<p><strong>Device Code Flow (Option A)</strong> — Perfect for command-line tools. You run a script, it shows a code, you authenticate in a browser, and the script receives the token. Great for understanding what's inside a JWT.</p>
+</li>
+<li>
+<p><strong>Authorization Code + PKCE (Option B)</strong> — The production-standard flow for interactive applications. A browser opens, you log in, and the app securely receives tokens. PKCE (Proof Key for Code Exchange) prevents attackers from intercepting the authorization code.</p>
+</li>
+</ul>
+<p><strong>Why PKCE matters:</strong> Without PKCE, an attacker who intercepts the authorization code could exchange it for tokens. PKCE adds a cryptographic challenge that only the original client can complete—even if someone steals the code, they can't use it.</p>
+</details>
+<h2 id="waypoint-5-upgrade-to-oauth-21-with-jwt-validation">Waypoint 5: Upgrade to OAuth 2.1 with JWT Validation<a class="headerlink" href="#waypoint-5-upgrade-to-oauth-21-with-jwt-validation" title="Permanent link">&para;</a></h2>
+<h3 id="step-5a-register-entra-id-application">Step 5a: Register Entra ID Application<a class="headerlink" href="#step-5a-register-entra-id-application" title="Permanent link">&para;</a></h3>
+<p>This script creates and configures an Entra ID app registration with:</p>
+<ul>
+<li><strong>OAuth 2.1 scope</strong> (<code>access_as_user</code>) for delegated permissions. This is Microsoft's standard naming convention for scopes that allow an app to act on behalf of the signed-in user. The app gets <em>your</em> permissions, not its own elevated access.</li>
+<li><strong>Device Code Flow</strong> support for CLI authentication</li>
+<li><strong>Authorization Code + PKCE</strong> support for browser-based flows</li>
+<li><strong>Protected Resource Metadata (PRM)</strong> endpoints for OAuth discovery</li>
+<li><strong>Pre-authorized clients:</strong><ul>
+<li>Azure CLI (<code>04b07795-8ddb-461a-bbee-02f9e1bf7b46</code>) - for Device Code Flow</li>
+<li>VS Code (<code>aebc6443-996d-45c2-90f0-388ff96faa56</code>) - for future MCP client support</li>
+</ul>
+</li>
+</ul>
+<p>This enables both authentication methods (Option A and B) with a single registration.</p>
+<div class="tabbed-set" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">Bash</label><div class="tabbed-content">
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">cd</span><span class="w"> </span>camps/camp1-identity
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>./scripts/register-entra-app.sh
+</span></code></pre></div>
+</div>
+<input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><label for="__tabbed_1_2">PowerShell</label><div class="tabbed-content">
+<div class="language-powershell codehilite"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">cd </span><span class="n">camps</span><span class="p">/</span><span class="n">camp1-identity</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="p">./</span><span class="n">scripts</span><span class="p">/</span><span class="nb">register-entra</span><span class="n">-app</span><span class="p">.</span><span class="n">ps1</span>
+</span></code></pre></div>
+</div>
+</div>
+<p><strong>Expected output:</strong></p>
+<div class="language-text codehilite"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Camp 1: Register Entra ID Application
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>========================================
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>Creating Entra ID app registration: sherpa-mcp-camp1-1234567890
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>App ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>Setting identifier URI...
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>Exposing API scope...
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>API scope created
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>Pre-authorizing clients (Azure CLI + VS Code)...
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>Clients pre-authorized
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>Redirect URIs configured
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>Public client: device code flow
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>Web: VS Code OAuth, demo client (port 8090)
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>Client type configured (confidential - supports client secrets)
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>Entra ID Application Registered!
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>====================================
+</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>App Name: sherpa-mcp-camp1-1234567890
+</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>Client ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>Tenant ID: yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
+</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>Identifier URI: api://xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+</span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>
+</span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>Pre-authorized clients:
+</span><span id="__span-2-26"><a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>   - Azure CLI (for Device Code Flow)
+</span><span id="__span-2-27"><a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>   - VS Code (for PRM-based authentication)
+</span><span id="__span-2-28"><a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>
+</span><span id="__span-2-29"><a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>Redirect URIs configured:
+</span><span id="__span-2-30"><a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>   - urn:ietf:wg:oauth:2.0:oob (device code flow)
+</span><span id="__span-2-31"><a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>   - http://127.0.0.1:33418 (VS Code)
+</span><span id="__span-2-32"><a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a>   - https://vscode.dev/redirect (VS Code)
+</span><span id="__span-2-33"><a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a>   - http://localhost:8090/callback (demo client)
+</span><span id="__span-2-34"><a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a>
+</span><span id="__span-2-35"><a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a>Save these values - you&#39;ll need them for deployment!
+</span><span id="__span-2-36"><a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a>
+</span><span id="__span-2-37"><a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a>Add to your .env file:
+</span><span id="__span-2-38"><a id="__codelineno-2-38" name="__codelineno-2-38" href="#__codelineno-2-38"></a>AZURE_TENANT_ID=yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
+</span><span id="__span-2-39"><a id="__codelineno-2-39" name="__codelineno-2-39" href="#__codelineno-2-39"></a>AZURE_CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+</span></code></pre></div>
+<p><strong>Save these values!</strong> You'll need them for deployment.</p>
+<details class="info">
+<summary>What's happening behind the scenes?</summary>
+<p><strong>Creating a "Doorman" for Your Server</strong></p>
+<p>Think of your MCP server as a building that needs security. This script creates a "doorman" (Entra ID app registration) who knows:</p>
+<ol>
+<li><strong>Who's allowed in</strong> (Azure CLI, VS Code, and your demo client)</li>
+<li><strong>What they can do</strong> (access the MCP server on your behalf)</li>
+<li><strong>How to verify their ID</strong> (checking OAuth tokens)</li>
+</ol>
+<p><strong>Step-by-step breakdown:</strong></p>
+<p><strong>1. Create the app registration</strong>
+<div class="language-text codehilite"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>App Name: sherpa-mcp-camp1-1234567890
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>Client ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+</span></code></pre></div>
+This creates a unique identity for your MCP server in Azure. The Client ID is like a serial number - it uniquely identifies your app in Microsoft's identity system. <em>Your actual Client ID will be different - a unique GUID generated just for you.</em></p>
+<p><strong>2. Set identifier URI</strong>
+<div class="language-text codehilite"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Identifier URI: api://xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+</span></code></pre></div>
+This creates a globally unique "address" for your server. When clients request access, they say "I want to access <code>api://xxxxxxxx...</code>" - this prevents confusion with other apps.</p>
+<p><strong>3. Expose API scope</strong>
+<div class="language-text codehilite"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>✅ API scope created
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>Scope: access_as_user
+</span></code></pre></div>
+This defines what permission clients are asking for: "access the MCP server as the currently signed-in user". It's like saying "I'm not asking for admin access, just let me do what the logged-in user is allowed to do."</p>
+<p><strong>4. Pre-authorize trusted clients</strong>
+<div class="language-text codehilite"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>✅ Clients pre-authorized
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>   - Azure CLI (04b07795-8ddb-461a-bbee-02f9e1bf7b46)
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>   - VS Code (aebc6443-996d-45c2-90f0-388ff96faa56)
+</span></code></pre></div>
+These are Microsoft's official client IDs for Azure CLI and VS Code (these IDs are the same for everyone). Pre-authorizing them means users won't see a consent prompt - Microsoft already trusts these clients, and now your app does too.</p>
+<p><strong>5. Configure redirect URIs</strong>
+<div class="language-text codehilite"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>✅ Redirect URIs configured
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>   Public client: urn:ietf:wg:oauth:2.0:oob (device code flow)
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>   Web: localhost:8090/callback (demo client), VS Code endpoints
+</span></code></pre></div>
+These define where OAuth responses get sent after authentication:</p>
+<ul>
+<li><strong>Device code flow</strong>: Special "out of band" URI for CLI tools</li>
+<li><strong>Demo client</strong>: Local server on port 8090 for authorization code flow</li>
+<li><strong>VS Code</strong>: Standard VS Code OAuth redirect URIs (for future use)</li>
+</ul>
+<p><strong>6. Configure client type</strong>
+<div class="language-text codehilite"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>✅ Client type configured (confidential)
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>   isFallbackPublicClient: false
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>   Supports: Client secrets, Authorization Code flow
+</span></code></pre></div>
+This sets the app as a <strong>confidential client</strong>, which means it can securely store and use client secrets. This is required for the demo client's authorization code flow.</p>
+<ul>
+<li><strong>Confidential client</strong> (what we have): Can use secrets for token exchange, suitable for backend apps</li>
+<li><strong>Public client</strong>: Cannot store secrets securely, used for mobile/desktop apps</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Production Consideration</p>
+<p>While this demo uses client secrets for simplicity, production environments should prefer:</p>
+<ul>
+<li><strong>Device Code Flow</strong> (Option A) - No secrets needed, great for CLI tools</li>
+<li><strong>Managed Identity</strong> - For Azure-hosted services (no secrets to manage)</li>
+<li><strong>Certificate-based authentication</strong> - More secure than client secrets</li>
+</ul>
+</div>
+<p><strong>Why this matters:</strong></p>
+<ul>
+<li><strong>No more hardcoded passwords!</strong> Instead of storing a static token like <code>camp1_demo_token_INSECURE</code>, your server will validate cryptographically signed tokens from Microsoft.</li>
+<li><strong>Tokens expire automatically</strong> - even if someone steals a token, it only works for about an hour.</li>
+<li><strong>You can revoke access</strong> - if something goes wrong, you can disable the app registration and all tokens immediately stop working.</li>
+<li><strong>Full audit trail</strong> - Microsoft logs every authentication, so you know who accessed what and when.</li>
+</ul>
+<p><strong>Real-world analogy:</strong></p>
+<p><strong>Before (static token):</strong> Like having one key that everyone shares, never changes, and works forever. If anyone copies it, they have permanent access.</p>
+<p><strong>After (OAuth with Entra ID):</strong> Like having a security badge system where:</p>
+<ul>
+<li>Each person gets their own temporary badge</li>
+<li>Badges expire daily</li>
+<li>The security desk (Entra ID) keeps a log of who came in</li>
+<li>Lost badges can be deactivated instantly</li>
+<li>Only approved badge readers (Azure CLI, demo client, VS Code) work with your doors</li>
+</ul>
+</details>
+<hr />
+<h3 id="step-5b-configure-secure-server-with-entra-id">Step 5b: Configure Secure Server with Entra ID<a class="headerlink" href="#step-5b-configure-secure-server-with-entra-id" title="Permanent link">&para;</a></h3>
+<p>Update your azd environment with the Entra ID values:</p>
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Replace with your actual values from the script output</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>azd<span class="w"> </span>env<span class="w"> </span><span class="nb">set</span><span class="w"> </span>AZURE_CLIENT_ID<span class="w"> </span><span class="s2">&quot;&lt;your-client-id&gt;&quot;</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>azd<span class="w"> </span>env<span class="w"> </span><span class="nb">set</span><span class="w"> </span>AZURE_TENANT_ID<span class="w"> </span><span class="s2">&quot;&lt;your-tenant-id&gt;&quot;</span>
+</span></code></pre></div>
+<p>Now configure the secure server to use these values for JWT validation:</p>
+<div class="tabbed-set" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><label for="__tabbed_2_1">Bash</label><div class="tabbed-content">
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>./scripts/configure-secure-server.sh
+</span></code></pre></div>
+</div>
+<input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><label for="__tabbed_2_2">PowerShell</label><div class="tabbed-content">
+<div class="language-powershell codehilite"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">./</span><span class="n">scripts</span><span class="p">/</span><span class="n">configure-secure-server</span><span class="p">.</span><span class="n">ps1</span>
+</span></code></pre></div>
+</div>
+</div>
+<p><strong>What this script does:</strong></p>
+<p>This updates the Container App's environment variables to use your Entra ID application client ID for JWT validation (instead of the Managed Identity client ID). The container automatically restarts to pick up the new configuration—no redeploy needed!</p>
+<details class="info">
+<summary>Why do we need two different Client IDs?</summary>
+<p><strong>Understanding the Two Identities</strong></p>
+<p>Your deployment actually has <strong>two separate identities</strong> in Azure:</p>
+<ol>
+<li>
+<p><strong>Managed Identity Client ID</strong> - The identity of your Container App itself</p>
+<ul>
+<li>Created automatically when you provisioned infrastructure</li>
+<li>Used by the Container App to authenticate TO other Azure services (like Key Vault)</li>
+<li>Think of it as "who the app is" when talking to Azure</li>
+</ul>
+</li>
+<li>
+<p><strong>Entra ID App Registration Client ID</strong> - The identity users authenticate WITH</p>
+<ul>
+<li>Created by the <code>register-entra-app.sh</code> script</li>
+<li>Used to validate JWT tokens FROM users</li>
+<li>Think of it as "who the app represents" when users sign in</li>
+</ul>
+</li>
+</ol>
+<p><strong>The Key Difference:</strong></p>
+<ul>
+<li><strong>Managed Identity (app → Azure):</strong> "I'm Container App XYZ, let me read secrets from Key Vault"</li>
+<li><strong>App Registration (user → app):</strong> "I'm a user with a token for App ABC, let me access the MCP server"</li>
+</ul>
+<p><strong>What happens without this configuration:</strong></p>
+<p>If you skip this step, the Container App would try to validate JWT tokens against the Managed Identity Client ID instead of your App Registration Client ID. This means:</p>
+<ul>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z"/></svg> User tokens would have the wrong <code>aud</code> (audience) claim</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z"/></svg> JWT validation would fail with "Invalid audience"</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z"/></svg> Users couldn't authenticate even with valid tokens</li>
+</ul>
+<p><strong>Real-world analogy:</strong></p>
+<ul>
+<li><strong>Managed Identity</strong> = Your company badge (authenticates you TO the building)</li>
+<li><strong>App Registration</strong> = Your customer portal (authenticates customers TO you)</li>
+</ul>
+<p>You wouldn't use your company badge to verify customer identities - same principle here!</p>
+<p><strong>What the script sets:</strong></p>
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Sets AZURE_CLIENT_ID to your App Registration ID</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="c1"># This tells JWTVerifier: &quot;Expect tokens with aud=&lt;app-registration-client-id&gt;&quot;</span>
+</span></code></pre></div>
+<p>This ensures the server validates tokens against the correct identity.</p>
+</details>
+<p>The secure server now includes:</p>
+<ul>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> <code>JWTVerifier</code> for token validation</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> Protected Resource Metadata (PRM) endpoint at <code>/.well-known/oauth-protected-resource</code></li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> Audience validation (checks the <code>aud</code> claim)</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> Expiration checking (rejects expired tokens)</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> Signature validation (ensures token not tampered)</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> Issuer validation (confirms token from correct Entra ID tenant)</li>
+</ul>
+<p><strong>What's different in the code:</strong></p>
+<div class="language-python codehilite"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># Before (vulnerable server):</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">auth</span> <span class="o">=</span> <span class="n">StaticTokenVerifier</span><span class="p">(</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="n">tokens</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;camp1_demo_token_INSECURE&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;client_id&quot;</span><span class="p">:</span> <span class="s2">&quot;user_001&quot;</span><span class="p">}}</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="p">)</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="c1"># After (secure server):</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="n">auth</span> <span class="o">=</span> <span class="n">JWTVerifier</span><span class="p">(</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>    <span class="n">jwks_uri</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;https://login.microsoftonline.com/</span><span class="si">{</span><span class="n">TENANT_ID</span><span class="si">}</span><span class="s2">/discovery/v2.0/keys&quot;</span><span class="p">,</span>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>    <span class="n">audience</span><span class="o">=</span><span class="n">CLIENT_ID</span><span class="p">,</span>  <span class="c1">#Audience validation!</span>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>    <span class="n">issuer</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;https://login.microsoftonline.com/</span><span class="si">{</span><span class="n">TENANT_ID</span><span class="si">}</span><span class="s2">/v2.0&quot;</span>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="p">)</span>
+</span></code></pre></div>
+<hr />
+<h3 id="step-5c-authenticate-choose-your-path">Step 5c: Authenticate (Choose Your Path)<a class="headerlink" href="#step-5c-authenticate-choose-your-path" title="Permanent link">&para;</a></h3>
+<p>This camp offers <strong>two authentication methods</strong>. Both demonstrate OAuth 2.1 security - choose based on your needs:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Best For</th>
+<th>What You'll Learn</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Option A: Device Code Flow</strong></td>
+<td>CLI tools, understanding OAuth mechanics</td>
+<td>See the token, decode it, understand JWT claims</td>
+</tr>
+<tr>
+<td><strong>Option B: Authorization Code + PKCE Demo</strong></td>
+<td>Browser-based flows, production patterns</td>
+<td>Complete OAuth flow with PRM discovery</td>
+</tr>
+</tbody>
+</table></div>
+<div class="admonition tip">
+<p class="admonition-title">Recommendation</p>
+<p>Try <strong>both paths</strong> to understand different OAuth grant types:</p>
+<ul>
+<li>Start with <strong>Option A</strong> to understand what's inside a JWT token</li>
+<li>Then try <strong>Option B</strong> to see PRM discovery and authorization code flow in action</li>
+</ul>
+</div>
+<hr />
+<h3 id="understanding-the-two-paths">Understanding the Two Paths<a class="headerlink" href="#understanding-the-two-paths" title="Permanent link">&para;</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Option A: Device Code Flow</th>
+<th>Option B: Authorization Code + PKCE Demo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Token visibility</strong></td>
+<td>You see and decode the JWT</td>
+<td>Token displayed in terminal output</td>
+</tr>
+<tr>
+<td><strong>Learning value</strong></td>
+<td>High - understand JWT claims</td>
+<td>High - see PRM discovery and production OAuth patterns</td>
+</tr>
+<tr>
+<td><strong>Setup complexity</strong></td>
+<td>Low - run script, copy token</td>
+<td>Medium - generate secret, run demo</td>
+</tr>
+<tr>
+<td><strong>Ongoing friction</strong></td>
+<td>High - copy token every ~1 hour</td>
+<td>Medium - demo restart after ~1 hour</td>
+</tr>
+<tr>
+<td><strong>Use in production</strong></td>
+<td>CLI tools, automation, headless environments</td>
+<td>Browser-based apps, native clients</td>
+</tr>
+<tr>
+<td><strong>OAuth flow</strong></td>
+<td>Device Code Grant</td>
+<td>Authorization Code Grant with PKCE</td>
+</tr>
+<tr>
+<td><strong>PRM demonstration</strong></td>
+<td>Manual configuration needed</td>
+<td>Automatic discovery via PRM</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Key insight:</strong> Both methods result in the <strong>same JWT validation</strong> on the server. The server doesn't know (or care) which flow was used - it just validates the token.</p>
+<hr />
+<details class="example">
+<summary>Option A: Device Code Flow (Understanding OAuth)</summary>
+<p><strong>Best for:</strong> Learning OAuth mechanics, CLI automation, headless environments</p>
+<p>This flow helps you understand JWT tokens by making them visible:</p>
+<div class="tabbed-set" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><label for="__tabbed_3_1">Bash</label><div class="tabbed-content">
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>./scripts/get-mcp-token.sh
+</span></code></pre></div>
+</div>
+<input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><label for="__tabbed_3_2">PowerShell</label><div class="tabbed-content">
+<div class="language-powershell codehilite"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="p">./</span><span class="n">scripts</span><span class="p">/</span><span class="nb">get-mcp</span><span class="n">-token</span><span class="p">.</span><span class="n">ps1</span>
+</span></code></pre></div>
+</div>
+</div>
+<p><strong>What happens:</strong></p>
+<ol>
+<li>Script opens browser for authentication</li>
+<li>You sign in with your Azure account</li>
+<li>Azure CLI receives a JWT token</li>
+<li>Token is printed to terminal (you can decode it at <a href="https://jwt.ms">jwt.ms</a>)</li>
+</ol>
+<details class="info">
+<summary>What's happening behind the scenes?</summary>
+<p><strong>OAuth Delegated Permissions Flow</strong></p>
+<p>When you run the token script:</p>
+<ol>
+<li><strong>Azure CLI requests a token</strong> with scope <code>api://{YOUR_CLIENT_ID}/access_as_user</code></li>
+<li><strong>You authenticate</strong> with your Azure credentials (browser popup)</li>
+<li><strong>Entra ID issues a JWT token</strong> containing:<ul>
+<li><code>aud</code> (audience): Your app's client ID</li>
+<li><code>iss</code> (issuer): Your Entra ID tenant</li>
+<li><code>scp</code> (scope): <code>access_as_user</code></li>
+<li><code>exp</code> (expiration): ~1 hour from now</li>
+<li>Your identity claims (<code>name</code>, <code>email</code>, etc.)</li>
+</ul>
+</li>
+</ol>
+<p><strong>Token validation on the server:</strong></p>
+<div class="language-python codehilite"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">verifier</span> <span class="o">=</span> <span class="n">JWTVerifier</span><span class="p">(</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    <span class="n">issuer</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;https://login.microsoftonline.com/</span><span class="si">{</span><span class="n">TENANT_ID</span><span class="si">}</span><span class="s2">/v2.0&quot;</span><span class="p">,</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="n">audience</span><span class="o">=</span><span class="n">CLIENT_ID</span><span class="p">,</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>    <span class="n">jwks_uri</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;https://login.microsoftonline.com/</span><span class="si">{</span><span class="n">TENANT_ID</span><span class="si">}</span><span class="s2">/discovery/v2.0/keys&quot;</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="p">)</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="c1"># Validates: signature, expiration, audience, issuer</span>
+</span></code></pre></div>
+<p><strong>Why this is more secure:</strong></p>
+<ul>
+<li>Tokens <strong>expire automatically</strong> (can't be used forever)</li>
+<li>Tokens are <strong>tied to user identity</strong> (audit trail)</li>
+<li>Tokens can be <strong>revoked</strong> via Entra ID</li>
+<li>No secrets stored in environment variables</li>
+</ul>
+</details>
+<p><strong>Save your token for testing:</strong></p>
+<div class="tabbed-set" data-tabs="4:2"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><label for="__tabbed_4_1">Bash</label><div class="tabbed-content">
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1"># Copy the token from script output and set it</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="nv">TOKEN</span><span class="o">=</span><span class="s2">&quot;eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIs...&quot;</span>
+</span></code></pre></div>
+</div>
+<input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><label for="__tabbed_4_2">PowerShell</label><div class="tabbed-content">
+<div class="language-powershell codehilite"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="c"># Copy the token from script output and set it</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="nv">$TOKEN</span> <span class="p">=</span> <span class="s2">&quot;eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIs...&quot;</span>
+</span></code></pre></div>
+</div>
+</div>
+<p><strong>Test with curl:</strong></p>
+<div class="tabbed-set" data-tabs="5:2"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><label for="__tabbed_5_1">Bash</label><div class="tabbed-content">
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1"># Get secure server URL (strip quotes)</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="nv">SECURE_URL</span><span class="o">=</span><span class="k">$(</span>azd<span class="w"> </span>env<span class="w"> </span>get-values<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>SECURE_SERVER_URL<span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="o">=</span><span class="w"> </span>-f2<span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;&quot;&#39;</span><span class="k">)</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="c1"># Step 1: Initialize MCP session and capture session ID from response headers</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="nv">RESPONSE</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-i<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="si">${</span><span class="nv">SECURE_URL</span><span class="si">}</span>/mcp<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>-H<span class="w"> </span><span class="s2">&quot;Accept: application/json, text/event-stream&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>-d<span class="w"> </span><span class="s1">&#39;{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;method&quot;:&quot;initialize&quot;,&quot;params&quot;:{&quot;protocolVersion&quot;:&quot;2024-11-05&quot;,&quot;capabilities&quot;:{},&quot;clientInfo&quot;:{&quot;name&quot;:&quot;curl-test&quot;,&quot;version&quot;:&quot;1.0&quot;}},&quot;id&quot;:1}&#39;</span><span class="k">)</span>
+</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>
+</span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a><span class="nv">SESSION_ID</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$RESPONSE</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span><span class="s2">&quot;mcp-session-id:&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $2}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;\r&#39;</span><span class="k">)</span>
+</span><span id="__span-19-12"><a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Session ID: </span><span class="nv">$SESSION_ID</span><span class="s2">&quot;</span>
+</span><span id="__span-19-13"><a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a>
+</span><span id="__span-19-14"><a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a><span class="c1"># Step 2: List available tools using the session ID</span>
+</span><span id="__span-19-15"><a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="si">${</span><span class="nv">SECURE_URL</span><span class="si">}</span>/mcp<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-16"><a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-17"><a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-18"><a id="__codelineno-19-18" name="__codelineno-19-18" href="#__codelineno-19-18"></a>-H<span class="w"> </span><span class="s2">&quot;Accept: application/json, text/event-stream&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-19"><a id="__codelineno-19-19" name="__codelineno-19-19" href="#__codelineno-19-19"></a>-H<span class="w"> </span><span class="s2">&quot;mcp-session-id: </span><span class="si">${</span><span class="nv">SESSION_ID</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-20"><a id="__codelineno-19-20" name="__codelineno-19-20" href="#__codelineno-19-20"></a>-d<span class="w"> </span><span class="s1">&#39;{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;method&quot;:&quot;tools/list&quot;,&quot;id&quot;:2}&#39;</span>
+</span></code></pre></div>
+</div>
+<input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><label for="__tabbed_5_2">PowerShell</label><div class="tabbed-content">
+<div class="language-powershell codehilite"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c"># Get secure server URL</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="nv">$SECURE_URL</span> <span class="p">=</span> <span class="n">azd</span> <span class="n">env</span> <span class="nb">get-value</span> <span class="n">SECURE_SERVER_URL</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="c"># Step 1: Initialize MCP session and capture session ID from response headers</span>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="nv">$RESPONSE</span> <span class="p">=</span> <span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-i</span> <span class="n">-X</span> <span class="n">POST</span> <span class="s2">&quot;$SECURE_URL/mcp&quot;</span> <span class="p">`</span>
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="n">-H</span> <span class="s2">&quot;Authorization: Bearer $TOKEN&quot;</span> <span class="p">`</span>
+</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="n">-H</span> <span class="s2">&quot;Content-Type: application/json&quot;</span> <span class="p">`</span>
+</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="n">-H</span> <span class="s2">&quot;Accept: application/json, text/event-stream&quot;</span> <span class="p">`</span>
+</span><span id="__span-20-9"><a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="n">-d</span> <span class="s1">&#39;{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;method&quot;:&quot;initialize&quot;,&quot;params&quot;:{&quot;protocolVersion&quot;:&quot;2024-11-05&quot;,&quot;capabilities&quot;:{},&quot;clientInfo&quot;:{&quot;name&quot;:&quot;curl-test&quot;,&quot;version&quot;:&quot;1.0&quot;}},&quot;id&quot;:1}&#39;</span>
+</span><span id="__span-20-10"><a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>
+</span><span id="__span-20-11"><a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a><span class="nv">$SESSION_ID</span> <span class="p">=</span> <span class="p">(</span><span class="nv">$RESPONSE</span> <span class="n">-split</span> <span class="s2">&quot;</span><span class="se">`n</span><span class="s2">&quot;</span> <span class="p">|</span> <span class="nb">Select-String</span> <span class="n">-Pattern</span> <span class="s2">&quot;mcp-session-id:&quot;</span> <span class="p">|</span> <span class="nb">Select-Object</span> <span class="n">-First</span> <span class="n">1</span><span class="p">).</span><span class="n">ToString</span><span class="p">()</span> <span class="o">-replace</span> <span class="s1">&#39;.*:\s*&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span> <span class="p">|</span> <span class="k">ForEach</span><span class="n">-Object</span> <span class="p">{</span> <span class="nv">$_</span><span class="p">.</span><span class="n">Trim</span><span class="p">()</span> <span class="p">}</span>
+</span><span id="__span-20-12"><a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a><span class="nb">Write-Host</span> <span class="s2">&quot;Session ID: $SESSION_ID&quot;</span>
+</span><span id="__span-20-13"><a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a>
+</span><span id="__span-20-14"><a id="__codelineno-20-14" name="__codelineno-20-14" href="#__codelineno-20-14"></a><span class="c"># Step 2: List available tools using the session ID</span>
+</span><span id="__span-20-15"><a id="__codelineno-20-15" name="__codelineno-20-15" href="#__codelineno-20-15"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="n">-X</span> <span class="n">POST</span> <span class="s2">&quot;$SECURE_URL/mcp&quot;</span> <span class="p">`</span>
+</span><span id="__span-20-16"><a id="__codelineno-20-16" name="__codelineno-20-16" href="#__codelineno-20-16"></a><span class="n">-H</span> <span class="s2">&quot;Authorization: Bearer $TOKEN&quot;</span> <span class="p">`</span>
+</span><span id="__span-20-17"><a id="__codelineno-20-17" name="__codelineno-20-17" href="#__codelineno-20-17"></a><span class="n">-H</span> <span class="s2">&quot;Content-Type: application/json&quot;</span> <span class="p">`</span>
+</span><span id="__span-20-18"><a id="__codelineno-20-18" name="__codelineno-20-18" href="#__codelineno-20-18"></a><span class="n">-H</span> <span class="s2">&quot;Accept: application/json, text/event-stream&quot;</span> <span class="p">`</span>
+</span><span id="__span-20-19"><a id="__codelineno-20-19" name="__codelineno-20-19" href="#__codelineno-20-19"></a><span class="n">-H</span> <span class="s2">&quot;mcp-session-id: $SESSION_ID&quot;</span> <span class="p">`</span>
+</span><span id="__span-20-20"><a id="__codelineno-20-20" name="__codelineno-20-20" href="#__codelineno-20-20"></a><span class="n">-d</span> <span class="s1">&#39;{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;method&quot;:&quot;tools/list&quot;,&quot;id&quot;:2}&#39;</span>
+</span></code></pre></div>
+</div>
+</div>
+<p><strong>Success!</strong> You should see a list of available tools returned, proving JWT authentication works!</p>
+<details class="warning">
+<summary>Troubleshooting authentication issues</summary>
+<p><strong>Problem: No session ID received (empty response)</strong></p>
+<p>This usually means authentication failed. Check:</p>
+<ol>
+<li><strong>Is your token expired?</strong></li>
+</ol>
+<div class="tabbed-set" data-tabs="6:2"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><label for="__tabbed_6_1">Bash</label><div class="tabbed-content">
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="c1"># Decode your token at jwt.ms or check expiration</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="nb">echo</span><span class="w"> </span><span class="nv">$TOKEN</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d.<span class="w"> </span>-f2<span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-d<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>.exp
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="c1"># Compare to current time: date +%s</span>
+</span></code></pre></div>
+</div>
+<input id="__tabbed_6_2" name="__tabbed_6" type="radio" /><label for="__tabbed_6_2">PowerShell</label><div class="tabbed-content">
+<div class="language-powershell codehilite"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="c"># Decode your token at jwt.ms or check expiration</span>
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="c"># Copy the middle portion of the token (between the two dots) and decode at https://jwt.ms</span>
+</span></code></pre></div>
+</div>
+</div>
+<p>Tokens expire after ~1 hour. Get a new token:</p>
+<div class="tabbed-set" data-tabs="7:2"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><label for="__tabbed_7_1">Bash</label><div class="tabbed-content">
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>./scripts/get-mcp-token.sh
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="nv">TOKEN</span><span class="o">=</span><span class="s2">&quot;&lt;new-token&gt;&quot;</span>
+</span></code></pre></div>
+</div>
+<input id="__tabbed_7_2" name="__tabbed_7" type="radio" /><label for="__tabbed_7_2">PowerShell</label><div class="tabbed-content">
+<div class="language-powershell codehilite"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="p">./</span><span class="n">scripts</span><span class="p">/</span><span class="nb">get-mcp</span><span class="n">-token</span><span class="p">.</span><span class="n">ps1</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="nv">$TOKEN</span> <span class="p">=</span> <span class="s2">&quot;&lt;new-token&gt;&quot;</span>
+</span></code></pre></div>
+</div>
+</div>
+<ol>
+<li><strong>Is the audience correct?</strong></li>
+</ol>
+<div class="tabbed-set" data-tabs="8:2"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><label for="__tabbed_8_1">Bash</label><div class="tabbed-content">
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="c1"># Check the &#39;aud&#39; claim in your token</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="nb">echo</span><span class="w"> </span><span class="nv">$TOKEN</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d.<span class="w"> </span>-f2<span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-d<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>.aud
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="c1"># Compare to your CLIENT_ID</span>
+</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>azd<span class="w"> </span>env<span class="w"> </span>get-values<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>AZURE_CLIENT_ID
+</span></code></pre></div>
+</div>
+<input id="__tabbed_8_2" name="__tabbed_8" type="radio" /><label for="__tabbed_8_2">PowerShell</label><div class="tabbed-content">
+<div class="language-powershell codehilite"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="c"># Check the &#39;aud&#39; claim in your token</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="c"># Decode at https://jwt.ms and check the &#39;aud&#39; field</span>
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="c"># Compare to your CLIENT_ID</span>
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="n">azd</span> <span class="n">env</span> <span class="nb">get-value</span> <span class="n">AZURE_CLIENT_ID</span>
+</span></code></pre></div>
+</div>
+</div>
+<p>If they don't match, you may need to:
+- Ensure <code>configure-secure-server.sh</code> was run
+- Verify <code>AZURE_CLIENT_ID</code> is set correctly in the Container App</p>
+<ol>
+<li><strong>See the full error response:</strong></li>
+</ol>
+<div class="tabbed-set" data-tabs="9:2"><input checked="checked" id="__tabbed_9_1" name="__tabbed_9" type="radio" /><label for="__tabbed_9_1">Bash</label><div class="tabbed-content">
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="c1"># Remove the SESSION_ID extraction to see full output</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>curl<span class="w"> </span>-v<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="si">${</span><span class="nv">SECURE_URL</span><span class="si">}</span>/mcp<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="w">    </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="w">    </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a><span class="w">    </span>-H<span class="w"> </span><span class="s2">&quot;Accept: application/json, text/event-stream&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a><span class="w">    </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;method&quot;:&quot;initialize&quot;,&quot;params&quot;:{&quot;protocolVersion&quot;:&quot;2024-11-05&quot;,&quot;capabilities&quot;:{},&quot;clientInfo&quot;:{&quot;name&quot;:&quot;curl-test&quot;,&quot;version&quot;:&quot;1.0&quot;}},&quot;id&quot;:1}&#39;</span>
+</span></code></pre></div>
+</div>
+<input id="__tabbed_9_2" name="__tabbed_9" type="radio" /><label for="__tabbed_9_2">PowerShell</label><div class="tabbed-content">
+<div class="language-powershell codehilite"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="c"># Remove the SESSION_ID extraction to see full output</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-v</span> <span class="n">-X</span> <span class="n">POST</span> <span class="s2">&quot;$SECURE_URL/mcp&quot;</span> <span class="p">`</span>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>    <span class="n">-H</span> <span class="s2">&quot;Authorization: Bearer $TOKEN&quot;</span> <span class="p">`</span>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>    <span class="n">-H</span> <span class="s2">&quot;Content-Type: application/json&quot;</span> <span class="p">`</span>
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>    <span class="n">-H</span> <span class="s2">&quot;Accept: application/json, text/event-stream&quot;</span> <span class="p">`</span>
+</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>    <span class="n">-d</span> <span class="s1">&#39;{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;method&quot;:&quot;initialize&quot;,&quot;params&quot;:{&quot;protocolVersion&quot;:&quot;2024-11-05&quot;,&quot;capabilities&quot;:{},&quot;clientInfo&quot;:{&quot;name&quot;:&quot;curl-test&quot;,&quot;version&quot;:&quot;1.0&quot;}},&quot;id&quot;:1}&#39;</span>
+</span></code></pre></div>
+</div>
+</div>
+<p>Look for:
+- <code>401 Unauthorized</code> - Token is invalid/expired/wrong audience
+- <code>403 Forbidden</code> - Token valid but lacks permissions
+- <code>500 Internal Server Error</code> - Server configuration issue</p>
+<p><strong>Problem: curl shows transfer stats but no output</strong></p>
+<p>This happens when the response has no body. Check:</p>
+<div class="tabbed-set" data-tabs="10:2"><input checked="checked" id="__tabbed_10_1" name="__tabbed_10" type="radio" /><label for="__tabbed_10_1">Bash</label><div class="tabbed-content">
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="c1"># Use -v flag to see headers and status code</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>curl<span class="w"> </span>-v<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="si">${</span><span class="nv">SECURE_URL</span><span class="si">}</span>/mcp<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>-H<span class="w"> </span><span class="s2">&quot;mcp-session-id: </span><span class="si">${</span><span class="nv">SESSION_ID</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-29-6"><a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a>-d<span class="w"> </span><span class="s1">&#39;{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;method&quot;:&quot;tools/list&quot;,&quot;id&quot;:2}&#39;</span>
+</span></code></pre></div>
+</div>
+<input id="__tabbed_10_2" name="__tabbed_10" type="radio" /><label for="__tabbed_10_2">PowerShell</label><div class="tabbed-content">
+<div class="language-powershell codehilite"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="c"># Use -v flag to see headers and status code</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-v</span> <span class="n">-X</span> <span class="n">POST</span> <span class="s2">&quot;$SECURE_URL/mcp&quot;</span> <span class="p">`</span>
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="n">-H</span> <span class="s2">&quot;Authorization: Bearer $TOKEN&quot;</span> <span class="p">`</span>
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="n">-H</span> <span class="s2">&quot;mcp-session-id: $SESSION_ID&quot;</span> <span class="p">`</span>
+</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a><span class="n">-H</span> <span class="s2">&quot;Content-Type: application/json&quot;</span> <span class="p">`</span>
+</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a><span class="n">-d</span> <span class="s1">&#39;{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;method&quot;:&quot;tools/list&quot;,&quot;id&quot;:2}&#39;</span>
+</span></code></pre></div>
+</div>
+</div>
+<p>Common causes:
+- Missing or invalid <code>mcp-session-id</code> header
+- Wrong HTTP method (should be POST)
+- Incorrect endpoint URL</p>
+</details>
+<p><strong>What you just did:</strong></p>
+<ul>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> Authenticated with a <strong>JWT token</strong> (expires in ~1 hour, not forever!)</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> Server <strong>validated the token signature</strong> against Entra ID public keys</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> Server <strong>checked the audience</strong> (token is for THIS app, not another)</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> Server <strong>verified expiration</strong> (token is still valid)</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> Successfully called MCP methods with OAuth 2.1 security!</li>
+</ul>
+</details>
+<details class="example">
+<summary>Option B: Authorization Code + PKCE Demo (Production OAuth Flow)</summary>
+<p><strong>Best for:</strong> Understanding browser-based OAuth, PRM discovery, production authentication patterns</p>
+<p>This demo shows how modern MCP clients discover OAuth configuration and perform the complete authorization code + PKCE flow with Entra ID.</p>
+<details class="info">
+<summary>What is Protected Resource Metadata (PRM)?</summary>
+<p><strong>Protected Resource Metadata (PRM)</strong> is a standardized way for OAuth resource servers to advertise their authentication requirements. It's defined in RFC 9728 and enables automatic OAuth discovery.</p>
+<p><strong>The Problem It Solves:</strong></p>
+<p>Without PRM, every time you want to connect to a protected API, you need to manually configure:</p>
+<ul>
+<li>Which authorization server to use (e.g., Entra ID, Auth0, Okta)</li>
+<li>What scope to request (e.g., <code>api://my-app/access_as_user</code>)</li>
+<li>How to send the token (header, query param, etc.)</li>
+</ul>
+<p>This is tedious and error-prone. Users have to read documentation, copy-paste URLs, and manually configure clients.</p>
+<p><strong>How PRM Works:</strong></p>
+<p>When a client connects to your protected resource without authentication:</p>
+<ol>
+<li>
+<p>Server returns <code>401 Unauthorized</code> with a special header:
+<div class="language-text codehilite"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>WWW-Authenticate: Bearer resource_metadata=&quot;https://server/.well-known/oauth-protected-resource&quot;
+</span></code></pre></div></p>
+</li>
+<li>
+<p>Client fetches the PRM endpoint and gets:
+<div class="language-json codehilite"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="p">{</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="w">    </span><span class="nt">&quot;resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://your-server.com&quot;</span><span class="p">,</span>
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="w">    </span><span class="nt">&quot;authorization_servers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;https://login.microsoftonline.com/.../v2.0&quot;</span><span class="p">],</span>
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="w">    </span><span class="nt">&quot;scopes_supported&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;api://your-client-id/access_as_user&quot;</span><span class="p">],</span>
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="w">    </span><span class="nt">&quot;bearer_methods_supported&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;header&quot;</span><span class="p">]</span>
+</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="p">}</span>
+</span></code></pre></div></p>
+</li>
+<li>
+<p>Client automatically knows:</p>
+<ul>
+<li>Which OAuth server to use</li>
+<li>What scope to request</li>
+<li>How to send the access token</li>
+</ul>
+</li>
+</ol>
+<p><strong>Real-world analogy:</strong></p>
+<ul>
+<li><strong>Without PRM:</strong> "Here's a restaurant. Go figure out their menu, hours, and payment methods yourself."</li>
+<li><strong>With PRM:</strong> "Here's a restaurant with a sign outside that lists everything you need to know."</li>
+</ul>
+<p><strong>Why It Matters for MCP:</strong></p>
+<p>Future MCP clients (like VS Code with MCP, Claude Desktop, GitHub Copilot) can connect to your server with <strong>zero manual configuration</strong>. Users just provide the URL, and everything else happens automatically.</p>
+<p><strong>RFC 9728:</strong> PRM is an official IETF standard that's part of the modern OAuth ecosystem. By implementing it, your MCP server follows industry best practices.</p>
+</details>
+<h4 id="run-the-prm-demo-client">Run the PRM Demo Client<a class="headerlink" href="#run-the-prm-demo-client" title="Permanent link">&para;</a></h4>
+<p>We've built a Python client that demonstrates the complete PRM + PKCE flow:</p>
+<p><strong>Step 1: Navigate to camp1-identity</strong></p>
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="nb">cd</span><span class="w"> </span>camps/camp1-identity
+</span></code></pre></div>
+<p><strong>Step 2: Generate client secret for token exchange</strong></p>
+<div class="tabbed-set" data-tabs="11:2"><input checked="checked" id="__tabbed_11_1" name="__tabbed_11" type="radio" /><label for="__tabbed_11_1">Bash</label><div class="tabbed-content">
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>./scripts/generate-client-secret.sh
+</span></code></pre></div>
+</div>
+<input id="__tabbed_11_2" name="__tabbed_11" type="radio" /><label for="__tabbed_11_2">PowerShell</label><div class="tabbed-content">
+<div class="language-powershell codehilite"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="p">./</span><span class="n">scripts</span><span class="p">/</span><span class="n">generate-client-secret</span><span class="p">.</span><span class="n">ps1</span>
+</span></code></pre></div>
+</div>
+</div>
+<p>This creates a client secret for local testing (expires in 30 days). The secret is saved to <code>demo-client/.env</code> and is git-ignored.</p>
+<div class="admonition note">
+<p class="admonition-title">Client Secrets in Production</p>
+<p>This demo uses a client secret for simplicity, but production public clients should use:</p>
+<ul>
+<li>Device Code Flow (Option A) for CLI tools</li>
+<li>Authorization Code + PKCE without secrets for native/mobile apps</li>
+<li>Or implement backend-for-frontend (BFF) pattern</li>
+</ul>
+<p>Client secrets are appropriate for confidential clients (server-to-server) but not for public clients in production.</p>
+</div>
+<p><strong>Step 3: Run the demo</strong></p>
+<div class="tabbed-set" data-tabs="12:2"><input checked="checked" id="__tabbed_12_1" name="__tabbed_12" type="radio" /><label for="__tabbed_12_1">Bash</label><div class="tabbed-content">
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="c1"># Get your configuration</span>
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="nb">eval</span><span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>azd<span class="w"> </span>env<span class="w"> </span>get-values<span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span><span class="s1">&#39;s/^/export /&#39;</span><span class="k">)</span><span class="s2">&quot;</span>
+</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>
+</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a><span class="c1"># Run the demo (uv handles dependencies automatically)</span>
+</span><span id="__span-36-5"><a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a><span class="nb">cd</span><span class="w"> </span>demo-client
+</span><span id="__span-36-6"><a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a>uv<span class="w"> </span>run<span class="w"> </span>--project<span class="w"> </span>..<span class="w"> </span>python<span class="w"> </span>mcp_prm_client.py<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-36-7"><a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a><span class="s2">&quot;</span><span class="si">${</span><span class="nv">SECURE_SERVER_URL</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-36-8"><a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a><span class="s2">&quot;</span><span class="si">${</span><span class="nv">AZURE_CLIENT_ID</span><span class="si">}</span><span class="s2">&quot;</span>
+</span></code></pre></div>
+</div>
+<input id="__tabbed_12_2" name="__tabbed_12" type="radio" /><label for="__tabbed_12_2">PowerShell</label><div class="tabbed-content">
+<div class="language-powershell codehilite"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="c"># Get your configuration</span>
+</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a><span class="nv">$SECURE_SERVER_URL</span> <span class="p">=</span> <span class="n">azd</span> <span class="n">env</span> <span class="nb">get-value</span> <span class="n">SECURE_SERVER_URL</span>
+</span><span id="__span-37-3"><a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a><span class="nv">$AZURE_CLIENT_ID</span> <span class="p">=</span> <span class="n">azd</span> <span class="n">env</span> <span class="nb">get-value</span> <span class="n">AZURE_CLIENT_ID</span>
+</span><span id="__span-37-4"><a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a>
+</span><span id="__span-37-5"><a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a><span class="c"># Run the demo (uv handles dependencies automatically)</span>
+</span><span id="__span-37-6"><a id="__codelineno-37-6" name="__codelineno-37-6" href="#__codelineno-37-6"></a><span class="nb">cd </span><span class="n">demo-client</span>
+</span><span id="__span-37-7"><a id="__codelineno-37-7" name="__codelineno-37-7" href="#__codelineno-37-7"></a><span class="n">uv</span> <span class="n">run</span> <span class="p">-</span><span class="n">-project</span> <span class="p">..</span> <span class="n">python</span> <span class="n">mcp_prm_client</span><span class="p">.</span><span class="n">py</span> <span class="p">`</span>
+</span><span id="__span-37-8"><a id="__codelineno-37-8" name="__codelineno-37-8" href="#__codelineno-37-8"></a><span class="s2">&quot;$SECURE_SERVER_URL&quot;</span> <span class="p">`</span>
+</span><span id="__span-37-9"><a id="__codelineno-37-9" name="__codelineno-37-9" href="#__codelineno-37-9"></a><span class="s2">&quot;$AZURE_CLIENT_ID&quot;</span>
+</span></code></pre></div>
+</div>
+</div>
+<h4 id="what-happens">What Happens<a class="headerlink" href="#what-happens" title="Permanent link">&para;</a></h4>
+<p>The demo will walk through each phase of the OAuth flow:</p>
+<p><strong>Phase 1: PRM Discovery</strong>
+<div class="language-text codehilite"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>✓ Received WWW-Authenticate header
+</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>Bearer resource_metadata=&quot;https://your-server/.well-known/oauth-protected-resource&quot;
+</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>✓ Found PRM endpoint
+</span><span id="__span-38-4"><a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a>✓ Fetched PRM metadata:
+</span><span id="__span-38-5"><a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a>Resource: https://your-server.azurecontainerapps.io
+</span><span id="__span-38-6"><a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a>Authorization Server: https://login.microsoftonline.com/.../v2.0
+</span><span id="__span-38-7"><a id="__codelineno-38-7" name="__codelineno-38-7" href="#__codelineno-38-7"></a>Scopes: api://your-client-id/access_as_user
+</span></code></pre></div></p>
+<p><strong>Phase 2: Authorization Server Discovery</strong>
+<div class="language-text codehilite"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>✓ Fetching: https://login.microsoftonline.com/.../.well-known/openid-configuration
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>✓ Authorization endpoint discovered
+</span><span id="__span-39-3"><a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a>✓ Token endpoint discovered
+</span></code></pre></div></p>
+<p><strong>Phase 3: PKCE Authorization Code Flow</strong>
+<div class="language-text codehilite"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>✓ Generated PKCE code_challenge
+</span><span id="__span-40-2"><a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a>✓ Opening browser for authentication...
+</span><span id="__span-40-3"><a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a>✓ Received authorization code
+</span><span id="__span-40-4"><a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a>✓ State validated
+</span><span id="__span-40-5"><a id="__codelineno-40-5" name="__codelineno-40-5" href="#__codelineno-40-5"></a>✓ Exchanging authorization code for access token...
+</span><span id="__span-40-6"><a id="__codelineno-40-6" name="__codelineno-40-6" href="#__codelineno-40-6"></a>Using client secret from .env file
+</span><span id="__span-40-7"><a id="__codelineno-40-7" name="__codelineno-40-7" href="#__codelineno-40-7"></a>✓ Access token acquired
+</span><span id="__span-40-8"><a id="__codelineno-40-8" name="__codelineno-40-8" href="#__codelineno-40-8"></a>Token type: Bearer
+</span><span id="__span-40-9"><a id="__codelineno-40-9" name="__codelineno-40-9" href="#__codelineno-40-9"></a>Expires in: 3894 seconds
+</span></code></pre></div></p>
+<p><strong>Phase 4: Authenticated MCP Requests</strong>
+<div class="language-text codehilite"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>✓ Sending request to: https://your-server/mcp
+</span><span id="__span-41-2"><a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>Method: tools/list
+</span><span id="__span-41-3"><a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a>✓ Success! Tools listed with JWT authentication
+</span></code></pre></div></p>
+<h4 id="what-you-just-did">What You Just Did<a class="headerlink" href="#what-you-just-did" title="Permanent link">&para;</a></h4>
+<ul>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> <strong>PRM Discovery</strong> - Server told client how to authenticate (RFC 9728)</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> <strong>OAuth Server Discovery</strong> - Client found Entra ID endpoints automatically</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> <strong>PKCE Flow</strong> - Secure authorization code exchange with proof key</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> <strong>JWT Token</strong> - Received signed token from Entra ID (expires in ~1 hour)</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> <strong>Authenticated MCP</strong> - Made MCP requests with Bearer token</li>
+</ul>
+<p>This is exactly how production MCP clients will work once they fully implement PRM support!</p>
+<h4 id="verify-prm-endpoint-manually">Verify PRM Endpoint Manually<a class="headerlink" href="#verify-prm-endpoint-manually" title="Permanent link">&para;</a></h4>
+<p>You can also check the PRM endpoint directly:</p>
+<div class="tabbed-set" data-tabs="13:2"><input checked="checked" id="__tabbed_13_1" name="__tabbed_13" type="radio" /><label for="__tabbed_13_1">Bash</label><div class="tabbed-content">
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="nv">SECURE_URL</span><span class="o">=</span><span class="k">$(</span>azd<span class="w"> </span>env<span class="w"> </span>get-values<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>SECURE_SERVER_URL<span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="o">=</span><span class="w"> </span>-f2<span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;&quot;&#39;</span><span class="k">)</span>
+</span><span id="__span-42-2"><a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>
+</span><span id="__span-42-3"><a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a><span class="c1"># Check WWW-Authenticate header on 401</span>
+</span><span id="__span-42-4"><a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a>curl<span class="w"> </span>-i<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">SECURE_URL</span><span class="si">}</span><span class="s2">/mcp&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-42-5"><a id="__codelineno-42-5" name="__codelineno-42-5" href="#__codelineno-42-5"></a>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-42-6"><a id="__codelineno-42-6" name="__codelineno-42-6" href="#__codelineno-42-6"></a>-d<span class="w"> </span><span class="s1">&#39;{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;method&quot;:&quot;initialize&quot;,&quot;id&quot;:1}&#39;</span>
+</span></code></pre></div>
+</div>
+<input id="__tabbed_13_2" name="__tabbed_13" type="radio" /><label for="__tabbed_13_2">PowerShell</label><div class="tabbed-content">
+<div class="language-powershell codehilite"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="nv">$SECURE_URL</span> <span class="p">=</span> <span class="n">azd</span> <span class="n">env</span> <span class="nb">get-value</span> <span class="n">SECURE_SERVER_URL</span>
+</span><span id="__span-43-2"><a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a>
+</span><span id="__span-43-3"><a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a><span class="c"># Check WWW-Authenticate header on 401</span>
+</span><span id="__span-43-4"><a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-i</span> <span class="s2">&quot;$SECURE_URL/mcp&quot;</span> <span class="p">`</span>
+</span><span id="__span-43-5"><a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a><span class="n">-H</span> <span class="s2">&quot;Content-Type: application/json&quot;</span> <span class="p">`</span>
+</span><span id="__span-43-6"><a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a><span class="n">-d</span> <span class="s1">&#39;{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;method&quot;:&quot;initialize&quot;,&quot;id&quot;:1}&#39;</span>
+</span></code></pre></div>
+</div>
+</div>
+<p><strong>Look for:</strong>
+<div class="language-text codehilite"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>HTTP/2 401
+</span><span id="__span-44-2"><a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a>www-authenticate: Bearer resource_metadata=&quot;https://your-server/.well-known/oauth-protected-resource&quot;
+</span></code></pre></div></p>
+<p><strong>Fetch the PRM metadata:</strong></p>
+<div class="tabbed-set" data-tabs="14:2"><input checked="checked" id="__tabbed_14_1" name="__tabbed_14" type="radio" /><label for="__tabbed_14_1">Bash</label><div class="tabbed-content">
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>curl<span class="w"> </span>-s<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">SECURE_URL</span><span class="si">}</span><span class="s2">/.well-known/oauth-protected-resource&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>.
+</span></code></pre></div>
+</div>
+<input id="__tabbed_14_2" name="__tabbed_14" type="radio" /><label for="__tabbed_14_2">PowerShell</label><div class="tabbed-content">
+<div class="language-powershell codehilite"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-s</span> <span class="s2">&quot;$SECURE_URL/.well-known/oauth-protected-resource&quot;</span> <span class="p">|</span> <span class="nb">ConvertFrom-Json</span> <span class="p">|</span> <span class="nb">ConvertTo-Json</span> <span class="n">-Depth</span> <span class="n">10</span>
+</span></code></pre></div>
+</div>
+</div>
+<p><strong>Expected output:</strong>
+<div class="language-json codehilite"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="p">{</span>
+</span><span id="__span-47-2"><a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a><span class="nt">&quot;resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://your-app.azurecontainerapps.io&quot;</span><span class="p">,</span>
+</span><span id="__span-47-3"><a id="__codelineno-47-3" name="__codelineno-47-3" href="#__codelineno-47-3"></a><span class="nt">&quot;authorization_servers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-47-4"><a id="__codelineno-47-4" name="__codelineno-47-4" href="#__codelineno-47-4"></a><span class="w">    </span><span class="s2">&quot;https://login.microsoftonline.com/{tenant-id}/v2.0&quot;</span>
+</span><span id="__span-47-5"><a id="__codelineno-47-5" name="__codelineno-47-5" href="#__codelineno-47-5"></a><span class="p">],</span>
+</span><span id="__span-47-6"><a id="__codelineno-47-6" name="__codelineno-47-6" href="#__codelineno-47-6"></a><span class="nt">&quot;scopes_supported&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-47-7"><a id="__codelineno-47-7" name="__codelineno-47-7" href="#__codelineno-47-7"></a><span class="w">    </span><span class="s2">&quot;api://{client-id}/access_as_user&quot;</span>
+</span><span id="__span-47-8"><a id="__codelineno-47-8" name="__codelineno-47-8" href="#__codelineno-47-8"></a><span class="p">],</span>
+</span><span id="__span-47-9"><a id="__codelineno-47-9" name="__codelineno-47-9" href="#__codelineno-47-9"></a><span class="nt">&quot;bearer_methods_supported&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;header&quot;</span><span class="p">],</span>
+</span><span id="__span-47-10"><a id="__codelineno-47-10" name="__codelineno-47-10" href="#__codelineno-47-10"></a><span class="nt">&quot;token_formats_supported&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;jwt&quot;</span><span class="p">]</span>
+</span><span id="__span-47-11"><a id="__codelineno-47-11" name="__codelineno-47-11" href="#__codelineno-47-11"></a><span class="p">}</span>
+</span></code></pre></div></p>
+<div class="admonition success">
+<p class="admonition-title">PRM Implementation Complete!</p>
+<p>Your server now implements RFC 9728 Protected Resource Metadata. When MCP clients (VS Code, Claude Desktop, etc.) add full PRM support for pre-registered OAuth apps, they'll be able to connect to your server automatically with zero configuration!</p>
+</div>
+<details class="tip">
+<summary>Explore the Demo Code</summary>
+<p>The demo client (<code>demo-client/mcp_prm_client.py</code>) is fully commented and demonstrates the complete OAuth flow:</p>
+<ul>
+<li><strong>PRM discovery</strong> from WWW-Authenticate header</li>
+<li><strong>OAuth server metadata parsing</strong> (.well-known/openid-configuration)</li>
+<li><strong>PKCE code challenge generation</strong> (SHA256 hash of verifier)</li>
+<li><strong>Local callback server</strong> for authorization code (port 8090)</li>
+<li><strong>Token exchange</strong> with client authentication</li>
+<li><strong>MCP JSON-RPC requests</strong> with Bearer token</li>
+</ul>
+<p>See the <a href="https://github.com/Azure-Samples/sherpa/tree/main/camps/camp1-identity/demo-client">camp1-identity/demo-client directory</a> on GitHub for the complete implementation with <code>README.md</code> and full source code.</p>
+</details>
+</details>
+<hr />
+<h3 id="understanding-jwt-validation">Understanding JWT Validation<a class="headerlink" href="#understanding-jwt-validation" title="Permanent link">&para;</a></h3>
+<p>Regardless of which authentication path you chose, the secure server validates <strong>every request</strong> the same way:</p>
+<div class="language-python codehilite"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="n">auth</span> <span class="o">=</span> <span class="n">JWTVerifier</span><span class="p">(</span>
+</span><span id="__span-48-2"><a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a>    <span class="n">jwks_uri</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;https://login.microsoftonline.com/</span><span class="si">{</span><span class="n">TENANT_ID</span><span class="si">}</span><span class="s2">/discovery/v2.0/keys&quot;</span><span class="p">,</span>
+</span><span id="__span-48-3"><a id="__codelineno-48-3" name="__codelineno-48-3" href="#__codelineno-48-3"></a>    <span class="n">audience</span><span class="o">=</span><span class="n">CLIENT_ID</span><span class="p">,</span>  <span class="c1"># Checks &#39;aud&#39; claim</span>
+</span><span id="__span-48-4"><a id="__codelineno-48-4" name="__codelineno-48-4" href="#__codelineno-48-4"></a>    <span class="n">issuer</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;https://login.microsoftonline.com/</span><span class="si">{</span><span class="n">TENANT_ID</span><span class="si">}</span><span class="s2">/v2.0&quot;</span>  <span class="c1"># Checks &#39;iss&#39; claim</span>
+</span><span id="__span-48-5"><a id="__codelineno-48-5" name="__codelineno-48-5" href="#__codelineno-48-5"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>What's checked:</strong></p>
+<ul>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> <strong>Signature:</strong> Token cryptographically signed by Entra ID (not tampered)</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> <strong>Issuer (<code>iss</code>):</strong> Token from correct Entra ID tenant</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> <strong>Audience (<code>aud</code>):</strong> Token intended for THIS server (prevents confused deputy)</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> <strong>Expiration (<code>exp</code>):</strong> Token not expired</li>
+<li><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-5.5-5.5l1.41-1.41L9 16.17L19.59 5.59z"/></svg> <strong>Not Before (<code>nbf</code>):</strong> Token is valid now (not used too early)</li>
+</ul>
+<p><strong>Decode your JWT at <a href="https://jwt.ms">jwt.ms</a> to see the claims!</strong></p>
+    
+    <div class="camp-progress">
+      <div class="camp-progress__item">
+        <div class="camp-progress__row">
+          <span class="camp-progress__title">Summit route</span>
+          <span class="camp-progress__meta">Identity ridge reached</span>
+          <span class="camp-progress__badge">2/5 camps</span>
+        </div>
+        <div class="progress" aria-label="Workshop progress: Identity ridge reached">
+          <div class="progress-bar" style="width: 40%"></div>
+        </div>
+      </div>
+      
+      <div class="camp-progress__item">
+        <div class="camp-progress__row">
+          <span class="camp-progress__title">Current camp</span>
+          <span class="camp-progress__meta">OAuth route armed</span>
+          <span class="camp-progress__badge">5/6</span>
+        </div>
+        <div class="progress" aria-label="Camp progress: OAuth route armed">
+          <div class="progress-bar" style="width: 83.33%"></div>
+        </div>
+      </div>
+      
+    </div>
+    
+  </div>
+  
+  <script>
+    document.querySelectorAll('article h2, article h3').forEach((header) => {
+      toc.observer.observe(header);
+    });
+  </script>
+</article>
+                                
+<div class="page-bottom-navigation mx-auto flex h-16 w-full flex-wrap items-center gap-2 px-4 md:px-0">
+    
+    <a data-slot="button"
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 shadow-none"
+        href="../section3-key-vault/">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            class="tabler-icon tabler-icon-arrow-left">
+            <path d="M5 12l14 0"></path>
+            <path d="M5 12l6 6"></path>
+            <path d="M5 12l6 -6"></path>
+        </svg>
+        <span class="max-[500px]:hidden">Key Vault</span>
+    </a>
+    
+    
+    
+    <a data-slot="button"
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md gap-1.5 px-4 has-[&gt;svg]:px-3 ml-auto shadow-none"
+        href="../section5-validate/">
+        <span class="max-[500px]:hidden">Continue: Validate Security</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            class="tabler-icon tabler-icon-arrow-right">
+            <path d="M5 12l14 0"></path>
+            <path d="M13 18l6 -6"></path>
+            <path d="M13 6l6 6"></path>
+        </svg>
+    </a>
+    
+    
+</div>
+
+                                <dialog id="bottom-sidebar" onclick="onBottomSidebarDialogClick(event)" class="bg-transparent"
+    style="position: fixed; left: 0px; top: 0px; transform: translate(0px, 58px); min-width: max-content; --radix-popper-transform-origin: 0% 0px; will-change: transform; z-index: 50; --radix-popper-available-width: 504px; --radix-popper-available-height: 857px; --radix-popper-anchor-width: 72.94999694824219px; --radix-popper-anchor-height: 32px;">
+    <div data-side="bottom" data-align="start" data-state="open" role="dialog" data-slot="popover-content"
+        class="text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 origin-(--radix-popover-content-transform-origin) border outline-hidden bg-background/90 no-scrollbar h-(--radix-popper-available-height) w-(--radix-popper-available-width) overflow-y-auto rounded-none border-none p-0 shadow-none backdrop-blur duration-100"
+        style="--radix-popover-content-transform-origin: var(--radix-popper-transform-origin); --radix-popover-content-available-width: var(--radix-popper-available-width); --radix-popover-content-available-height: var(--radix-popper-available-height); --radix-popover-trigger-width: var(--radix-popper-anchor-width); --radix-popover-trigger-height: var(--radix-popper-anchor-height);"
+        tabindex="-1">
+        <div class="flex flex-col gap-12 overflow-auto px-6 py-6">
+            
+            
+            
+
+            
+            <div class="flex flex-col gap-4">
+                <div class="text-muted-foreground text-sm font-medium">Menu</div>
+                <div class="flex flex-col gap-3">
+                    
+                    <a class="text-2xl font-medium" href="../../..">
+                        
+                        Home
+                        
+                    </a>
+                    
+                    <a class="text-2xl font-medium" href="../../../prerequisites/">
+                        
+                        Prerequisites
+                        
+                    </a>
+                    
+                </div>
+            </div>
+            
+
+            
+            <div class="flex flex-col gap-8">
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">The Journey</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../base-camp/">
+                            
+                            Base Camp
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../summit/">
+                            
+                            The Summit
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">Resources</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../../resources/contributing/">
+                            
+                            Contributing
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+
+        </div>
+    </div>
+</dialog>
+                            </div>
+
+<div class="sticky top-[calc(var(--header-height)+1px)] ml-auto hidden h-[calc(100svh-var(--header-height)-var(--footer-height))] w-72 flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
+<div class="h-(--top-spacing) shrink-0"></div>
+                                <div id="toc" view-transition-name="toc" class="no-scrollbar overflow-y-auto px-8">
+    <div class="flex flex-col gap-2 p-4 pt-0 text-sm">
+        <p class="text-muted-foreground bg-background sticky top-0 h-6 text-xs">On This Page</p>
+        
+        
+        
+        
+        <a href="#step-5a-register-entra-id-application"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#step-5a-register-entra-id-application');">
+            Step 5a: Register Entra ID Application
+        </a>
+        
+
+        
+        <a href="#step-5b-configure-secure-server-with-entra-id"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#step-5b-configure-secure-server-with-entra-id');">
+            Step 5b: Configure Secure Server with Entra ID
+        </a>
+        
+
+        
+        <a href="#step-5c-authenticate-choose-your-path"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#step-5c-authenticate-choose-your-path');">
+            Step 5c: Authenticate (Choose Your Path)
+        </a>
+        
+
+        
+        <a href="#understanding-the-two-paths"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#understanding-the-two-paths');">
+            Understanding the Two Paths
+        </a>
+        
+        
+        <a href="#run-the-prm-demo-client"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#run-the-prm-demo-client');">
+            Run the PRM Demo Client
+        </a>
+        
+        <a href="#what-happens"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#what-happens');">
+            What Happens
+        </a>
+        
+        <a href="#what-you-just-did"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#what-you-just-did');">
+            What You Just Did
+        </a>
+        
+        <a href="#verify-prm-endpoint-manually"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#verify-prm-endpoint-manually');">
+            Verify PRM Endpoint Manually
+        </a>
+        
+        
+
+        
+        <a href="#understanding-jwt-validation"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#understanding-jwt-validation');">
+            Understanding JWT Validation
+        </a>
+        
+
+        
+        
+        
+        
+
+    </div>
+    <div class="h-12"></div>
+
+</div>
+                            </div>
+
+</div>
+</div>
+</div>
+</div>
+</main>
+        <footer view-transition-name="footer"
+  class="group-has-[.section-soft]/body:bg-surface/40 3xl:fixed:bg-transparent dark:bg-transparent">
+  <div class="container-wrapper px-4 xl:px-6">
+    <div class="sherpa-footer__inner flex h-(--footer-height) flex-wrap items-center justify-center gap-x-4 gap-y-1">
+      
+      
+      <div class="flex items-center gap-3">
+        
+        <a href="https://github.com/Azure-Samples/sherpa" title="GitHub" target="_blank" rel="noopener noreferrer"
+          class="text-muted-foreground hover:text-foreground transition-colors [&amp;_svg]:size-5">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5c.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34c-.46-1.16-1.11-1.47-1.11-1.47c-.91-.62.07-.6.07-.6c1 .07 1.53 1.03 1.53 1.03c.87 1.52 2.34 1.07 2.91.83c.09-.65.35-1.09.63-1.34c-2.22-.25-4.55-1.11-4.55-4.92c0-1.11.38-2 1.03-2.71c-.1-.25-.45-1.29.1-2.64c0 0 .84-.27 2.75 1.02c.79-.22 1.65-.33 2.5-.33s1.71.11 2.5.33c1.91-1.29 2.75-1.02 2.75-1.02c.55 1.35.2 2.39.1 2.64c.65.71 1.03 1.6 1.03 2.71c0 3.82-2.34 4.66-4.57 4.91c.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2"/></svg>
+        </a>
+        
+        <a href="https://azure.microsoft.com" title="Microsoft Azure" target="_blank" rel="noopener noreferrer"
+          class="text-muted-foreground hover:text-foreground transition-colors [&amp;_svg]:size-5">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M2 3h9v9H2zm9 19H2v-9h9zM21 3v9h-9V3zm0 19h-9v-9h9z"/></svg>
+        </a>
+        
+      </div>
+      
+    </div>
+  </div>
+</footer>
+    </div>
+     
+
+<script src="../../../javascripts/glightbox.min.js"></script>
+
+     
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+
+     
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollToPlugin.min.js"></script>
+
+     
+
+<script src="../../../javascripts/extra.js"></script>
+
+     
+
+<script src="../../../search/main.js"></script>
+
+
+    
+
+    <script integrity="sha384-JLNLRFGzvOp0up707XKgSnAjjt1w5BF/+lbeLQvlf6mNwf0m89IXFdpNAk4t6Hcs" src="../../../js/copy-button.js"></script>
+<script integrity="sha384-JBx6cBEiyhK1KPwZgBHiI6GDaAmvlOxMQFyWAZTEpW5Ifo5XQ2LBcJ61GVOumwF1" src="../../../js/sidebar.js"></script>
+<script integrity="sha384-fNURFMRt0p/HqXnQnV4+CT9dX1GiU5F0fC3pFbg7gfoANytoUMErSW7suWSBkSuF" src="../../../js/slider.js"></script>
+<script>updatePygmentsStylesheet();</script>
+    
+    <script>fetchStargazers("https://github.com/Azure-Samples/sherpa");</script>
+    
+    
+    
+    <script type="speculationrules">
+{
+  "prerender": [
+    {
+      "where": {
+          "selector_matches": ["#next-button", "#previous-button"]
+      }
+    }
+  ]
+}
+</script>
+</body>
+</html>

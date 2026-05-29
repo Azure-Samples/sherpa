@@ -1,0 +1,26 @@
+{# Sherpa custom head injections (overrides theme's empty extra_head.html) #}
+
+{# Google Material Icons webfont — used by the homepage camp cards #}
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+{# Brand colour for mobile browser chrome / address bar #}
+<meta name="theme-color" content="#0f2027" />
+
+{# Site-wide Open Graph / Twitter defaults (theme seo.html handles per-page title/description/image) #}
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+{%- if not page.meta.image and config.extra.default_image %}
+<meta property="og:image" content="{{ config.extra.default_image }}" />
+<meta name="twitter:image" content="{{ config.extra.default_image }}" />
+{%- endif %}
+
+{# Google Analytics (gtag) #}
+{%- if config.extra.analytics_property %}
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ config.extra.analytics_property }}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', '{{ config.extra.analytics_property }}');
+</script>
+{%- endif %}

@@ -1,0 +1,644 @@
+
+<!DOCTYPE html>
+
+<html lang="en" class="sherpa-home-page" data-sherpa-light-locked="true">
+<head>
+<script>
+        const base_url = "https://azure-samples.github.io/sherpa/"; /* for search plugin notably */
+    </script>
+    <script integrity="sha384-m6cZ+Whl1ci89lidlu8DH4C+sZLNOYBvImtjUIhUK+iaNffXhqtbYgBVuuPfRsa0" src="js/dark.js"></script>
+<script>
+  if (!localStorage.getItem("html-layout")) {
+    document.documentElement.classList.remove("layout-fixed");
+    document.documentElement.classList.add("layout-full");
+  }
+</script>
+    
+    <script>
+        (function () {
+            var root = document.documentElement;
+            root.classList.remove("dark");
+            root.classList.add("sherpa-home-page");
+            root.dataset.sherpaLightLocked = "true";
+            root.style.colorScheme = "light";
+        })();
+    </script>
+    
+
+
+    <meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+
+    
+
+
+<title>MCP Security Summit Workshop</title>
+
+
+
+<meta name="description" content="Secure MCP servers in Azure through hands-on exploitation and remediation. Break things, fix them, ship production-ready code — with Entra ID, Key Vault, API Management, AI Content Safety, and Log Analytics.">
+
+
+
+<meta name="keywords" content="MCP, Model Context Protocol, Azure security, Entra ID, API Management, AI Content Safety, OWASP, workshop">
+
+
+
+<meta name="author" content="Microsoft Azure Samples">
+
+
+
+<link rel="canonical" href="https://azure-samples.github.io/sherpa/">
+
+
+<!-- Open Graph (Facebook, LinkedIn) -->
+
+<meta property="og:title" content="MCP Security Summit Workshop">
+
+
+
+<meta property="og:description" content="Secure MCP servers in Azure through hands-on exploitation and remediation. Break things, fix them, ship production-ready code — with Entra ID, Key Vault, API Management, AI Content Safety, and Log Analytics.">
+
+
+
+<meta property="og:url" content="https://azure-samples.github.io/sherpa/">
+
+
+
+<meta property="og:image" content="https://azure-samples.github.io/sherpa/images/sherpa-mcp-workshop.png">
+
+
+
+
+<!-- Twitter Card -->
+
+<meta name="twitter:title" content="MCP Security Summit Workshop">
+
+
+
+<meta name="twitter:description" content="Secure MCP servers in Azure through hands-on exploitation and remediation. Break things, fix them, ship production-ready code — with Entra ID, Key Vault, API Management, AI Content Safety, and Log Analytics.">
+
+
+
+<meta name="twitter:image" content="https://azure-samples.github.io/sherpa/images/sherpa-mcp-workshop.png">
+
+
+<!-- JSON-LD Structured Data -->
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "MCP Security Summit Workshop",
+    "url": "https://azure-samples.github.io/sherpa/",
+    "description": "Secure MCP servers in Azure through hands-on exploitation and remediation. Break things, fix them, ship production-ready code — with Entra ID, Key Vault, API Management, AI Content Safety, and Log Analytics.",
+    
+    
+    
+    
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "https://azure-samples.github.io/sherpa/"
+    },
+    
+    
+    "image": {
+      "@type": "ImageObject",
+      "url": "https://azure-samples.github.io/sherpa/images/sherpa-mcp-workshop.png",
+      "width": 1200,
+      "height": 630
+    }
+    
+  }
+  </script>
+
+
+
+    <link href="sherpa-icon.png" rel="icon"/>
+
+    <link href="css/base.css" rel="stylesheet"/>
+<link href="css/geist.css" rel="stylesheet"/>
+
+    
+    
+
+<link id="pygments-light" rel="stylesheet"
+    href="css/pygments/shadcn-light.css">
+<link id="pygments-dark" rel="stylesheet"
+    href="css/pygments/github-dark.css"
+    media="(prefers-color-scheme: dark)">
+
+
+    
+
+    <style>
+        :root {
+            --theme-accent: oklch(62.3% 0.214 259.815);
+        }
+    </style>
+    <link href="stylesheets/glightbox.min.css" rel="stylesheet"/>
+    <link href="stylesheets/extra.css" rel="stylesheet"/>
+
+    
+
+    <script integrity="sha384-V2jkXRy811qODUbfkLlkVJYBbf4h6XHAEjcU6ReASBPrJvTrlYh4GrI4t6GCju6n" src="js/callbacks.js"></script>
+
+    
+
+    
+
+    
+
+    
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll("a.headerlink").forEach(function (link) {
+            link.addEventListener("click", function (e) {
+                e.preventDefault();
+
+                // Build the full URL with the anchor fragment
+                const url = window.location.origin + window.location.pathname + this.getAttribute("href");
+
+                navigator.clipboard.writeText(url).then(function () {
+                    // Optional: brief visual feedback
+                });
+            });
+        });
+    });
+</script>
+    
+
+    
+    
+
+
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+
+<meta name="theme-color" content="#0f2027" />
+
+
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4X6V7HSB1J"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', 'G-4X6V7HSB1J');
+</script>
+</head>
+<body class="text-foreground group/body overscroll-none font-sans antialiased [--footer-height:calc(var(--spacing)*14)] [--header-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)] theme-default">
+<div class="bg-background relative z-10 flex min-h-svh flex-col" id="inner-body">
+        
+<header class="sherpa-home-header" view-transition-name="header">
+    <div class="sherpa-home-header__inner">
+        <a class="sherpa-home-logo" href="." aria-label="MCP Security Summit Workshop home">
+            Sherpa<sup>®</sup>
+        </a>
+        <nav class="sherpa-home-nav" aria-label="Homepage navigation">
+            <a class="is-active" href=".">Home</a>
+            <a href="#why-this-workshop" data-sherpa-scroll="#why-this-workshop">Why</a>
+            <a href="#the-expedition-route" data-sherpa-scroll="#the-expedition-route">Journey</a>
+            <a href="prerequisites/">Prerequisites</a>
+        </nav>
+        
+        <a class="sherpa-home-nav-cta sherpa-home-github-cta liquid-glass" href="https://github.com/Azure-Samples/sherpa" target="_blank" rel="noreferrer" aria-label="GitHub repository stars">
+            <span class="sherpa-home-github-cta__label">GitHub</span>
+            
+            <svg viewBox="0 0 24 24" class="sherpa-home-github-cta__star" aria-hidden="true">
+                <path fill="currentColor" d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.785 1.401 8.168L12 19.307l-7.335 3.856 1.401-8.168L.132 9.21l8.2-1.192z" />
+            </svg>
+            <span id="stargazers" class="sherpa-home-github-cta__count" data-github-stars data-fallback="21">21</span>
+            
+        </a>
+        
+    </div>
+</header>
+
+        <main class="flex flex-1 flex-col">
+<div class="container-wrapper flex flex-1 flex-col px-2">
+<div class="group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex w-full 3xl:fixed:container 3xl:fixed:px-3 min-h-min flex-1 items-start px-0 [--sidebar-width:220px] [--top-spacing:0] lg:grid lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)] lg:[--sidebar-width:240px] lg:[--top-spacing:calc(var(--spacing)*4)]" data-slot="sidebar-wrapper" style="--sidebar-width:calc(var(--spacing) * 72);--sidebar-width-icon:3rem;">
+<div class="w-(--sidebar-width) flex-col text-sidebar-foreground sticky top-[calc(var(--header-height)+0.6rem)] z-30 hidden h-[calc(100svh-10rem)] overscroll-none bg-transparent [--sidebar-menu-width:--spacing(56)] lg:flex" data-slot="sidebar">
+<div class="h-9"></div>
+<div class="absolute top-8 z-10 h-8 w-(--sidebar-menu-width) shrink-0 bg-gradient-to-b from-background via-background/80 to-background/50 blur-xs">
+</div>
+<div class="absolute top-12 right-2 bottom-0 hidden h-full w-px bg-gradient-to-b from-transparent via-border to-transparent lg:flex">
+</div>
+<div class="flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden mx-auto no-scrollbar w-(--sidebar-menu-width) overflow-x-hidden px-2" data-sidebar="content" data-slot="sidebar-content" view-transition-name="sidebar">
+                            
+
+
+
+
+
+
+
+
+
+
+
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2 pt-6">
+    <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="true" data-sidebar="menu-button"
+        data-size="default" href="."
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Home
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="prerequisites/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Prerequisites
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+        </ul>
+    </div>
+</div>
+<div
+    class="sticky -bottom-1 z-10 h-16 shrink-0 bg-gradient-to-t from-background via-background/80 to-background/50 blur-xs">
+</div>
+
+                        </div>
+</div>
+<div class="h-full w-full">
+
+<div class="flex items-stretch text-[1.05rem] sm:text-[15px] xl:w-full" data-slot="docs">
+<div class="flex min-w-0 flex-1 flex-col">
+<div class="h-(--top-spacing) shrink-0"></div>
+                                <article class="w-full" view-transition-name="page">
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
+    <div class="sherpa-home">
+
+<section class="sherpa-hero-scroll" data-sherpa-hero-phase="start" data-sherpa-frame-count="118" data-sherpa-frame-path="images/herosection/ezgif-frame-{index}.jpg" data-sherpa-start-frame="images/startframe.png" data-sherpa-end-frame="images/endframe.png" aria-label="MCP Security Summit Workshop introduction">
+  <div class="sherpa-hero-sticky">
+    <canvas class="sherpa-hero-canvas" aria-hidden="true"></canvas>
+    <div class="sherpa-hero-loader" role="status" aria-live="polite">
+      <span class="sherpa-hero-loader__label">Loading expedition</span>
+      <span class="sherpa-hero-loader__percent">0%</span>
+    </div>
+    <div class="sherpa-hero-content">
+      <h1 class="sherpa-hero-copy sherpa-hero-copy--start"><span>MCP Security</span><span>Summit <em>Workshop</em></span></h1>
+      <div class="sherpa-hero-copy sherpa-hero-copy--end">
+        <p>Secure MCP servers in Azure through hands-on exploitation and remediation. Break things, fix them, ship production-ready code.</p>
+        <a href="camps/base-camp/" class="sherpa-hero-cta liquid-glass">Begin Journey</a>
+      </div>
+    </div>
+    <a class="sherpa-scroll-cue" href="#why-this-workshop" data-sherpa-scroll="#why-this-workshop" aria-label="Scroll to why this workshop">
+      <span aria-hidden="true"></span>
+    </a>
+  </div>
+</section>
+
+<section id="why-this-workshop" class="sherpa-why-band">
+
+<h2>Why This Workshop</h2>
+
+<div class="why-feature-grid">
+
+<div class="why-feature-card">
+  <span class="why-feature-icon material-icons" aria-hidden="true">track_changes</span>
+  <h3>Learn by Breaking</h3>
+  <p>Exploit intentionally vulnerable servers, then fix them with Azure-native security: <strong>vulnerable &rarr; exploit &rarr; fix &rarr; validate</strong> methodology.</p>
+</div>
+
+<div class="why-feature-card">
+  <span class="why-feature-icon material-icons" aria-hidden="true">menu_book</span>
+  <h3>OWASP-Aligned</h3>
+  <p>Every technique maps to the <a href="https://microsoft.github.io/mcp-azure-security-guide/">OWASP MCP Azure Security Guide</a> for industry-standard coverage.</p>
+</div>
+
+<div class="why-feature-card">
+  <span class="why-feature-icon material-icons" aria-hidden="true">verified_user</span>
+  <h3>Azure-Native Security</h3>
+  <p>Entra ID, Key Vault, API Management, AI Content Safety, and Log Analytics — production services, not toy demos.</p>
+</div>
+
+</div>
+
+</section>
+
+</div>
+
+<div class="sherpa-home-content">
+<h2 id="the-expedition-route">The Expedition Route<a class="headerlink" href="#the-expedition-route" title="Permanent link">&para;</a></h2>
+<div class="route-feature-section">
+<div class="route-feature-intro">
+  <img src="images/sherpa-mcp-workshop-map.png" alt="Sherpa MCP Workshop expedition route map" />
+  <p>Each camp builds on the last — from unauthenticated MCP servers to enterprise-grade defense-in-depth.</p>
+</div>
+<div class="route-feature-grid">
+
+<a href="camps/base-camp/" class="route-feature-card">
+  <div aria-hidden="true" class="route-card-decorator">
+    <span class="material-icons">landscape</span>
+  </div>
+<div class="route-card-title">Base Camp</div>
+<p>Explore MCP fundamentals and witness authentication vulnerabilities in action. Your starting point for the expedition.</p>
+  <span class="route-card-tag">No Azure required</span>
+</a>
+
+<a href="camps/camp1-identity/" class="route-feature-card">
+  <div aria-hidden="true" class="route-card-decorator">
+    <span class="material-icons">visibility</span>
+  </div>
+<div class="route-card-title">Camp 1: Identity</div>
+<p>OAuth 2.1 with PKCE, Azure Managed Identity, and Key Vault secrets management. Lock down who can access your MCP server.</p>
+  <span class="route-card-tag">Authentication &middot; Authorization</span>
+</a>
+
+<a href="camps/camp2-gateway/" class="route-feature-card">
+  <div aria-hidden="true" class="route-card-decorator">
+    <span class="material-icons">router</span>
+  </div>
+<div class="route-card-title">Camp 2: MCP Gateway</div>
+<p>API Management gateway, Private Endpoints, and API Center governance. Control the front door to your MCP servers.</p>
+  <span class="route-card-tag">Networking &middot; Governance</span>
+</a>
+
+<a href="camps/camp3-io-security/" class="route-feature-card">
+  <div aria-hidden="true" class="route-card-decorator">
+    <span class="material-icons">shield</span>
+  </div>
+<div class="route-card-title">Camp 3: I/O Security</div>
+<p>Prompt injection defense, PII detection, and Azure AI Content Safety integration. Protect what goes in and comes out.</p>
+  <span class="route-card-tag">Input validation &middot; Content safety</span>
+</a>
+
+<a href="camps/camp4-monitoring/" class="route-feature-card">
+  <div aria-hidden="true" class="route-card-decorator">
+    <span class="material-icons">analytics</span>
+  </div>
+<div class="route-card-title">Camp 4: Monitoring</div>
+<p>Log Analytics, custom dashboards, and automated threat detection. See everything, miss nothing.</p>
+  <span class="route-card-tag">Observability &middot; Alerting</span>
+</a>
+
+<a href="camps/summit/" class="route-feature-card">
+  <div aria-hidden="true" class="route-card-decorator">
+    <span class="material-icons">flag</span>
+  </div>
+<div class="route-card-title">The Summit</div>
+<p>Red Team / Blue Team exercise validating all security layers end-to-end. Full integration test.</p>
+  <span class="route-card-tag">Capstone exercise</span>
+</a>
+
+</div>
+</div>
+<hr />
+<h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
+<p>From clone to running lab in under ten minutes.</p>
+<p><strong>1. Clone the repository</strong></p>
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/Azure-Samples/sherpa.git
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>sherpa
+</span></code></pre></div>
+<p><strong>2. Install dependencies &amp; verify</strong></p>
+<div class="language-bash codehilite"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>curl<span class="w"> </span>-LsSf<span class="w"> </span>https://astral.sh/uv/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>python<span class="w"> </span>--version<span class="w">  </span><span class="c1"># 3.10+</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>az<span class="w"> </span>account<span class="w"> </span>show<span class="w">   </span><span class="c1"># logged in</span>
+</span></code></pre></div>
+<p><strong>3. Start at Base Camp</strong></p>
+<p>Open the <a href="camps/base-camp/">Base Camp guide</a> and follow along. The docs tell you when to deploy and test code from the repo.</p>
+<div class="admonition info">
+<p class="admonition-title">First time?</p>
+<p>Check the <strong><a href="prerequisites/">Prerequisites</a></strong> for full setup instructions and system requirements. No security expertise required — if you can write Python and navigate the Azure Portal, you're ready.</p>
+</div>
+<hr />
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<p><svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M18 22a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-6v7L9.5 7.5L7 9V2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2z"/></svg> <a href="https://microsoft.github.io/mcp-azure-security-guide/">OWASP MCP Azure Security Guide</a> — Companion guide referenced throughout
+<svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M13 9h5.5L13 3.5zM6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4c0-1.11.89-2 2-2m9 16v-2H6v2zm3-4v-2H6v2z"/></svg> <a href="https://modelcontextprotocol.io/specification/2025-11-25">MCP Specification</a> — Official protocol documentation
+<svg class="iconify" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5c.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34c-.46-1.16-1.11-1.47-1.11-1.47c-.91-.62.07-.6.07-.6c1 .07 1.53 1.03 1.53 1.03c.87 1.52 2.34 1.07 2.91.83c.09-.65.35-1.09.63-1.34c-2.22-.25-4.55-1.11-4.55-4.92c0-1.11.38-2 1.03-2.71c-.1-.25-.45-1.29.1-2.64c0 0 .84-.27 2.75 1.02c.79-.22 1.65-.33 2.5-.33s1.71.11 2.5.33c1.91-1.29 2.75-1.02 2.75-1.02c.55 1.35.2 2.39.1 2.64c.65.71 1.03 1.6 1.03 2.71c0 3.82-2.34 4.66-4.57 4.91c.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2"/></svg> <a href="https://github.com/jlowin/fastmcp">FastMCP Framework</a> — Python framework used in this workshop</p>
+</div>
+</div>
+    
+  </div>
+  
+  <script>
+    document.querySelectorAll('article h2, article h3').forEach((header) => {
+      toc.observer.observe(header);
+    });
+  </script>
+</article>
+                                
+<div class="page-bottom-navigation mx-auto flex h-16 w-full flex-wrap items-center gap-2 px-4 md:px-0">
+    
+    
+    
+    <a data-slot="button"
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md gap-1.5 px-4 has-[&gt;svg]:px-3 ml-auto shadow-none"
+        href="camps/base-camp/">
+        <span class="max-[500px]:hidden">Continue: Base Camp</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            class="tabler-icon tabler-icon-arrow-right">
+            <path d="M5 12l14 0"></path>
+            <path d="M13 18l6 -6"></path>
+            <path d="M13 6l6 6"></path>
+        </svg>
+    </a>
+    
+    
+</div>
+
+                                <dialog id="bottom-sidebar" onclick="onBottomSidebarDialogClick(event)" class="bg-transparent"
+    style="position: fixed; left: 0px; top: 0px; transform: translate(0px, 58px); min-width: max-content; --radix-popper-transform-origin: 0% 0px; will-change: transform; z-index: 50; --radix-popper-available-width: 504px; --radix-popper-available-height: 857px; --radix-popper-anchor-width: 72.94999694824219px; --radix-popper-anchor-height: 32px;">
+    <div data-side="bottom" data-align="start" data-state="open" role="dialog" data-slot="popover-content"
+        class="text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 origin-(--radix-popover-content-transform-origin) border outline-hidden bg-background/90 no-scrollbar h-(--radix-popper-available-height) w-(--radix-popper-available-width) overflow-y-auto rounded-none border-none p-0 shadow-none backdrop-blur duration-100"
+        style="--radix-popover-content-transform-origin: var(--radix-popper-transform-origin); --radix-popover-content-available-width: var(--radix-popper-available-width); --radix-popover-content-available-height: var(--radix-popper-available-height); --radix-popover-trigger-width: var(--radix-popper-anchor-width); --radix-popover-trigger-height: var(--radix-popper-anchor-height);"
+        tabindex="-1">
+        <div class="flex flex-col gap-12 overflow-auto px-6 py-6">
+            
+            
+            
+
+            
+            <div class="flex flex-col gap-4">
+                <div class="text-muted-foreground text-sm font-medium">Menu</div>
+                <div class="flex flex-col gap-3">
+                    
+                    <a class="text-2xl font-medium" href=".">
+                        
+                        Home
+                        
+                    </a>
+                    
+                    <a class="text-2xl font-medium" href="prerequisites/">
+                        
+                        Prerequisites
+                        
+                    </a>
+                    
+                </div>
+            </div>
+            
+
+            
+            <div class="flex flex-col gap-8">
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">The Journey</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="camps/base-camp/">
+                            
+                            Base Camp
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="camps/summit/">
+                            
+                            The Summit
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">Resources</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="resources/contributing/">
+                            
+                            Contributing
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+
+        </div>
+    </div>
+</dialog>
+                            </div>
+
+</div>
+</div>
+</div>
+</div>
+</main>
+        <footer view-transition-name="footer"
+  class="group-has-[.section-soft]/body:bg-surface/40 3xl:fixed:bg-transparent dark:bg-transparent">
+  <div class="container-wrapper px-4 xl:px-6">
+    <div class="sherpa-footer__inner flex h-(--footer-height) flex-wrap items-center justify-center gap-x-4 gap-y-1">
+      
+      <p class="home-footer-quote">The mountain doesn't care about your excuses. Prepare well, climb smart, reach the summit. 🏔️</p>
+      <p class="home-footer-credit">Made with 💖 for open source by David Barkol, Jitesh Thakur &amp; John Folberth.</p>
+      
+      
+      <div class="flex items-center gap-3">
+        
+        <a href="https://github.com/Azure-Samples/sherpa" title="GitHub" target="_blank" rel="noopener noreferrer"
+          class="text-muted-foreground hover:text-foreground transition-colors [&amp;_svg]:size-5">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5c.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34c-.46-1.16-1.11-1.47-1.11-1.47c-.91-.62.07-.6.07-.6c1 .07 1.53 1.03 1.53 1.03c.87 1.52 2.34 1.07 2.91.83c.09-.65.35-1.09.63-1.34c-2.22-.25-4.55-1.11-4.55-4.92c0-1.11.38-2 1.03-2.71c-.1-.25-.45-1.29.1-2.64c0 0 .84-.27 2.75 1.02c.79-.22 1.65-.33 2.5-.33s1.71.11 2.5.33c1.91-1.29 2.75-1.02 2.75-1.02c.55 1.35.2 2.39.1 2.64c.65.71 1.03 1.6 1.03 2.71c0 3.82-2.34 4.66-4.57 4.91c.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2"/></svg>
+        </a>
+        
+        <a href="https://azure.microsoft.com" title="Microsoft Azure" target="_blank" rel="noopener noreferrer"
+          class="text-muted-foreground hover:text-foreground transition-colors [&amp;_svg]:size-5">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24"><path fill="currentColor" d="M2 3h9v9H2zm9 19H2v-9h9zM21 3v9h-9V3zm0 19h-9v-9h9z"/></svg>
+        </a>
+        
+      </div>
+      
+    </div>
+  </div>
+</footer>
+    </div>
+     
+
+<script src="javascripts/glightbox.min.js"></script>
+
+     
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+
+     
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollToPlugin.min.js"></script>
+
+     
+
+<script src="javascripts/extra.js"></script>
+
+     
+
+<script src="search/main.js"></script>
+
+
+    
+
+    <script integrity="sha384-JLNLRFGzvOp0up707XKgSnAjjt1w5BF/+lbeLQvlf6mNwf0m89IXFdpNAk4t6Hcs" src="js/copy-button.js"></script>
+<script integrity="sha384-JBx6cBEiyhK1KPwZgBHiI6GDaAmvlOxMQFyWAZTEpW5Ifo5XQ2LBcJ61GVOumwF1" src="js/sidebar.js"></script>
+<script integrity="sha384-fNURFMRt0p/HqXnQnV4+CT9dX1GiU5F0fC3pFbg7gfoANytoUMErSW7suWSBkSuF" src="js/slider.js"></script>
+<script>updatePygmentsStylesheet();</script>
+    
+    <script>fetchStargazers("https://github.com/Azure-Samples/sherpa");</script>
+    
+    
+    
+    <script type="speculationrules">
+{
+  "prerender": [
+    {
+      "where": {
+          "selector_matches": ["#next-button", "#previous-button"]
+      }
+    }
+  ]
+}
+</script>
+</body>
+</html>

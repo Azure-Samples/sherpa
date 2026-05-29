@@ -1,0 +1,172 @@
+<article class="w-full" view-transition-name="page">
+  {% set page_summary = page.meta.summary or page.meta.description %}
+  {% if not page_summary and page.url.startswith('camps/base-camp') %}
+  {% set page_summary = 'MCP fundamentals, local exploits, and the first vulnerable-to-secure loop.' %}
+  {% elif not page_summary and page.url.startswith('camps/camp1-identity') %}
+  {% set page_summary = 'Identity, secrets, and OAuth patterns for production MCP servers in Azure.' %}
+  {% elif not page_summary and page.url.startswith('camps/camp2-gateway') %}
+  {% set page_summary = 'Gateway, governance, content safety, and network controls for MCP at scale.' %}
+  {% elif not page_summary and page.url.startswith('camps/camp3-io-security') %}
+  {% set page_summary = 'Input validation, output sanitization, and data-handling defenses for MCP tools.' %}
+  {% elif not page_summary and page.url.startswith('camps/camp4-monitoring') %}
+  {% set page_summary = 'Observability, alerting, dashboards, and response patterns for MCP operations.' %}
+  {% elif not page_summary and page.url.startswith('camps/summit') %}
+  {% set page_summary = 'A final synthesis of the workshop patterns and production-readiness checklist.' %}
+  {% endif %}
+  {% set workshop_progress = none %}
+  {% set workshop_progress_label = none %}
+  {% set workshop_progress_badge = none %}
+  {% set camp_progress = none %}
+  {% set camp_progress_label = none %}
+  {% set camp_progress_badge = none %}
+  {% if page.url == 'camps/base-camp/' %}
+  {% set workshop_progress = '20' %}{% set workshop_progress_label = 'Base Camp unlocked' %}{% set workshop_progress_badge = '1/5 camps' %}
+  {% set camp_progress = '100' %}{% set camp_progress_label = 'Base Camp mastered' %}{% set camp_progress_badge = 'Complete' %}
+  {% elif page.url.startswith('camps/camp1-identity') %}
+  {% set workshop_progress = '40' %}{% set workshop_progress_label = 'Identity ridge reached' %}{% set workshop_progress_badge = '2/5 camps' %}
+  {% if page.url == 'camps/camp1-identity/' %}{% set camp_progress = '16.67' %}{% set camp_progress_label = 'Deploy waypoint' %}{% set camp_progress_badge = '1/6' %}
+  {% elif page.url.startswith('camps/camp1-identity/section1-cloud-exploits') %}{% set camp_progress = '33.33' %}{% set camp_progress_label = 'Cloud exploits mapped' %}{% set camp_progress_badge = '2/6' %}
+  {% elif page.url.startswith('camps/camp1-identity/section2-managed-identity') %}{% set camp_progress = '50' %}{% set camp_progress_label = 'Managed identity secured' %}{% set camp_progress_badge = '3/6' %}
+  {% elif page.url.startswith('camps/camp1-identity/section3-key-vault') %}{% set camp_progress = '66.67' %}{% set camp_progress_label = 'Secrets moved to vault' %}{% set camp_progress_badge = '4/6' %}
+  {% elif page.url.startswith('camps/camp1-identity/section4-oauth-jwt') %}{% set camp_progress = '83.33' %}{% set camp_progress_label = 'OAuth route armed' %}{% set camp_progress_badge = '5/6' %}
+  {% elif page.url.startswith('camps/camp1-identity/section5-validate') %}{% set camp_progress = '100' %}{% set camp_progress_label = 'Identity camp cleared' %}{% set camp_progress_badge = 'Complete' %}
+  {% endif %}
+  {% elif page.url.startswith('camps/camp2-gateway') %}
+  {% set workshop_progress = '60' %}{% set workshop_progress_label = 'Gateway ridge reached' %}{% set workshop_progress_badge = '3/5 camps' %}
+  {% if page.url == 'camps/camp2-gateway/' %}{% set camp_progress = '20' %}{% set camp_progress_label = 'Gateway base staged' %}{% set camp_progress_badge = '1/5' %}
+  {% elif page.url.startswith('camps/camp2-gateway/section1-gateway-governance') %}{% set camp_progress = '40' %}{% set camp_progress_label = 'Auth gate online' %}{% set camp_progress_badge = '2/5' %}
+  {% elif page.url.startswith('camps/camp2-gateway/api-governance') %}{% set camp_progress = '60' %}{% set camp_progress_label = 'APIs cataloged' %}{% set camp_progress_badge = '3/5' %}
+  {% elif page.url.startswith('camps/camp2-gateway/section2-content-safety') %}{% set camp_progress = '80' %}{% set camp_progress_label = 'Prompt shields raised' %}{% set camp_progress_badge = '4/5' %}
+  {% elif page.url.startswith('camps/camp2-gateway/section3-network-security') %}{% set camp_progress = '100' %}{% set camp_progress_label = 'Gateway camp cleared' %}{% set camp_progress_badge = 'Complete' %}
+  {% endif %}
+  {% elif page.url.startswith('camps/camp3-io-security') %}
+  {% set workshop_progress = '80' %}{% set workshop_progress_label = 'I/O ridge reached' %}{% set workshop_progress_badge = '4/5 camps' %}
+  {% if page.url == 'camps/camp3-io-security/' %}{% set camp_progress = '25' %}{% set camp_progress_label = 'I/O camp staged' %}{% set camp_progress_badge = '1/4' %}
+  {% elif page.url.startswith('camps/camp3-io-security/section1-vulnerabilities') %}{% set camp_progress = '50' %}{% set camp_progress_label = 'Attack paths exposed' %}{% set camp_progress_badge = '2/4' %}
+  {% elif page.url.startswith('camps/camp3-io-security/section2-layer2-security') %}{% set camp_progress = '75' %}{% set camp_progress_label = 'Layer 2 defenses wired' %}{% set camp_progress_badge = '3/4' %}
+  {% elif page.url.startswith('camps/camp3-io-security/section3-validation') %}{% set camp_progress = '100' %}{% set camp_progress_label = 'I/O camp cleared' %}{% set camp_progress_badge = 'Complete' %}
+  {% endif %}
+  {% elif page.url.startswith('camps/camp4-monitoring') %}
+  {% set workshop_progress = '100' %}{% set workshop_progress_label = 'Summit route unlocked' %}{% set workshop_progress_badge = 'All camps' %}
+  {% if page.url == 'camps/camp4-monitoring/' %}{% set camp_progress = '20' %}{% set camp_progress_label = 'Observation peak staged' %}{% set camp_progress_badge = '1/5' %}
+  {% elif page.url.startswith('camps/camp4-monitoring/section1-apim-logging') %}{% set camp_progress = '40' %}{% set camp_progress_label = 'Gateway logs flowing' %}{% set camp_progress_badge = '2/5' %}
+  {% elif page.url.startswith('camps/camp4-monitoring/section2-function-observability') %}{% set camp_progress = '60' %}{% set camp_progress_label = 'Function telemetry lit' %}{% set camp_progress_badge = '3/5' %}
+  {% elif page.url.startswith('camps/camp4-monitoring/section3-dashboards-alerts') %}{% set camp_progress = '80' %}{% set camp_progress_label = 'Dashboards online' %}{% set camp_progress_badge = '4/5' %}
+  {% elif page.url.startswith('camps/camp4-monitoring/section4-incident-response') %}{% set camp_progress = '100' %}{% set camp_progress_label = 'Monitoring camp cleared' %}{% set camp_progress_badge = 'Complete' %}
+  {% elif page.url.startswith('camps/camp4-monitoring/production-deploy') or page.url.startswith('camps/camp4-monitoring/reference') %}{% set workshop_progress = none %}{% set workshop_progress_label = none %}{% set workshop_progress_badge = none %}
+  {% endif %}
+  {% endif %}
+  {# The auto page-header (title + copy/nav toolbar + datetime) duplicates the
+     hero/banner that landing-style pages render themselves. Pages can opt out
+     with `hide_page_header: true` in their front matter so their own banner
+     becomes the top of the page. #}
+  {% if not page.meta.hide_page_header %}
+  <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-2">
+      <div id="page-header" class="flex items-start justify-between">
+        <h1 class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl">
+          {% if page.meta.title %}{{ page.meta.title }}{% else %}{{ page.title }}{% endif %}
+        </h1>
+
+        <div class="flex items-center gap-2 pt-1.5">
+          {% include "templates/copy_button.html" %}
+          {% if page.previous_page %}
+          <a data-slot="button" id="previous-button"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
+            href="{{ page.previous_page.url | url }}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              class="tabler-icon tabler-icon-arrow-left">
+              <path d="M5 12l14 0"></path>
+              <path d="M5 12l6 6"></path>
+              <path d="M5 12l6 -6"></path>
+            </svg>
+            <span class="sr-only">{{ _("Previous") }}</span>
+          </a>
+          {% endif %}
+          {% if page.next_page %}
+          <a data-slot="button" id="next-button"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
+            href="{{ page.next_page.url | url }}">
+            <span class="sr-only">{{ _("Next") }}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              class="tabler-icon tabler-icon-arrow-right">
+              <path d="M5 12l14 0"></path>
+              <path d="M13 18l6 -6"></path>
+              <path d="M13 6l6 6"></path>
+            </svg>
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% if page_summary %}
+      <p id="page-summary" class="text-muted-foreground text-[1.05rem] text-balance sm:text-base">
+        {{ page_summary }}
+      </p>
+      {% endif %}
+    </div>
+    <div class="flex justify-end items-center">
+      {% if page.meta.external_links %}
+      <div class="grow flex items-center space-x-2 pt-4 external_links">
+        {% for link_name, href in page.meta.external_links.items() %}
+        <a target="_blank" rel="noreferrer" data-slot="badge"
+          class="inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90"
+          href="{{ href }}">
+          {{ link_name }}
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            class="tabler-icon tabler-icon-arrow-up-right">
+            <path d="M17 7l-10 10"></path>
+            <path d="M8 7l9 0l0 9"></path>
+          </svg>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if page.meta.show_datetime == True %}
+      {% include "templates/datetime.html" %}
+      {% elif page.meta.show_datetime == False %}
+      {# do nothing #}
+      {% elif config.theme.show_datetime == True %}
+      {% include "templates/datetime.html" %}
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
+    {{ page.content }}
+    {% if workshop_progress %}
+    <div class="camp-progress">
+      <div class="camp-progress__item{% if workshop_progress == '100' %} is-complete{% endif %}">
+        <div class="camp-progress__row">
+          <span class="camp-progress__title">Summit route</span>
+          <span class="camp-progress__meta">{{ workshop_progress_label }}</span>
+          <span class="camp-progress__badge">{{ workshop_progress_badge }}</span>
+        </div>
+        <div class="progress" aria-label="Workshop progress: {{ workshop_progress_label }}">
+          <div class="progress-bar" style="width: {{ workshop_progress }}%"></div>
+        </div>
+      </div>
+      {% if camp_progress %}
+      <div class="camp-progress__item{% if camp_progress == '100' %} is-complete{% endif %}">
+        <div class="camp-progress__row">
+          <span class="camp-progress__title">Current camp</span>
+          <span class="camp-progress__meta">{{ camp_progress_label }}</span>
+          <span class="camp-progress__badge">{{ camp_progress_badge }}</span>
+        </div>
+        <div class="progress" aria-label="Camp progress: {{ camp_progress_label }}">
+          <div class="progress-bar" style="width: {{ camp_progress }}%"></div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+  {# TOC #}
+  <script>
+    document.querySelectorAll('article h2, article h3').forEach((header) => {
+      toc.observer.observe(header);
+    });
+  </script>
+</article>

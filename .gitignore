@@ -33,6 +33,7 @@ local.settings.json
 ## MkDocs
 site/
 .cache/
+.mkdocs-check/
 
 ## Agent scaffolding and scratch space
 .agents/

@@ -1,0 +1,24 @@
+<footer view-transition-name="footer"
+  class="group-has-[.section-soft]/body:bg-surface/40 3xl:fixed:bg-transparent dark:bg-transparent">
+  <div class="container-wrapper px-4 xl:px-6">
+    <div class="sherpa-footer__inner flex h-(--footer-height) flex-col flex-wrap items-center justify-center gap-y-1">
+      {% if page.is_homepage or page.url == '' %}
+      <p class="home-footer-quote">The mountain doesn't care about your excuses. Prepare well, climb smart, reach the summit. 🏔️</p>
+      <p class="home-footer-credit">Made with 💖 for open source by <a href="https://github.com/dbarkol" target="_blank" rel="noopener noreferrer">David Barkol</a>, <a href="https://github.com/Jitha-afk" target="_blank" rel="noopener noreferrer">Jitesh Thakur</a> &amp; <a href="https://github.com/JFolberth" target="_blank" rel="noopener noreferrer">John Folberth</a>.</p>
+      {% endif %}
+      {% if config.extra.social %}
+      <div class="flex items-center gap-3">
+        {% for s in config.extra.social %}
+        <a href="{{ s.link }}" title="{{ s.name }}" target="_blank" rel="noopener noreferrer"
+          class="text-muted-foreground hover:text-foreground transition-colors [&amp;_svg]:size-5">
+          {{ s.icon | iconify }}
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if not (page.is_homepage or page.url == '') %}
+      <p class="text-muted-foreground text-sm">Copyright &copy; 2025 Microsoft Corporation</p>
+      {% endif %}
+    </div>
+  </div>
+</footer>

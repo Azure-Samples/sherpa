@@ -1,5 +1,6 @@
 # MkDocs documentation dependencies
 mkdocs>=1.5.3
-mkdocs-material>=9.5.0
-mkdocs-git-revision-date-localized-plugin>=1.2.0
-mkdocs-glightbox>=0.3.0
+# shadcn theme (pinned: 0.x increments majors on config changes)
+mkdocs-shadcn==0.10.7
+pymdown-extensions>=10.0
+Pygments>=2.17
