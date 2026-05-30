@@ -266,8 +266,10 @@
 
     function resizeCanvas() {
       var ratio = Math.min(window.devicePixelRatio || 1, MAX_DPR);
-      canvas.width = Math.ceil(window.innerWidth * ratio);
-      canvas.height = Math.ceil(window.innerHeight * ratio);
+      var cssWidth = canvas.clientWidth || window.innerWidth;
+      var cssHeight = canvas.clientHeight || window.innerHeight;
+      canvas.width = Math.ceil(cssWidth * ratio);
+      canvas.height = Math.ceil(cssHeight * ratio);
       if (context) {
         context.imageSmoothingEnabled = true;
         context.imageSmoothingQuality = "high";
@@ -308,6 +310,15 @@
 
       var x = (canvas.width - drawWidth) / 2;
       var y = (canvas.height - drawHeight) / 2;
+
+      // Keep the meaningful edge in view on ultra-wide viewports where the
+      // cover-fit overflows vertically: the start frame anchors to the top,
+      // the end frame anchors to the bottom, everything else stays centered.
+      if (index <= 0) {
+        y = 0;
+      } else if (index >= totalFrames - 1) {
+        y = canvas.height - drawHeight;
+      }
 
       context.fillStyle = "#000";
       context.fillRect(0, 0, canvas.width, canvas.height);
@@ -548,6 +559,14 @@
     resizeCanvas();
     updateFromScroll();
     preloadFrames();
+
+    var advanceCue = hero.querySelector("[data-sherpa-hero-advance]");
+    if (advanceCue) {
+      advanceCue.addEventListener("click", function (event) {
+        event.preventDefault();
+        if (!isAutoScrolling) snapTo(heroGeometry().end);
+      });
+    }
 
     window.addEventListener("scroll", updateFromScroll, { passive: true });
     window.addEventListener("wheel", handleWheel, { passive: false });

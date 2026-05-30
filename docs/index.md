@@ -24,7 +24,10 @@ hide:
         <a href="camps/base-camp/" class="sherpa-hero-cta liquid-glass">Begin Journey</a>
       </div>
     </div>
-    <a class="sherpa-scroll-cue" href="#why-this-workshop" data-sherpa-scroll="#why-this-workshop" aria-label="Scroll to why this workshop">
+    <button type="button" class="sherpa-scroll-cue sherpa-scroll-cue--start" data-sherpa-hero-advance aria-label="Continue to the summit view">
+      <span aria-hidden="true"></span>
+    </button>
+    <a class="sherpa-scroll-cue sherpa-scroll-cue--end" href="#why-this-workshop" data-sherpa-scroll="#why-this-workshop" aria-label="Scroll to why this workshop">
       <span aria-hidden="true"></span>
     </a>
   </div>
