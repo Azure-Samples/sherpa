@@ -245,7 +245,7 @@ In this section, you'll use [Azure AI Content Safety](https://learn.microsoft.co
 
     **3. Check the policy on your MCP API:**
 
-    Go to: **APIs** → **MCP Servers** → Select an API → **Policies**
+    Go to: **AI Gateway** → **MCP Servers** → Select an API → **Policies**
 
     You should see:
 
