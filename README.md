@@ -4,7 +4,9 @@
 
 **🚀 [Start the Workshop →](https://azure-samples.github.io/sherpa/)**
 
-<img src="docs/images/sherpa-mcp-workshop.png" alt="MCP Security Workshop" width="400">
+<div align="center">
+  <img src="docs/images/sherpa-mcp-workshop.png" alt="MCP Security Workshop" width="400">
+</div>
 
 ## Overview
 
@@ -18,7 +20,9 @@ MCP is an open protocol that lets AI applications connect to external tools and 
 
 Our expedition follows a proven path where each camp builds on the last, creating defense-in-depth security.
 
-![Expedition Route](docs/images/sherpa-mcp-workshop-map.png)
+<div align="center">
+  <img src="docs/images/sherpa-mcp-workshop-map.png" alt="Expedition Route">
+</div>
 
 | Camp | Theme | Focus |
 |:----:|:-----:|:-----:|
