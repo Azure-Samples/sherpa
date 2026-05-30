@@ -262,6 +262,44 @@ body:has(.sherpa-home) .page-bottom-navigation {
   mask-composite: exclude;
 }
 
+/* Subtle white sparkle that orbits the Begin Journey button's edges. */
+@property --sherpa-sparkle-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.sherpa-hero-cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  padding: 4px;
+  background: conic-gradient(
+    from var(--sherpa-sparkle-angle),
+    rgba(255, 255, 255, 0) 0deg,
+    rgba(255, 255, 255, 0) 55deg,
+    rgba(255, 255, 255, 0.85) 80deg,
+    rgba(255, 255, 255, 0.1) 100deg,
+    rgba(255, 255, 255, 0) 130deg,
+    rgba(255, 255, 255, 0) 360deg
+  );
+  filter: drop-shadow(0 0 7px rgba(255, 255, 255, 0.7));
+  pointer-events: none;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: sherpa-sparkle-orbit 4.5s linear infinite;
+}
+
+@keyframes sherpa-sparkle-orbit {
+  to {
+    --sherpa-sparkle-angle: 360deg;
+  }
+}
+
 .sherpa-home {
   width: 100%;
   margin: 0;
@@ -657,6 +695,11 @@ article .typography .sherpa-home-content > h2 {
 
   .sherpa-scroll-cue {
     animation: none;
+  }
+
+  .sherpa-hero-cta::after {
+    animation: none;
+    opacity: 0.5;
   }
 }
 
