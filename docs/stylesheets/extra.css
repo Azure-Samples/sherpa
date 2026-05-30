@@ -115,6 +115,7 @@ body:has(.sherpa-home) .container-wrapper {
 body:has(.sherpa-home) article {
   max-width: none;
   padding-top: 0;
+  padding-inline: 0;
 }
 
 body:has(.sherpa-home) article .typography {
@@ -261,6 +262,44 @@ body:has(.sherpa-home) .page-bottom-navigation {
   mask-composite: exclude;
 }
 
+/* Subtle white sparkle that orbits the Begin Journey button's edges. */
+@property --sherpa-sparkle-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.sherpa-hero-cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  padding: 4px;
+  background: conic-gradient(
+    from var(--sherpa-sparkle-angle),
+    rgba(255, 255, 255, 0) 0deg,
+    rgba(255, 255, 255, 0) 55deg,
+    rgba(255, 255, 255, 0.85) 80deg,
+    rgba(255, 255, 255, 0.1) 100deg,
+    rgba(255, 255, 255, 0) 130deg,
+    rgba(255, 255, 255, 0) 360deg
+  );
+  filter: drop-shadow(0 0 7px rgba(255, 255, 255, 0.7));
+  pointer-events: none;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: sherpa-sparkle-orbit 4.5s linear infinite;
+}
+
+@keyframes sherpa-sparkle-orbit {
+  to {
+    --sherpa-sparkle-angle: 360deg;
+  }
+}
+
 .sherpa-home {
   width: 100%;
   margin: 0;
@@ -296,8 +335,8 @@ body:has(.sherpa-home) .page-bottom-navigation {
   inset: 0;
   z-index: 0;
   display: block;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   background: #000;
   opacity: 0;
   pointer-events: none;
@@ -446,23 +485,61 @@ body.sherpa-hero-active .sherpa-hero-canvas {
 .sherpa-scroll-cue {
   position: absolute;
   left: 50%;
-  bottom: 2rem;
-  z-index: 2;
+  bottom: 2.25rem;
+  z-index: 3;
   display: grid;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 3rem;
+  height: 3rem;
+  margin: 0;
+  padding: 0;
   place-items: center;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
   color: hsl(var(--foreground));
-  opacity: 0.78;
-  transform: translateX(-50%);
+  font: inherit;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(0);
+  transition: opacity 0.35s ease, background 0.25s ease, box-shadow 0.25s ease;
+  animation: sherpa-cue-bounce 2.1s ease-in-out infinite;
+}
+
+.sherpa-scroll-cue:hover,
+.sherpa-scroll-cue:focus-visible {
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.34),
+    inset 0 1px 1px rgba(255, 255, 255, 0.5),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.12);
+  outline: none;
+}
+
+.sherpa-hero-scroll[data-sherpa-hero-phase="start"] .sherpa-scroll-cue--start,
+.sherpa-hero-scroll[data-sherpa-hero-phase="end"] .sherpa-scroll-cue--end {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .sherpa-scroll-cue span {
-  width: 0.85rem;
-  height: 0.85rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-top: -0.18rem;
   border-right: 2px solid currentColor;
   border-bottom: 2px solid currentColor;
   transform: rotate(45deg);
+}
+
+@keyframes sherpa-cue-bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(7px); }
 }
 
 @keyframes fade-rise {
@@ -614,6 +691,15 @@ article .typography .sherpa-home-content > h2 {
   .sherpa-hero-canvas,
   .sherpa-hero-loader {
     transition: none;
+  }
+
+  .sherpa-scroll-cue {
+    animation: none;
+  }
+
+  .sherpa-hero-cta::after {
+    animation: none;
+    opacity: 0.5;
   }
 }
 

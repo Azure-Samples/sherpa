@@ -1,5 +1,12 @@
 <script integrity="sha384-m6cZ+Whl1ci89lidlu8DH4C+sZLNOYBvImtjUIhUK+iaNffXhqtbYgBVuuPfRsa0" src="{{ 'js/dark.js' | url }}"></script>
 <script>
+  // Default to light mode unless the user has explicitly chosen a theme.
+  // The base dark.js falls back to the OS color scheme; we override that so
+  // pages open light by default. An explicit toggle persists localStorage.theme
+  // ("dark"/"light") and is always respected.
+  if (localStorage.theme !== "dark" && localStorage.theme !== "light") {
+    document.documentElement.classList.remove("dark");
+  }
   if (!localStorage.getItem("html-layout")) {
     document.documentElement.classList.remove("layout-fixed");
     document.documentElement.classList.add("layout-full");
