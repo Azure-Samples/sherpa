@@ -1,3 +1,9 @@
+---
+title: Workshop Scripts
+description: "Automation scripts for the Microsoft MCP Security Workshop, including Azure provisioning, cleanup, and environment validation (under development)."
+keywords: Microsoft, MCP workshop scripts, Azure automation, provisioning, cleanup, environment validation
+---
+
 # Workshop Scripts
 
 ## Overview

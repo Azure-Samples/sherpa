@@ -1,4 +1,7 @@
 ---
+title: Deploy the Full MCP Observability Stack
+description: "Provision Camp 4's complete observability stack (diagnostics, structured logging, dashboards, and alerts) in a single azd command with DEPLOY_MODE=complete."
+keywords: Microsoft, azd deploy, DEPLOY_MODE, Bicep, observability stack, structured logging, Azure Monitor
 hide:
   - toc
 ---

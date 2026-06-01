@@ -1,4 +1,7 @@
 ---
+title: MCP Governance with Azure API Center
+description: "Register and govern MCP servers centrally with Azure API Center to prevent shadow deployments, enable discovery, and track compliance."
+keywords: Microsoft, Azure API Center, MCP governance, API governance, shadow server, API discovery, compliance
 hide:
   - toc
 ---

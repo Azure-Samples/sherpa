@@ -1,4 +1,7 @@
 ---
+title: Structured Security Telemetry for Azure Functions
+description: "Upgrade the security function to structured logging with Application Insights OpenTelemetry, emitting queryable security events with custom dimensions."
+keywords: Microsoft, structured logging, custom dimensions, Application Insights, OpenTelemetry, AppTraces, observability
 hide:
   - toc
 ---

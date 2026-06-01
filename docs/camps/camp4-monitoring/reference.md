@@ -1,4 +1,7 @@
 ---
+title: KQL & Azure Monitor Reference for MCP Security
+description: "A KQL primer and reference for MCP security monitoring: operators, log table schemas, custom dimensions, correlation IDs, and ready-made investigation queries."
+keywords: Microsoft, KQL, Azure Monitor, Log Analytics schema, custom dimensions, correlation ID, query reference
 hide:
   - toc
 ---

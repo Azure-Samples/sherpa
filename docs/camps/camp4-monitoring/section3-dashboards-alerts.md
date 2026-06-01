@@ -1,4 +1,7 @@
 ---
+title: MCP Security Dashboards & Alerts in Azure Monitor
+description: "Deploy an interactive Azure Workbook dashboard and create Azure Monitor alert rules that email you on high attack volume or credential exposure."
+keywords: Microsoft, Azure Workbooks, Azure Monitor alerts, action groups, security dashboard, attack monitoring
 hide:
   - toc
 ---

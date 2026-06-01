@@ -1,4 +1,7 @@
 ---
+title: Network Isolation for MCP Servers on Azure
+description: "Prevent direct backend access that bypasses the APIM gateway using IP restrictions, VNet integration, private endpoints, NSGs, and header validation."
+keywords: Microsoft, network isolation, Azure Virtual Network, private endpoints, NSG, Private Link, APIM
 hide:
   - toc
 ---

@@ -1,4 +1,7 @@
 ---
+title: OAuth 2.1 & JWT Validation for MCP Servers
+description: "Replace static tokens with short-lived, signed JWTs from Entra ID. Validate signature, audience, issuer, and expiry, with Device Code and Authorization Code PKCE flows."
+keywords: Microsoft, OAuth 2.1, JWT validation, Entra ID, PKCE, Device Code flow, Protected Resource Metadata, RFC 9728
 hide:
   - toc
 ---

@@ -1,4 +1,7 @@
 ---
+title: "Camp 2: API Management Gateway for MCP Servers"
+description: "Put multiple MCP servers behind Azure API Management for centralized OAuth, rate limiting, content safety, and governance in this beginner-friendly Microsoft guide."
+keywords: Microsoft, Azure API Management, APIM, MCP gateway, rate limiting, API Center, AI Content Safety
 hide:
   - toc
 ---

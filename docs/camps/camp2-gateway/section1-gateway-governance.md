@@ -1,4 +1,7 @@
 ---
+title: MCP Gateway Authentication with Azure APIM
+description: "Expose MCP servers through Azure API Management with OAuth 2.1 validation, automatic OAuth discovery via Protected Resource Metadata, and rate-limiting policies."
+keywords: Microsoft, Azure API Management, APIM, OAuth 2.1, JWT validation, rate limiting, Protected Resource Metadata
 hide:
   - toc
 ---

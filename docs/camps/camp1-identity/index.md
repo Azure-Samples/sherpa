@@ -1,4 +1,7 @@
 ---
+title: "Camp 1: Identity & Access for MCP Servers on Azure"
+description: "Secure MCP servers with enterprise identity on Azure. Deploy to Container Apps and apply Managed Identity, Key Vault, and OAuth 2.1 with JWT validation in this beginner-friendly Microsoft guide."
+keywords: Microsoft, Entra ID, Managed Identity, Key Vault, OAuth 2.1, JWT validation, Azure Container Apps, MCP authentication
 hide:
   - toc
 ---

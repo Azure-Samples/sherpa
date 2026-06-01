@@ -1,4 +1,7 @@
 ---
+title: APIM Gateway Logging with Log Analytics
+description: "Configure Azure API Management diagnostic settings to stream HTTP and LLM logs to Log Analytics, then query gateway traffic with KQL."
+keywords: Microsoft, APIM diagnostic settings, GatewayLogs, GatewayLlmLogs, Log Analytics, KQL, correlation ID
 hide:
   - toc
 ---

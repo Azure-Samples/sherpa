@@ -1,4 +1,7 @@
 ---
+title: Migrate MCP Secrets to Azure Key Vault
+description: "Move secrets out of environment variables into Azure Key Vault and retrieve them at runtime via Managed Identity, with auditing, rotation, and versioning."
+keywords: Microsoft, Azure Key Vault, secret management, secret rotation, secret versioning, Managed Identity, RBAC
 hide:
   - toc
 ---

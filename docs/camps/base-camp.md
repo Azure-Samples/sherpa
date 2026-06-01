@@ -1,4 +1,7 @@
 ---
+title: "Base Camp: MCP Fundamentals & First Exploit"
+description: "Start here. Learn Model Context Protocol (MCP) fundamentals, run a deliberately vulnerable MCP server, exploit it, then apply the security fixes in this beginner-friendly Microsoft workshop."
+keywords: Microsoft, MCP fundamentals, Model Context Protocol, MCP security basics, vulnerable MCP server, OWASP MCP, FastMCP, Azure
 hide:
   - toc
 ---
