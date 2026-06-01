@@ -103,8 +103,8 @@ Without authentication, your MCP server is completely open to the internet. For 
         **Sherpa** is a FastMCP server that provides mountain expedition tools:
 
         - `get_weather` - Current weather conditions at different elevations
-        - `list_trails` - Available climbing routes and difficulty ratings
-        - `check_gear` - Verify required equipment for specific conditions
+        - `check_trail_conditions` - Trail status and hazards for a specific route
+        - `get_gear_recommendations` - Recommended equipment for specific conditions
 
         **Why read-only?** Sherpa only exposes read operations (queries) with no write capabilities (no data modification, file system access, or system commands). This follows a key [enterprise pattern](https://microsoft.github.io/mcp-azure-security-guide/adoption/enterprise-patterns/#lessons-from-early-adopters): **separate read from write operations**. Read-only MCP servers are safer for demos and initial deployments because they limit the blast radius of potential exploits. Once you've validated security controls at the gateway (authentication, rate limiting, content safety), you can confidently add write operations or deploy separate write-enabled MCP servers with stricter controls.
 
