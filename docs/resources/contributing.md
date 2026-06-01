@@ -1,6 +1,7 @@
 ---
 title: Contributing
-description: How to contribute to the MCP Security Summit Workshop.
+description: "How to contribute to the Microsoft MCP Security Workshop: the exploit-fix-validate methodology, Bash and PowerShell script parity, MkDocs conventions, and code style."
+keywords: Microsoft, contributing, MCP workshop, Bash, PowerShell, MkDocs, code style, exploit-fix-validate
 hide_page_header: true
 ---
 

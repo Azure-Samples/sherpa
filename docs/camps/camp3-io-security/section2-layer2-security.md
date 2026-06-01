@@ -1,4 +1,7 @@
 ---
+title: Layer 2 MCP Security with Azure Functions
+description: "Wire Azure Functions into APIM policies for hybrid detection that combines fast regex checks with AI-powered Prompt Shields, input validation, and PII redaction."
+keywords: Microsoft, Azure Functions, APIM policy, input validation, output sanitization, PII redaction, Prompt Shields
 hide:
   - toc
 ---

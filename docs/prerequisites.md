@@ -1,6 +1,7 @@
 ---
-title: Prerequisites
-description: Tools, accounts, and setup you'll need before starting any camp in the MCP Security Summit Workshop.
+title: Prerequisites & Setup
+description: "Install and verify the tools you need for the Microsoft MCP Security Workshop: Azure subscription, Python, uv, Azure CLI, azd, Docker, and VS Code."
+keywords: Microsoft, MCP workshop setup, Azure CLI, azd, Python, uv, Docker, prerequisites, Azure subscription
 hide_page_header: true
 ---
 

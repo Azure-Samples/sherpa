@@ -1,4 +1,7 @@
 ---
+title: Validate MCP Identity Security on Azure
+description: "Run automated checks to confirm secrets live in Key Vault, Managed Identity has the right RBAC, tokens expire, and no credentials leak into environment variables."
+keywords: Microsoft, security validation, Key Vault, Managed Identity RBAC, token expiration, audience validation
 hide:
   - toc
 ---

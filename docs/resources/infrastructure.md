@@ -1,3 +1,9 @@
+---
+title: Infrastructure Setup
+description: "Shared Bicep templates and deployment automation for the Microsoft MCP Security Workshop, with Azure resource naming and cost guidance (under development)."
+keywords: Microsoft, Bicep, Azure infrastructure, deployment automation, resource naming, cost management
+---
+
 # Infrastructure Setup
 
 ## Overview

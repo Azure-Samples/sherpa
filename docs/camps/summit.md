@@ -1,4 +1,7 @@
 ---
+title: "The Summit: Production-Ready Secure MCP on Azure"
+description: "The capstone of the Microsoft MCP Security Workshop: combine identity, gateway, I/O security, and monitoring into a production-ready, secure Model Context Protocol deployment on Azure."
+keywords: Microsoft, secure MCP production, MCP architecture, Azure MCP security, Model Context Protocol, defense in depth
 hide:
   - toc
 ---

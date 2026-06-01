@@ -1,7 +1,7 @@
 ---
 title: MCP Security Summit Workshop
-description: Secure MCP servers in Azure through hands-on exploitation and remediation. Break things, fix them, ship production-ready code — with Entra ID, Key Vault, API Management, AI Content Safety, and Log Analytics.
-keywords: MCP, Model Context Protocol, Azure security, Entra ID, API Management, AI Content Safety, OWASP, workshop
+description: "Official, beginner-friendly Microsoft workshop for securing Model Context Protocol (MCP) servers on Azure with Entra ID, Key Vault, API Management, AI Content Safety, and monitoring."
+keywords: MCP security, Model Context Protocol, Microsoft MCP, Azure security, Entra ID, API Management, AI Content Safety, OWASP, secure MCP server, beginner workshop
 image: https://azure-samples.github.io/sherpa/images/sherpa-mcp-workshop.png
 hide_page_header: true
 hide:

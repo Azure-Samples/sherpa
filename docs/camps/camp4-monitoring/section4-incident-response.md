@@ -1,4 +1,7 @@
 ---
+title: MCP Incident Response & Attack Correlation
+description: "Simulate a multi-vector attack, watch the dashboard respond, and trace attacks across APIM and Azure Functions using correlation IDs and KQL."
+keywords: Microsoft, incident response, multi-vector attack, correlation ID, KQL, attack tracing, Azure Monitor
 hide:
   - toc
 ---

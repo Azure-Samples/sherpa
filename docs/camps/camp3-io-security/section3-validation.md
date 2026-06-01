@@ -1,4 +1,7 @@
 ---
+title: Validate MCP I/O Security & Defense in Depth
+description: "Re-run the exploits to confirm injection and PII attacks are blocked, then learn how to deploy sanitization for native FastMCP versus synthesized MCP servers."
+keywords: Microsoft, defense in depth, output sanitization, APIM outbound policy, fail-open, fail-closed, FastMCP
 hide:
   - toc
 ---

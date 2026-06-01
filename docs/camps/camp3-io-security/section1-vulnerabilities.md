@@ -1,4 +1,7 @@
 ---
+title: MCP Injection & PII Vulnerabilities Explained
+description: "Run exploits showing how Content Safety misses shell, SQL, and path traversal injection, and how MCP servers can leak unredacted PII (OWASP MCP05, MCP06, MCP10)."
+keywords: Microsoft, shell injection, SQL injection, path traversal, PII leakage, OWASP MCP, Content Safety limitations
 hide:
   - toc
 ---

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://azure-samples.github.io/sherpa/sitemap.xml

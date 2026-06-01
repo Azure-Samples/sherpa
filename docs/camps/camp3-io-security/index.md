@@ -1,4 +1,7 @@
 ---
+title: "Camp 3: Input & Output Security for MCP Servers"
+description: "Add a Layer 2 security middleware with Azure Functions in APIM to validate inputs and sanitize outputs, blocking injection attacks and PII leakage. A beginner-friendly Microsoft guide."
+keywords: Microsoft, input validation, output sanitization, injection attacks, PII redaction, Azure Functions, APIM
 hide:
   - toc
 ---

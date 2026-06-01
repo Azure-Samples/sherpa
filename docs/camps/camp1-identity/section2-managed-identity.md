@@ -1,4 +1,7 @@
 ---
+title: Enable Managed Identity for MCP Servers
+description: "Replace connection strings with passwordless Azure Managed Identity so Container Apps reach Azure resources securely using RBAC and DefaultAzureCredential."
+keywords: Microsoft, Azure Managed Identity, passwordless authentication, RBAC, DefaultAzureCredential, Container Apps
 hide:
   - toc
 ---

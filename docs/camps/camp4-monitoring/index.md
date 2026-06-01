@@ -1,4 +1,7 @@
 ---
+title: "Camp 4: Monitoring & Telemetry for MCP Security"
+description: "Deploy Log Analytics and Application Insights for full observability of your MCP security controls, so you can detect attacks, prove defenses work, and alert on events. A beginner-friendly Microsoft guide."
+keywords: Microsoft, Log Analytics, Application Insights, Azure Monitor, observability, MCP monitoring, telemetry
 hide:
   - toc
 ---

@@ -1,4 +1,7 @@
 ---
+title: Block Prompt Injection with Azure AI Content Safety
+description: "Apply Azure AI Content Safety Prompt Shields at the APIM gateway to detect and block prompt injection and jailbreak attacks before they reach MCP backends."
+keywords: Microsoft, Azure AI Content Safety, Prompt Shields, prompt injection, jailbreak detection, APIM policy
 hide:
   - toc
 ---
