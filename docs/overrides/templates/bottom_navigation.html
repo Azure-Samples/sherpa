@@ -60,7 +60,7 @@
     <a data-slot="button"
         class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md gap-1.5 px-4 has-[&gt;svg]:px-3 ml-auto shadow-none"
         href="{{ page.next_page.url | url }}">
-        <span class="max-[500px]:hidden">Continue: {{ page.next_page.title }}</span>
+        <span class="max-[500px]:hidden">Continue: {% if page.url == 'camps/base-camp/' %}Camp 1 - Identity{% elif page.url == 'camps/camp1-identity/section5-validate/' %}Camp 2 - Gateway{% elif page.url == 'camps/camp2-gateway/section3-network-security/' %}Camp 3 - I/O Security{% elif page.url == 'camps/camp3-io-security/section3-validation/' %}Camp 4 - Monitoring{% else %}{{ page.next_page.title }}{% endif %}</span>
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
             class="tabler-icon tabler-icon-arrow-right">
