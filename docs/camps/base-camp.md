@@ -527,22 +527,22 @@ Start with **Waypoint 1** and work through each waypoint in order. By the end, y
     ```
 
     !!! check "Key Security Features"
-        **Token-based authentication** - FastMCP's StaticTokenVerifier validates Bearer tokens
-        **Context injection** - Authenticated user info available in `Context` parameter
-        **Authorization checks** - Every tool validates user can access requested data
-        **Streamable HTTP** - Modern MCP transport protocol
+        - **Token-based authentication** - FastMCP's StaticTokenVerifier validates Bearer tokens
+        - **Context injection** - Authenticated user info available in `Context` parameter
+        - **Authorization checks** - Every tool validates user can access requested data
+        - **Streamable HTTP** - Modern MCP transport protocol
 
     ### ⚠️ Important: This Is NOT Production-Ready!
 
     While this fixes the Base Camp vulnerability, **do not use this approach in production**:
 
     !!! warning "Demo Limitations"
-        **Simple bearer token** - No expiration, no rotation
-        **Token in environment variable** - Can leak in logs/errors
-        **Hardcoded user mapping** - Token directly maps to user_001 for demo purposes
-        **No token refresh** - Can't revoke access easily
-        **No audit logging** - Can't track access
-        **No rate limiting** - Vulnerable to brute force
+        - **Simple bearer token** - No expiration, no rotation
+        - **Token in environment variable** - Can leak in logs/errors
+        - **Hardcoded user mapping** - Token directly maps to user_001 for demo purposes
+        - **No token refresh** - Can't revoke access easily
+        - **No audit logging** - Can't track access
+        - **No rate limiting** - Vulnerable to brute force
 
     !!! info "Why FastMCP's StaticTokenVerifier?"
         FastMCP provides built-in authentication for learning and prototyping. The StaticTokenVerifier is intentionally simple - it maps predefined tokens to user identities. This is perfect for understanding authentication concepts, but production systems need dynamic token validation (JWT), token rotation, and integration with identity providers.
