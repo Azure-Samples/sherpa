@@ -47,6 +47,12 @@ var tags = {
   camp: 'camp4-monitoring'
 }
 
+// Keep Function deployment storage reachable from workshop laptops.
+// This tag is the documented exclusion for the internal public-network modify policy.
+var functionStorageTags = union(tags, {
+  SecurityControl: 'Ignore'
+})
+
 // Log Analytics Workspace
 module logAnalytics 'modules/log-analytics.bicep' = {
   name: 'log-analytics'
@@ -152,7 +158,7 @@ module storageAccountV1 'modules/storage-account.bicep' = {
   params: {
     name: 'stv1${replace(prefix, '-', '')}'
     location: location
-    tags: tags
+    tags: functionStorageTags
     principalId: functionIdentity.outputs.principalId
   }
 }
@@ -164,7 +170,7 @@ module storageAccountV2 'modules/storage-account.bicep' = {
   params: {
     name: 'stv2${replace(prefix, '-', '')}'
     location: location
-    tags: tags
+    tags: functionStorageTags
     principalId: functionIdentity.outputs.principalId
   }
 }

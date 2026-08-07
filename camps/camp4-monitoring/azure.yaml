@@ -21,11 +21,17 @@ services:
     project: ./servers/sherpa-mcp-server
     language: python
     host: containerapp
+    docker:
+      buildArgs:
+        - PIP_INDEX_URL=${PIP_INDEX_URL}
 
   trail-api:
     project: ./servers/trail-api
     language: python
     host: containerapp
+    docker:
+      buildArgs:
+        - PIP_INDEX_URL=${PIP_INDEX_URL}
 
   # Security Function v1: Basic Logging (the "hidden" state)
   # --------------------------------------------------------
@@ -52,6 +58,26 @@ infra:
   module: main
 
 hooks:
+  preup:
+    posix:
+      shell: sh
+      run: ./scripts/hooks/configure-package-index.sh
+      continueOnError: false
+    windows:
+      shell: pwsh
+      run: ./scripts/hooks/configure-package-index.ps1
+      continueOnError: false
+
+  prepackage:
+    posix:
+      shell: sh
+      run: ./scripts/hooks/configure-package-index.sh
+      continueOnError: false
+    windows:
+      shell: pwsh
+      run: ./scripts/hooks/configure-package-index.ps1
+      continueOnError: false
+
   preprovision:
     posix:
       shell: sh

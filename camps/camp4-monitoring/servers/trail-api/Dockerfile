@@ -1,5 +1,7 @@
 FROM python:3.11-slim
 
+ARG PIP_INDEX_URL
+
 WORKDIR /app
 
 # Install dependencies
