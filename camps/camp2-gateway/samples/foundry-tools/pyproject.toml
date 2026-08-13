@@ -1,0 +1,17 @@
+[project]
+name = "sherpa-foundry-tools-sample"
+version = "0.1.0"
+description = "Create and test a Foundry prompt agent with the catalog-registered Sherpa MCP Server"
+requires-python = ">=3.11"
+dependencies = [
+    "azure-ai-projects>=2.4.0,<3",
+    "azure-identity>=1.25.0,<2",
+    "httpx>=0.28.0,<1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["foundry_tools.py"]
