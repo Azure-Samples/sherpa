@@ -23,14 +23,16 @@ hide:
     **API Center** provides a centralized catalog for all your APIs and MCP servers:
 
     - **Native MCP Support** - API Center recognizes MCP as a first-class API type alongside REST, GraphQL, and gRPC
-    - **Shadow Server Prevention** - Require all MCP servers to register before deployment
-    - **Discovery** - Search for MCP servers across your organization
+    - **Governed Registration** - Establish an approved inventory for MCP servers
+    - **Discovery** - Search for MCP servers through the portal, MCP Registry, and private tool catalogs
     - **Documentation** - Links to MCP tool definitions and usage guides
     - **Versioning** - Track MCP server versions and deprecation schedules
     - **Ownership** - See who owns each MCP server and how to contact them
     - **Compliance** - Tag MCP servers with compliance requirements (HIPAA, PCI, etc.)
 
-    Think of it like a library catalog, but for APIs and MCP servers. If it's not in API Center, it shouldn't be deployed.
+    Think of it like a library catalog, but for APIs and MCP servers. Registration
+    makes approved servers discoverable; your deployment process still needs to
+    enforce the rule that unregistered servers aren't promoted.
 
 ## The Security Challenge: Shadow MCP Servers & API Sprawl
 
@@ -46,13 +48,14 @@ As your organization grows, teams independently deploy MCP servers, creating dan
 - **Compliance blind spots** - Can't prove all MCP servers meet security standards
 - **Unvetted access** - Shadow servers may expose sensitive data without proper controls
 
-You need **centralized API governance** to discover all MCP servers and prevent shadow deployments.
+You need **centralized API governance** to identify approved MCP servers and make
+shadow deployments easier to detect.
 
 ![API Center governance overview](../../images/camp2_section2.png){ .center width=720 }
 
 ---
 
-## Fix: Register MCP Servers in API Center
+## Waypoint 1.4: Register MCP Servers in API Center
 
 Register your MCP servers in Azure API Center:
 
@@ -66,19 +69,44 @@ Register your MCP servers in Azure API Center:
     ./scripts/1.4-fix.ps1
     ```
 
-This registers:
+This registers only the two MCP endpoints—not the backing Trails REST API:
 
 - **Sherpa MCP Server** - Weather, trails, and gear recommendations
 - **Trails MCP Server** - Trail information and permit management
 
-**View your registered MCP servers:**
+For each server, the script creates:
 
-After running the script, open the Azure Portal and navigate to your API Center. You'll see:
+- A version marked **Preview**
+- A Streamable HTTP definition
+- An active deployment containing the APIM runtime URL
+- Use cases, repository, support, and workshop documentation
+- Authentication and non-production security metadata
+- An association with the shared Camp 2 APIM environment
 
-| Name | Summary | Type |
-|------|---------|------|
-| Sherpa MCP Server | Weather forecasts, trail conditions, and gear recommendations | MCP |
-| Trails MCP Server | Trail information, permit management, and hiking conditions | MCP |
+The script also assigns the signed-in participant the **Azure API Center Data
+Reader** role. This camp does not deploy Microsoft Foundry, but the role means the
+registry could later be discovered as a private tool catalog from a Foundry project
+if you choose to add one.
+
+!!! warning "Credentials are not stored in API Center"
+    The registry describes the required authentication but does not store credentials:
+
+    - **Sherpa MCP:** Microsoft Entra OAuth
+    - **Trails MCP:** Microsoft Entra OAuth and an `Ocp-Apim-Subscription-Key` header
+
+    Consumers configure these credentials when they add the tool. Configuring
+    API Center authorization and portal test-console access is intentionally
+    deferred to a later enhancement.
+
+### Verify the API Center inventory
+
+After running the script, open the Azure portal link printed by the script and
+select **Inventory** > **Assets**:
+
+| Name | Type | Version lifecycle | Environment |
+|------|------|-------------------|-------------|
+| Sherpa MCP Server | MCP | Preview | Camp 2 APIM Gateway |
+| Trails MCP Server | MCP | Preview | Camp 2 APIM Gateway |
 
 !!! tip "MCP is a First-Class API Type"
     Notice that API Center lists **MCP** as the API type, not REST or GraphQL. Azure API Center natively understands MCP servers, making it easy to discover and govern all your AI tool integrations in one place.
@@ -89,7 +117,7 @@ After running the script, open the Azure Portal and navigate to your API Center.
 
 **Before (no governance):**
 
-- Shadow MCP servers deployed without security review
+- No authoritative list of approved MCP servers
 - No visibility into what MCP servers exist
 - Duplicate implementations across teams
 - No compliance tracking
@@ -97,19 +125,22 @@ After running the script, open the Azure Portal and navigate to your API Center.
 
 **After (API Center):**
 
-- All MCP servers registered in central catalog
-- Shadow servers discovered and documented
+- Approved MCP servers registered in a central catalog
+- Unregistered servers are easier to identify as shadow deployments
 - Easy discovery prevents duplicate work
-- Track compliance requirements per server
-- Security review before deployment
+- Versions, deployments, support, and security requirements are visible
+- The registry is ready to surface as a private tool catalog in Microsoft Foundry if you add one later
 
-**OWASP MCP09 (Shadow MCP Servers)** mitigation complete, with secondary defense against **MCP03 (Tool Poisoning)** via registry-gated tool discovery! +mdi:check+
+This provides a governance control for **OWASP MCP09 (Shadow MCP Servers)** and
+supports **MCP03 (Tool Poisoning)** defenses by giving consumers an approved,
+metadata-rich registry. Enforcement still depends on organizational deployment
+and access policies.
 
 ---
 
-## Going Further: API Center Portal & AI Foundry Integration
+## Going Further: API Center Portal and Tool Authentication
 
-??? tip "Deploy API Center Portal for Self-Service Discovery"
+??? tip "Enable API Center Portal for Self-Service Discovery"
     **API Center Portal** provides a self-service website where developers can discover and explore your registered MCP servers without needing Azure Portal access.
 
     **Benefits:**
@@ -119,29 +150,15 @@ After running the script, open the Azure Portal and navigate to your API Center.
     - **Access control** - Portal respects Azure RBAC permissions
     - **Customizable** - Brand with your organization's look and feel
 
-    **To deploy:**
+    **Full setup guide:** [Set up API Center Portal](https://learn.microsoft.com/azure/api-center/set-up-api-center-portal)
 
-    1. Create a Static Web App in Azure
-    2. Configure it to use API Center as the backend
-    3. Set up authentication (Entra ID recommended)
+??? tip "Make the tools invokable from the portal and Foundry"
+    A future enhancement can configure API Center authorization for:
 
-    **Full setup guide:** [Set up API Center Portal](https://learn.microsoft.com/en-us/azure/api-center/set-up-api-center-portal)
+    - Microsoft Entra OAuth authorization code flow
+    - The Trails APIM subscription-key header
+    - Key Vault-backed secret references
+    - API-version access policies
 
-??? tip "Microsoft Foundry MCP Integration"
-    **Microsoft Foundry** provides enterprise-grade infrastructure for AI applications, including native MCP server support. When combined with API Center governance, you get a complete solution for managing MCP servers at scale.
-
-    **Key capabilities:**
-
-    - **Centralized security** - Apply consistent security policies across all MCP servers
-    - **Monitoring** - Track MCP server usage, errors, and performance
-    - **Credential management** - Securely manage OAuth tokens and API keys
-    - **Multi-region** - Deploy MCP servers globally with consistent governance
-
-    **Security best practices for MCP in Foundry:**
-
-    - Use Managed Identity for MCP server authentication
-    - Enable audit logging for all MCP tool invocations
-    - Apply network isolation (VNet integration)
-    - Register all MCP servers in API Center before deployment
-
-    **Full guide:** [MCP Security Best Practices in Azure AI Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry/mcp/security-best-practices?view=foundry)
+    See [Authorize access to APIs in API Center](https://learn.microsoft.com/azure/api-center/authorize-api-access)
+    and [Create a private tool catalog](https://learn.microsoft.com/azure/foundry/agents/how-to/private-tool-catalog).
