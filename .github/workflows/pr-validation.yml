@@ -1,5 +1,5 @@
 name: Validate workshop dependencies
-run-name: Dependencies for ${{ inputs.pr_number && format('PR #{0}', inputs.pr_number) || github.ref }}
+run-name: "Dependencies for ${{ inputs.pr_number && format('PR #{0}', inputs.pr_number) || github.ref }}"
 
 on:
   pull_request:
