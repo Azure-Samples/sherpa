@@ -42,8 +42,22 @@ jobs:
       - name: Checkout candidate
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: ${{ inputs.pr_number && format('refs/pull/{0}/merge', inputs.pr_number) || github.ref }}
+          ref: ${{ inputs.pr_number && github.sha || github.ref }}
+          fetch-depth: 0
           persist-credentials: false
+
+      - name: Merge the requested PR into the validation base
+        if: inputs.pr_number != ''
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          if [[ ! "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "::error::pr_number must be a positive PR number"
+            exit 1
+          fi
+          git fetch --no-tags origin "pull/$PR_NUMBER/head"
+          git -c user.name="PR validation" -c user.email="actions@users.noreply.github.com" \
+            merge --no-commit --no-ff FETCH_HEAD
 
       - name: Setup Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
@@ -65,3 +79,41 @@ jobs:
         env:
           SMOKE_PROJECT: ${{ matrix.project }}
         run: uv run --no-sync python "$GITHUB_WORKSPACE/tests/dependency_smoke.py" "$SMOKE_PROJECT"
+
+  container:
+    name: Locked Sherpa container
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ inputs.pr_number && github.sha || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Merge the requested PR into the validation base
+        if: inputs.pr_number != ''
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          if [[ ! "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "::error::pr_number must be a positive PR number"
+            exit 1
+          fi
+          git fetch --no-tags origin "pull/$PR_NUMBER/head"
+          git -c user.name="PR validation" -c user.email="actions@users.noreply.github.com" \
+            merge --no-commit --no-ff FETCH_HEAD
+
+      - name: Build from the reviewed lockfile
+        run: |
+          docker build --tag sherpa-smoke \
+            --build-arg PIP_INDEX_URL=https://pypi.org/simple \
+            camps/camp2-gateway/servers/sherpa-mcp-server
+          docker run --rm sherpa-smoke python -m pip check
+
+      - name: Exercise the installed container dependencies
+        run: |
+          docker run --rm --env PYTHONPATH=/app \
+            --volume "$GITHUB_WORKSPACE/tests:/checks:ro" \
+            sherpa-smoke python /checks/dependency_smoke.py sherpa
